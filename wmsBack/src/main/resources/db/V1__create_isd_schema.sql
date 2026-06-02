@@ -1,3 +1,11 @@
+CREATE TABLE IF NOT EXISTS user_profile (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username varchar(50) UNIQUE,
+    email varchar(50) UNIQUE,
+    password varchar(50),
+    user_role varchar(15)
+);
+
 CREATE TABLE IF NOT EXISTS category (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name varchar(20) NOT NULL UNIQUE
@@ -45,7 +53,7 @@ CREATE TABLE IF NOT EXISTS replenishment_task_history (
     destination_location_id integer REFERENCES location(id),
     operation_type varchar(20) NOT NULL,
     timestamp timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    user_id integer
+    user_id integer REFERENCES user_profile(id)
 );
 
 CREATE TABLE IF NOT EXISTS picking_order (
@@ -65,7 +73,7 @@ CREATE TABLE IF NOT EXISTS picking_order_item (
 CREATE TABLE IF NOT EXISTS picking_order_task (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     picking_order_number integer REFERENCES picking_order(order_number),
-    operator_id integer,
+    operator_id integer REFERENCES user_profile(id),
     task_type varchar(20),
     status varchar(12) NOT NULL
 );
