@@ -13,13 +13,10 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    // Generăm o cheie secretă
     private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    // Stabilim termenul de expirare a token-ului (24 de ore)
     private final long JWT_EXPIRATION_TIME = 864000000;
 
-    // 1. Generare Token
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
@@ -29,12 +26,10 @@ public class JwtUtil {
                 .compact();
     }
 
-    // 2. Extragerea username-ului din token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // 3. Validarea token-ului
     public boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username) && !isTokenExpired(token));
