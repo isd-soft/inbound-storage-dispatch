@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS stock (
     SKU varchar(100) NOT NULL,
     product_id bigint REFERENCES product(id),
     location_id bigint REFERENCES location(id),
-    quantity integer DEFAULT 0 NOT NULL CHECK (quantity >= 0)
+    quantity integer DEFAULT 0 NOT NULL CHECK (quantity >= 0),
+    manufacture_date date,
+    expiration_date date
     );
 
 CREATE TABLE IF NOT EXISTS replenishment_task (
@@ -42,6 +44,7 @@ CREATE TABLE IF NOT EXISTS replenishment_task (
     status varchar(30) NOT NULL,
     source_location_id bigint REFERENCES location(id),
     destination_location_id bigint REFERENCES location(id)
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
 CREATE TABLE IF NOT EXISTS inventory_history (
@@ -59,6 +62,7 @@ CREATE TABLE IF NOT EXISTS inventory_history (
 
 CREATE TABLE IF NOT EXISTS picking_order (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_number varchar(50) NOT NULL UNIQUE,
     timestamp timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     status varchar(30) NOT NULL
     );
@@ -75,6 +79,8 @@ CREATE TABLE IF NOT EXISTS picking_order_task (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     picking_order_id bigint REFERENCES picking_order(id),
     operator_id bigint REFERENCES user_profile(id),
+    location_id bigint REFERENCES location(id),
     task_type varchar(50),
-    status varchar(30) NOT NULL
+    status varchar(30) NOT NULL,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
