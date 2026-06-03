@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
 
@@ -25,7 +26,7 @@ public class ReplenishmentTask {
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "operator_id")
     private User operator;
 
     @NonNull
@@ -33,7 +34,7 @@ public class ReplenishmentTask {
 
     @Enumerated(EnumType.STRING)
     @NonNull
-    private ReplenishmentTaskStatus status;
+    private ReplenishmentTaskStatus status = ReplenishmentTaskStatus.CREATED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_location_id")
@@ -43,7 +44,8 @@ public class ReplenishmentTask {
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
 
-    @NonNull
+    @CreationTimestamp
+    @Column(updatable = false, nullable = false)
     private Timestamp createdAt;
 
     public ReplenishmentTask(Product product, User operator, Long requestedQuantity, ReplenishmentTaskStatus status, Location sourceLocation, Location destinationLocation) {
