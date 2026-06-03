@@ -1,7 +1,7 @@
 package com.isd.wms.service;
 
-import com.example.isd.model.User;
-import com.example.isd.repository.UserRepository;
+import com.isd.wms.entity.User;
+import com.isd.wms.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

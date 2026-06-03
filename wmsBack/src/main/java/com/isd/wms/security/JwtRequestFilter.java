@@ -1,6 +1,6 @@
 package com.isd.wms.security;
 
-import com.example.isd.service.CustomUserDetailsService;
+import com.isd.wms.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
