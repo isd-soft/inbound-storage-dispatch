@@ -13,7 +13,8 @@ import lombok.NoArgsConstructor;
 public class Location {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE , generator = "local_seq")
+    @SequenceGenerator(name = "local_seq", sequenceName = "locations_sequence", allocationSize = 1)
     private Long id;
 
     @Column(name = "location_code", nullable = false, unique = true, length = 50)
@@ -22,7 +23,7 @@ public class Location {
     @Column(length = 50)
     private String zone;
 
-    @Column(length = 255)
+    @Column
     private String description;
 
     @Column(nullable = false)
