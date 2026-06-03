@@ -1,3 +1,5 @@
+
+
 # Среды разработки (IDEs)
 .idea/
 .vscode/
@@ -10,6 +12,7 @@
 Thumbs.db
 
 # BackInBlack (Java / Maven)
+target/
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/local.properties
