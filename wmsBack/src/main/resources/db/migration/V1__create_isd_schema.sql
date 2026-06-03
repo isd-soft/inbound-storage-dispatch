@@ -1,33 +1,43 @@
-CREATE TABLE IF NOT EXISTS user_profile (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE users_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS users (
+    id bigint DEFAULT nextval('users_sequence') PRIMARY KEY,
     username varchar(50) UNIQUE,
-    email varchar(100) UNIQUE,
+    email varchar(100) NOT NULL UNIQUE,
     password varchar(255) NOT NULL,
     user_role varchar(30) NOT NULL
     );
 
-CREATE TABLE IF NOT EXISTS category (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE categories_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS categories (
+    id bigint DEFAULT nextval('categories_sequence') PRIMARY KEY,
     name varchar(50) NOT NULL UNIQUE
     );
 
-CREATE TABLE IF NOT EXISTS product (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE products_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS products (
+    id bigint DEFAULT nextval('products_sequence') PRIMARY KEY,
     name varchar(100) NOT NULL,
     description varchar(255),
     category_id bigint REFERENCES category(id)
     );
 
-CREATE TABLE IF NOT EXISTS location (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE locations_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS locations (
+    id bigint DEFAULT nextval('locations_sequence') PRIMARY KEY,
     location_code varchar(50) NOT NULL UNIQUE,
     zone varchar(50),
     description varchar(255),
     available boolean DEFAULT true NOT NULL
     );
 
-CREATE TABLE IF NOT EXISTS stock (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE stocks_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS stocks (
+    id bigint DEFAULT nextval('stocks_sequence') PRIMARY KEY,
     SKU varchar(100) NOT NULL,
     product_id bigint REFERENCES product(id),
     location_id bigint REFERENCES location(id),
@@ -36,8 +46,10 @@ CREATE TABLE IF NOT EXISTS stock (
     expiration_date date
     );
 
-CREATE TABLE IF NOT EXISTS replenishment_task (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE replenishment_tasks_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS replenishment_tasks (
+    id bigint DEFAULT nextval('replenishment_tasks_sequence') PRIMARY KEY,
     product_id bigint REFERENCES product(id),
     operator_id bigint REFERENCES user_profile(id),
     requested_quantity integer NOT NULL,
@@ -47,8 +59,10 @@ CREATE TABLE IF NOT EXISTS replenishment_task (
     created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
+CREATE SEQUENCE inventory_sequence START 1 INCREMENT BY 1;
+
 CREATE TABLE IF NOT EXISTS inventory_history (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id bigint DEFAULT nextval('inventory_sequence') PRIMARY KEY,
     product_id bigint REFERENCES product(id),
     SKU varchar(100) NOT NULL,
     altered_quantity integer NOT NULL,
@@ -60,23 +74,29 @@ CREATE TABLE IF NOT EXISTS inventory_history (
     user_id bigint REFERENCES user_profile(id)
     );
 
-CREATE TABLE IF NOT EXISTS picking_order (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE picking_orders_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS picking_orders (
+    id bigint DEFAULT nextval('picking_orders_sequence') PRIMARY KEY,
     order_number varchar(50) NOT NULL UNIQUE,
     timestamp timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     status varchar(30) NOT NULL
     );
 
-CREATE TABLE IF NOT EXISTS picking_order_item (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE picking_order_items_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS picking_order_items (
+    id bigint DEFAULT nextval('picking_order_items_sequence') PRIMARY KEY,
     picking_order_id bigint REFERENCES picking_order(id),
     product_id bigint REFERENCES product(id),
     required_quantity integer NOT NULL,
     confirmed_quantity integer DEFAULT 0 NOT NULL
     );
 
-CREATE TABLE IF NOT EXISTS picking_order_task (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SEQUENCE picking_order_tasks_sequence START 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS picking_order_tasks (
+    id bigint DEFAULT nextval('picking_order_tasks_sequence') PRIMARY KEY,
     picking_order_id bigint REFERENCES picking_order(id),
     operator_id bigint REFERENCES user_profile(id),
     location_id bigint REFERENCES location(id),
