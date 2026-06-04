@@ -6,7 +6,7 @@ import com.isd.wms.dto.inventory.InventoryHistoryResponse;
 import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.entity.InventoryHistory;
-import com.isd.wms.entity.InventoryOperationType;
+import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
