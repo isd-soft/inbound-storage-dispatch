@@ -53,7 +53,7 @@ public class AuthController {
         final UserDetails userDetails = userDetailsService.loadUserByUsername(usernameOrEmail);
         final String jwt = jwtUtil.generateToken(userDetails.getUsername());
 
-        log.info("Authentification successful! Token generated for user: {}", userDetails.getUsername());
+        log.info("Authentification successful! Token is generated for user: {}", userDetails.getUsername());
 
         return ResponseEntity.ok(Map.of("token", jwt));
     }
