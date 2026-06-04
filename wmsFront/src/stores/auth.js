@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
           resolve({ role: 'OPERATOR' });
 
         } else {
-          reject(new Error('Неверные учетные данные'));
+          reject(new Error('Wrong Data'));
         }
       }, 500);
     });
