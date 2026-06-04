@@ -106,7 +106,6 @@ public class ReplenishmentTaskService {
         replenishmentTaskRepository.delete(getReplenishmentTask(replenishmentTaskId));
     }
 
-    @Version
     @Transactional
     public ReplenishmentTaskResponse assignReplenishmentTask(Long replenishmentTaskId) {
         ReplenishmentTask task = getReplenishmentTask(replenishmentTaskId);

@@ -1,5 +1,6 @@
 package com.isd.wms.entity;
 
+import com.isd.wms.enums.InventoryOperationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

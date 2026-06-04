@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.Hibernate;
 
 import java.sql.Timestamp;
 import java.util.Objects;
@@ -59,7 +60,7 @@ public class ReplenishmentTask {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
         ReplenishmentTask that = (ReplenishmentTask) o;
         return Objects.equals(id, that.id);
     }
