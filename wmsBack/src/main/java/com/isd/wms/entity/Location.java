@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import org.hibernate.Hibernate;
+
+import java.util.Objects;
 
 @Entity
 @Table(name = "locations")
@@ -28,4 +31,17 @@ public class Location {
 
     @Column(nullable = false)
     private Boolean available = true;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        Location location = (Location) o;
+        return id != null && Objects.equals(id, location.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
