@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -54,5 +55,17 @@ public class ReplenishmentTask {
         this.status = status;
         this.sourceLocation = sourceLocation;
         this.destinationLocation = destinationLocation;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        ReplenishmentTask that = (ReplenishmentTask) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }
