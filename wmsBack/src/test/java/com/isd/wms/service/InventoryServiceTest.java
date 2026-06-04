@@ -12,6 +12,7 @@ import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.Role;
 import com.isd.wms.exception.InsufficientStockException;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -325,7 +326,7 @@ class InventoryServiceTest {
                 .username(username)
                 .email(username + "@example.com")
                 .password("password")
-                .userRole("SUPERVISOR")
+                .userRole(Role.ROLE_SUPERVISOR)
                 .build();
         ReflectionTestUtils.setField(result, "id", id);
         return result;

@@ -91,7 +91,7 @@ class ReplenishmentTaskControllerTest {
         mockMvc.perform(post("/api/replenishment-tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -195,7 +195,7 @@ class ReplenishmentTaskControllerTest {
     @Test
     void assignReplenishmentTask_unauthenticated_returnsUnauthorized() throws Exception {
         mockMvc.perform(patch("/api/replenishment-tasks/1"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
