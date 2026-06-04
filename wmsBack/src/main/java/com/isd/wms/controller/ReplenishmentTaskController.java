@@ -23,7 +23,7 @@ public class ReplenishmentTaskController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ReplenishmentTaskResponse> createReplenishmentTask(@Valid @RequestBody ReplenishmentTaskCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(replenishmentTaskService.createReplenishmentTask(request));
     }
@@ -41,6 +41,12 @@ public class ReplenishmentTaskController {
     @PutMapping("/{id}")
     public ReplenishmentTaskResponse updateReplenishmentTask(@PathVariable Long id, @Valid @RequestBody ReplenishmentTaskUpdateRequest request) {
         return replenishmentTaskService.updateReplenishmentTask(id, request);
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ReplenishmentTaskResponse assignReplenishmentTask(@PathVariable Long id) {
+        return replenishmentTaskService.assignReplenishmentTask(id);
     }
 
     @DeleteMapping("/{id}")

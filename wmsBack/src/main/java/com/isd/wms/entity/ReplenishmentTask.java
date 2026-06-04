@@ -48,9 +48,8 @@ public class ReplenishmentTask {
     @Column(updatable = false, nullable = false)
     private Timestamp createdAt;
 
-    public ReplenishmentTask(Product product, User operator, Long requestedQuantity, ReplenishmentTaskStatus status, Location sourceLocation, Location destinationLocation) {
+    public ReplenishmentTask(Product product, Long requestedQuantity, ReplenishmentTaskStatus status, Location sourceLocation, Location destinationLocation) {
         this.product = product;
-        this.operator = operator;
         this.requestedQuantity = requestedQuantity;
         this.status = status;
         this.sourceLocation = sourceLocation;

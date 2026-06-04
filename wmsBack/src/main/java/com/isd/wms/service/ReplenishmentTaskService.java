@@ -18,6 +18,9 @@ import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.ReplenishmentTaskRepository;
 import com.isd.wms.repository.UserRepository;
+import org.springframework.data.annotation.Version;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +52,7 @@ public class ReplenishmentTaskService {
     public ReplenishmentTaskResponse createReplenishmentTask(ReplenishmentTaskCreateRequest request) {
         validateReplenishmentTaskRequest(
                 request.productId(),
-                request.operatorId(),
+                Long.valueOf(0),
                 request.requestedQuantity(),
                 ReplenishmentTaskStatus.CREATED,
                 request.sourceLocationId(),
@@ -57,13 +60,11 @@ public class ReplenishmentTaskService {
         );
 
         Product product = getProduct(request.productId());
-        User operator = getUser(request.operatorId());
         Location sourceLocation = getLocation(request.sourceLocationId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
         ReplenishmentTask task = new ReplenishmentTask(
                 product,
-                operator,
                 request.requestedQuantity(),
                 ReplenishmentTaskStatus.CREATED,
                 sourceLocation,
@@ -105,6 +106,18 @@ public class ReplenishmentTaskService {
         replenishmentTaskRepository.delete(getReplenishmentTask(replenishmentTaskId));
     }
 
+    @Version
+    @Transactional
+    public ReplenishmentTaskResponse assignReplenishmentTask(Long replenishmentTaskId) {
+        ReplenishmentTask task = getReplenishmentTask(replenishmentTaskId);
+        String username = getCurrentUsername();
+        validateReplenishmentTaskRequest(username, task.getStatus());
+        User user = getUser(username);
+        task.setStatus(ReplenishmentTaskStatus.ASSIGNED);
+        task.setOperator(user);
+        return replenishmentTaskMapper.toResponse(replenishmentTaskRepository.save(task));
+    }
+
     public ReplenishmentTaskResponse getReplenishmentTaskById(Long replenishmentTaskId) {
         return replenishmentTaskMapper.toResponse(getReplenishmentTask(replenishmentTaskId));
     }
@@ -140,9 +153,21 @@ public class ReplenishmentTaskService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
     }
 
+    public String getCurrentUsername() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        return authentication.getName();
+    }
+
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+    }
+
+    private User getUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private Location getLocation(Long locationId) {
@@ -174,6 +199,15 @@ public class ReplenishmentTaskService {
         }
         if (destinationLocationId == null) {
             throw new InvalidRequestException("Replenishment Task destination location id is required");
+        }
+    }
+
+    public void validateReplenishmentTaskRequest(String username, ReplenishmentTaskStatus status) {
+        if (username == null || username.isEmpty()) {
+            throw new InvalidRequestException("Replenishment Task Username is required");
+        }
+        if (status != ReplenishmentTaskStatus.CREATED) {
+            throw new InvalidRequestException("Replenishment Task status must be CREATED");
         }
     }
 }
