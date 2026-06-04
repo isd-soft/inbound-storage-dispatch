@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS stocks (
     location_id bigint REFERENCES locations(id),
     quantity integer DEFAULT 0 NOT NULL CHECK (quantity >= 0),
     manufacture_date date,
-    expiration_date date
+    expiration_date date,
+    version BIGINT DEFAULT 0
     );
 
 CREATE SEQUENCE replenishment_tasks_sequence START 1 INCREMENT BY 1;
