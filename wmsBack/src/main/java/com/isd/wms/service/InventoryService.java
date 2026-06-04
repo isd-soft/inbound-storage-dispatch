@@ -23,7 +23,7 @@ import com.isd.wms.repository.InventoryHistoryRepository;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.UserProfileRepository;
+import com.isd.wms.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ public class InventoryService {
     private final InventoryHistoryRepository inventoryHistoryRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final UserRepository UserRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
 
@@ -202,7 +202,7 @@ public class InventoryService {
     }
 
     private User getUser(Long userId) {
-        return userProfileRepository.findById(userId)
+        return UserRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("User not found: userId={}", userId);
                     return new UserNotFoundException(userId);

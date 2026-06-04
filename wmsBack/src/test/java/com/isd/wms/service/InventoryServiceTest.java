@@ -24,7 +24,7 @@ import com.isd.wms.repository.InventoryHistoryRepository;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.UserProfileRepository;
+import com.isd.wms.repository.UserRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -58,7 +58,7 @@ class InventoryServiceTest {
     private LocationRepository locationRepository;
 
     @Mock
-    private UserProfileRepository userProfileRepository;
+    private UserRepository UserRepository;
 
     private InventoryService inventoryService;
     private Product product;
@@ -72,7 +72,7 @@ class InventoryServiceTest {
                 inventoryHistoryRepository,
                 productRepository,
                 locationRepository,
-                userProfileRepository,
+                UserRepository,
                 new StockMapper(),
                 new InventoryHistoryMapper()
         );
@@ -85,7 +85,7 @@ class InventoryServiceTest {
     void addsNewStockAndCreatesHistory() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
-        when(userProfileRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
                 .thenReturn(Optional.empty());
         when(stockRepository.save(any(Stock.class))).thenAnswer(invocation -> {
@@ -123,7 +123,7 @@ class InventoryServiceTest {
         Stock stock = stock(10L, product, location, "SKU-1", 7);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
-        when(userProfileRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
                 .thenReturn(Optional.of(stock));
         when(stockRepository.save(stock)).thenReturn(stock);
@@ -185,7 +185,7 @@ class InventoryServiceTest {
     void removesStockAndCreatesHistory() {
         Stock stock = stock(10L, product, location, "SKU-1", 8);
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
-        when(userProfileRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.save(stock)).thenReturn(stock);
 
         StockResponse response = inventoryService.removeStock(RemoveStockRequest.builder()
@@ -209,7 +209,7 @@ class InventoryServiceTest {
     void rejectsRemovingMoreThanAvailableStock() {
         Stock stock = stock(10L, product, location, "SKU-1", 2);
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
-        when(userProfileRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> inventoryService.removeStock(RemoveStockRequest.builder()
                 .stockId(10L)
@@ -223,7 +223,7 @@ class InventoryServiceTest {
     void adjustsStockAndCreatesHistoryWithDifference() {
         Stock stock = stock(10L, product, location, "SKU-1", 8);
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
-        when(userProfileRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.save(stock)).thenReturn(stock);
 
         StockResponse response = inventoryService.adjustStock(AdjustStockRequest.builder()
@@ -256,7 +256,7 @@ class InventoryServiceTest {
     void rejectsOperationWithMissingUser() {
         Stock stock = stock(10L, product, location, "SKU-1", 8);
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
-        when(userProfileRepository.findById(99L)).thenReturn(Optional.empty());
+        when(UserRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.removeStock(RemoveStockRequest.builder()
                 .stockId(10L)
