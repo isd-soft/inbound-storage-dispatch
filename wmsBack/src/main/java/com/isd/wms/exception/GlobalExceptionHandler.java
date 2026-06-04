@@ -17,7 +17,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({ProductNotFoundException.class,
             CategoryNotFoundException.class,
-            LocationNotFoundException.class})
+            LocationNotFoundException.class,
+            StockNotFoundException.class,
+            UserNotFoundException.class})
     public ResponseEntity<ApiErrorResponse> handleNotFound(RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), Map.of());
     }
@@ -31,6 +33,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidRequest(InvalidRequestException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), Map.of());
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiErrorResponse> handleInsufficientStock(InsufficientStockException exception) {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), Map.of());
     }
 
