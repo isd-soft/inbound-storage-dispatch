@@ -2,6 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.entity.User;
 import com.isd.wms.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 @Service
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
@@ -21,9 +23,16 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        log.debug("Attempting to load user details for identifier: '{}'", usernameOrEmail);
+
         User user = userRepository.findByUsername(usernameOrEmail)
                 .or(() -> userRepository.findByEmail(usernameOrEmail))
-                .orElseThrow(() -> new UsernameNotFoundException("Utilizatorul nu a fost găsit: " + usernameOrEmail));
+                .orElseThrow(() -> {
+                    log.warn("Authentication failed: User identifier '{}' not found in database", usernameOrEmail);
+                    return new UsernameNotFoundException("User not found: " + usernameOrEmail);
+                });
+
+        log.debug("User '{}' found. Assigning authority/role: '{}'", user.getUsername(), user.getUserRole());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),

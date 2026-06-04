@@ -15,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@Slf4j // Adaugă suportul de SLF4J (log.info, log.error etc.)
+@Slf4j
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -34,28 +34,26 @@ public class AuthController {
         String usernameOrEmail = loginRequest.get("username");
         String password = loginRequest.get("password");
 
-        log.info("Tentativă de autentificare pentru utilizatorul/email-ul: {}", usernameOrEmail);
+        log.info("Authentification attempt for user/email: {}", usernameOrEmail);
 
         try {
-            // Autentificarea nativă Spring Security (verifică automat hash-ul parolei în DB)
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
             );
         } catch (BadCredentialsException e) {
-            log.warn("Autentificare eșuată pentru '{}': Credențiale incorecte.", usernameOrEmail);
+            log.warn("Authentification failed for '{}': Incorrect credentials.", usernameOrEmail);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Username sau parolă incorectă."));
+                    .body(Map.of("error", "Incorrect username or password."));
         } catch (Exception e) {
-            log.error("Eroare neșteptată la autentificarea utilizatorului '{}': ", usernameOrEmail, e);
+            log.error("Unexpected error during user authentification '{}': ", usernameOrEmail, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Eroare la procesarea autentificării."));
+                    .body(Map.of("error", "Error processing authentification."));
         }
 
-        // Dacă codul ajunge aici, înseamnă că autentificarea a reușit!
         final UserDetails userDetails = userDetailsService.loadUserByUsername(usernameOrEmail);
         final String jwt = jwtUtil.generateToken(userDetails.getUsername());
 
-        log.info("Autentificare reușită! Token generat pentru utilizatorul: {}", userDetails.getUsername());
+        log.info("Authentification successful! Token generated for user: {}", userDetails.getUsername());
 
         return ResponseEntity.ok(Map.of("token", jwt));
     }
