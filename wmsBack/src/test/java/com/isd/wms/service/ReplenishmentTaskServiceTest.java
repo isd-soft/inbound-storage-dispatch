@@ -70,7 +70,7 @@ class ReplenishmentTaskServiceTest {
         destinationLocation = mock(Location.class);
         operator = mock(User.class);
         task = mock(ReplenishmentTask.class);
-        response = new ReplenishmentTaskResponse(1L, 1L, 2L, 10L, ReplenishmentTaskStatus.CREATED, 3L, 4L, Timestamp.from(Instant.now()));
+        response = new ReplenishmentTaskResponse(1L, 1L, 2L, 10, ReplenishmentTaskStatus.CREATED, 3L, 4L, Timestamp.from(Instant.now()));
     }
 
     @AfterEach
@@ -88,7 +88,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_validRequest_returnsResponse() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10L, 3L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10, 3L, 4L);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(sourceLocation));
@@ -104,7 +104,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_nullProductId_throwsInvalidRequestException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(null, 10L, 3L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(null, 10, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -122,7 +122,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_zeroRequestedQuantity_throwsInvalidRequestException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 0L, 3L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 0, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -131,7 +131,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_negativeRequestedQuantity_throwsInvalidRequestException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, -5L, 3L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, -5, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -140,7 +140,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_nullSourceLocationId_throwsInvalidRequestException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10L, null, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10, null, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -149,7 +149,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_nullDestinationLocationId_throwsInvalidRequestException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10L, 3L, null);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10, 3L, null);
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -158,7 +158,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_productNotFound_throwsProductNotFoundException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(99L, 10L, 3L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(99L, 10, 3L, 4L);
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> replenishmentTaskService.createReplenishmentTask(request))
@@ -167,7 +167,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_sourceLocationNotFound_throwsProductNotFoundException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10L, 99L, 4L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10, 99L, 4L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -177,7 +177,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void createReplenishmentTask_destinationLocationNotFound_throwsProductNotFoundException() {
-        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10L, 3L, 99L);
+        ReplenishmentTaskCreateRequest request = new ReplenishmentTaskCreateRequest(1L, 10, 3L, 99L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(sourceLocation));
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
@@ -188,7 +188,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_validRequest_returnsUpdatedResponse() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 20L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 20, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
 
         when(replenishmentTaskRepository.findById(1L)).thenReturn(Optional.of(task));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -203,7 +203,7 @@ class ReplenishmentTaskServiceTest {
         assertThat(result).isEqualTo(response);
         verify(task).setProduct(product);
         verify(task).setOperator(operator);
-        verify(task).setRequestedQuantity(20L);
+        verify(task).setRequestedQuantity(20);
         verify(task).setStatus(ReplenishmentTaskStatus.ASSIGNED);
         verify(task).setSourceLocation(sourceLocation);
         verify(task).setDestinationLocation(destinationLocation);
@@ -211,7 +211,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_taskNotFound_throwsReplenishmentTaskNotFoundException() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 20L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 20, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
         when(replenishmentTaskRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> replenishmentTaskService.updateReplenishmentTask(99L, request))
@@ -220,7 +220,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_nullProductId_throwsInvalidRequestException() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(null, 2L, 20L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(null, 2L, 20, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.updateReplenishmentTask(1L, request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -229,7 +229,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_nullOperatorId_throwsInvalidRequestException() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, null, 20L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, null, 20, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.updateReplenishmentTask(1L, request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -238,7 +238,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_nonPositiveQuantity_throwsInvalidRequestException() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 0L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 2L, 0, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
 
         assertThatThrownBy(() -> replenishmentTaskService.updateReplenishmentTask(1L, request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -247,7 +247,7 @@ class ReplenishmentTaskServiceTest {
 
     @Test
     void updateReplenishmentTask_operatorNotFound_throwsUserNotFoundException() {
-        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 99L, 20L, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
+        ReplenishmentTaskUpdateRequest request = new ReplenishmentTaskUpdateRequest(1L, 99L, 20, ReplenishmentTaskStatus.ASSIGNED, 3L, 4L);
 
         when(replenishmentTaskRepository.findById(1L)).thenReturn(Optional.of(task));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -343,7 +343,7 @@ class ReplenishmentTaskServiceTest {
     @Test
     void getAllReplenishmentTasks_returnsMappedList() {
         ReplenishmentTask task2 = mock(ReplenishmentTask.class);
-        ReplenishmentTaskResponse response2 = new ReplenishmentTaskResponse(2L, 2L, null, 5L, ReplenishmentTaskStatus.ASSIGNED, 5L, 6L, null);
+        ReplenishmentTaskResponse response2 = new ReplenishmentTaskResponse(2L, 2L, null, 5, ReplenishmentTaskStatus.ASSIGNED, 5L, 6L, null);
 
         when(replenishmentTaskRepository.findAll()).thenReturn(List.of(task, task2));
         when(replenishmentTaskMapper.toResponse(task)).thenReturn(response);

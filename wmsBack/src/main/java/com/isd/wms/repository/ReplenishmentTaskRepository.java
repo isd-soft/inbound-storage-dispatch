@@ -29,7 +29,7 @@ public interface ReplenishmentTaskRepository extends JpaRepository<Replenishment
     List<ReplenishmentTask> filter(
             @Param("productId") Long productId,
             @Param("operatorId") Long operatorId,
-            @Param("requestedQuantity") Long requestedQuantity,
+            @Param("requestedQuantity") Integer requestedQuantity,
             @Param("status") ReplenishmentTaskStatus status,
             @Param("sourceLocationId") Long sourceLocationId,
             @Param("destinationLocationId") Long destinationLocationId

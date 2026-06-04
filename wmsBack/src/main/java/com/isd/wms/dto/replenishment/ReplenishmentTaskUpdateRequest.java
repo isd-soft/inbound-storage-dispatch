@@ -5,7 +5,7 @@ import com.isd.wms.enums.ReplenishmentTaskStatus;
 public record ReplenishmentTaskUpdateRequest(
         Long productId,
         Long operatorId,
-        Long requestedQuantity,
+        Integer requestedQuantity,
         ReplenishmentTaskStatus status,
         Long sourceLocationId,
         Long destinationLocationId

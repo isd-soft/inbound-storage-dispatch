@@ -8,7 +8,7 @@ public record ReplenishmentTaskResponse(
         Long id,
         Long productId,
         Long operatorId,
-        Long requestedQuantity,
+        Integer requestedQuantity,
         ReplenishmentTaskStatus status,
         Long sourceLocationId,
         Long destinationLocationId,

@@ -30,7 +30,7 @@ public class ReplenishmentTask {
     private User operator;
 
     @NonNull
-    private Long requestedQuantity;
+    private Integer requestedQuantity;
 
     @Enumerated(EnumType.STRING)
     @NonNull
@@ -48,7 +48,7 @@ public class ReplenishmentTask {
     @Column(updatable = false, nullable = false)
     private Timestamp createdAt;
 
-    public ReplenishmentTask(Product product, Long requestedQuantity, ReplenishmentTaskStatus status, Location sourceLocation, Location destinationLocation) {
+    public ReplenishmentTask(Product product, Integer requestedQuantity, ReplenishmentTaskStatus status, Location sourceLocation, Location destinationLocation) {
         this.product = product;
         this.requestedQuantity = requestedQuantity;
         this.status = status;
