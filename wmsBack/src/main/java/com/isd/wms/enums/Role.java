@@ -1,4 +1,4 @@
-package com.isd.wms.entity;
+package com.isd.wms.enums;
 
 public enum Role {
     ROLE_DEV,

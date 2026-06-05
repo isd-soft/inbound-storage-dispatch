@@ -1,8 +1,8 @@
 INSERT INTO users (id, username, email, password, user_role)
 VALUES
-    (1, 'dev', 'dev@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'DEV'),
-    (2, 'supervisor', 'supervisor@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'SUPERVISOR'),
-    (3, 'operator', 'operator@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'OPERATOR');
+    (1, 'dev', 'dev@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_DEV'),
+    (2, 'supervisor', 'supervisor@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_SUPERVISOR'),
+    (3, 'operator', 'operator@isd.local', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_OPERATOR');
 
 INSERT INTO categories (id, name)
 VALUES
