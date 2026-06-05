@@ -36,7 +36,7 @@ public class LocationService {
         location.setLocationCode(code);
         location.setZone(request.zone());
         location.setDescription(request.description());
-        location.setAvailable(true); // По умолчанию ячейка доступна при создании
+        location.setAvailable(true);
 
         return locationMapper.toResponse(locationRepository.save(location));
     }
@@ -46,7 +46,6 @@ public class LocationService {
         Location location = getLocation(locationId);
         String newCode = request.locationCode().trim();
 
-        // Проверяем, не пытаемся ли мы задать код, который уже занят ДРУГОЙ локацией
         if (!location.getLocationCode().equalsIgnoreCase(newCode) &&
                 locationRepository.existsByLocationCodeIgnoreCase(newCode)) {
             throw new DuplicateLocationCodeException(newCode);
