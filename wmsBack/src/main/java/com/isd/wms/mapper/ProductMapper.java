@@ -15,7 +15,8 @@ public class ProductMapper {
                 product.getName(),
                 product.getDescription(),
                 category == null ? null : category.getId(),
-                category == null ? null : category.getName()
+                product.getCreatedAt(),
+                product.getUpdatedAt()
         );
     }
 }

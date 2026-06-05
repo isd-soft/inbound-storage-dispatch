@@ -52,7 +52,7 @@ class ProductServiceTest {
         ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "Whole milk", 1L));
 
         assertThat(response.name()).isEqualTo("Milk");
-        assertThat(response.categoryName()).isEqualTo("Dairy");
+        assertThat(response.categoryId()).isEqualTo(1L);
     }
 
     @Test
@@ -93,7 +93,7 @@ class ProductServiceTest {
         ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", null, 2L));
 
         assertThat(response.name()).isEqualTo("Juice");
-        assertThat(response.categoryName()).isEqualTo("Drinks");
+        assertThat(response.categoryId()).isEqualTo(2L);
     }
 
     @Test
@@ -108,7 +108,7 @@ class ProductServiceTest {
 
     @Test
     void searchesProductsByName() {
-        when(productRepository.findByNameContainingIgnoreCase("milk"))
+        when(productRepository.search("milk", null))
                 .thenReturn(List.of(product(10L, "Milk", category)));
 
         assertThat(productService.searchProducts("milk", null))
@@ -118,12 +118,18 @@ class ProductServiceTest {
 
     @Test
     void filtersProductsByCategory() {
-        when(productRepository.findByCategoryId(1L))
+        when(productRepository.search(null, 1L))
                 .thenReturn(List.of(product(10L, "Milk", category)));
 
         assertThat(productService.searchProducts(null, 1L))
                 .extracting(ProductResponse::categoryId)
                 .containsExactly(1L);
+    }
+
+    @Test
+    void rejectsSearchWithoutParameters() {
+        assertThatThrownBy(() -> productService.searchProducts(" ", null))
+                .isInstanceOf(InvalidRequestException.class);
     }
 
     private Category category(Long id, String name) {
