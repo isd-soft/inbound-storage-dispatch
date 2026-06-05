@@ -11,6 +11,7 @@ import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.mapper.ProductMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+@Slf4j
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -36,68 +38,90 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
+        log.info("Creating product: name={}, categoryId={}", request.name(), request.categoryId());
         validateProductRequest(request.name(), request.categoryId());
         Category category = getCategory(request.categoryId());
         Product product = new Product(request.name().trim(), request.description(), category);
-        return productMapper.toResponse(productRepository.save(product));
+        Product savedProduct = productRepository.save(product);
+        log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        return productMapper.toResponse(savedProduct);
     }
 
     @Transactional
     public ProductResponse updateProduct(Long productId, ProductUpdateRequest request) {
+        log.info("Updating product: productId={}, name={}, categoryId={}", productId, request.name(), request.categoryId());
         validateProductRequest(request.name(), request.categoryId());
         Product product = getProduct(productId);
         Category category = getCategory(request.categoryId());
         product.setName(request.name().trim());
         product.setDescription(request.description());
         product.setCategory(category);
-        return productMapper.toResponse(productRepository.save(product));
+        Product savedProduct = productRepository.save(product);
+        log.info("Product updated successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        return productMapper.toResponse(savedProduct);
     }
 
     @Transactional
     public void deleteProduct(Long productId) {
+        log.info("Deleting product: productId={}", productId);
         productRepository.delete(getProduct(productId));
+        log.info("Product deleted successfully: productId={}", productId);
     }
 
     public ProductResponse getProductById(Long productId) {
-        return productMapper.toResponse(getProduct(productId));
+        log.info("Getting product by id: productId={}", productId);
+        Product product = getProduct(productId);
+        log.debug("Product found: productId={}, categoryId={}", product.getId(), product.getCategory().getId());
+        return productMapper.toResponse(product);
     }
 
     public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream()
+        log.info("Getting all products");
+        List<ProductResponse> products = productRepository.findAll().stream()
                 .map(productMapper::toResponse)
                 .toList();
+        log.info("Products fetched successfully: count={}", products.size());
+        return products;
     }
 
     public List<ProductResponse> searchProducts(String name, Long categoryId) {
-        boolean hasName = name != null && !name.isBlank();
-        List<Product> products;
-        if (hasName && categoryId != null) {
-            products = productRepository.findByNameContainingIgnoreCaseAndCategoryId(name.trim(), categoryId);
-        } else if (hasName) {
-            products = productRepository.findByNameContainingIgnoreCase(name.trim());
-        } else if (categoryId != null) {
-            products = productRepository.findByCategoryId(categoryId);
-        } else {
-            products = productRepository.findAll();
+        log.info("Searching products: name={}, categoryId={}", name, categoryId);
+        String searchName = name == null || name.isBlank() ? null : name.trim();
+        if (searchName == null && categoryId == null) {
+            log.warn("Invalid product search request: missing search parameters");
+            throw new InvalidRequestException("At least one search parameter is required");
         }
-        return products.stream().map(productMapper::toResponse).toList();
+
+        List<ProductResponse> products = productRepository.search(searchName, categoryId).stream()
+                .map(productMapper::toResponse)
+                .toList();
+        log.info("Product search completed: name={}, categoryId={}, count={}", searchName, categoryId, products.size());
+        return products;
     }
 
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException(productId));
+                .orElseThrow(() -> {
+                    log.warn("Product not found: productId={}", productId);
+                    return new ProductNotFoundException(productId);
+                });
     }
 
     private Category getCategory(Long categoryId) {
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+                .orElseThrow(() -> {
+                    log.warn("Category not found for product operation: categoryId={}", categoryId);
+                    return new CategoryNotFoundException(categoryId);
+                });
     }
 
     private void validateProductRequest(String name, Long categoryId) {
         if (name == null || name.isBlank()) {
+            log.warn("Invalid product request: missing product name");
             throw new InvalidRequestException("Product name is required");
         }
         if (categoryId == null) {
+            log.warn("Invalid product request: missing category");
             throw new InvalidRequestException("Product category is required");
         }
     }
