@@ -1,29 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+import LoginView from '../views/auth/LoginView.vue'
+import SuperDashboard from '../views/supervisor/SuperDashboard.vue'
+import OperatorConsole from '../views/operator/OperatorConsole.vue'
+import DevDashboard from '../views/dev/DevDashboard.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      redirect: '/login'
-    },
-    {
-      path: '/login',
       name: 'login',
-      component: () => import('@/views/auth/LoginView.vue')
+      component: LoginView,
+      meta: { guestOnly: true }
     },
     {
       path: '/supervisor',
       name: 'supervisor',
-      component: () => import('@/views/supervisor/SuperDashboard.vue'),
-      meta: { requiresAuth: true, role: 'SUPERVISOR' }
+      component: SuperDashboard,
+      meta: { requiresAuth: true, role: 'ROLE_SUPERVISOR' }
     },
     {
       path: '/operator',
       name: 'operator',
-      component: () => import('@/views/operator/OperatorConsole.vue'),
-      meta: { requiresAuth: true, role: 'OPERATOR' }
+      component: OperatorConsole,
+      meta: { requiresAuth: true, role: 'ROLE_OPERATOR' }
+    },
+    {
+      path: '/dev',
+      name: 'dev',
+      component: DevDashboard,
+      meta: { requiresAuth: true, role: 'ROLE_DEV' }
     }
   ]
 })
@@ -35,14 +43,21 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth) {
     if (!isAuthenticated) {
-      return next('/login')
+      return next('/')
     }
+
     if (to.meta.role && to.meta.role !== userRole) {
-      return next(userRole === 'SUPERVISOR' ? '/supervisor' : '/operator')
+      if (userRole === 'ROLE_SUPERVISOR') return next('/supervisor')
+      if (userRole === 'ROLE_OPERATOR') return next('/operator')
+      if (userRole === 'ROLE_DEV') return next('/dev')
+      return next('/')
     }
   }
-  else if (to.path === '/login' && isAuthenticated) {
-    return next(userRole === 'SUPERVISOR' ? '/supervisor' : '/operator')
+
+  if (to.meta.guestOnly && isAuthenticated) {
+    if (userRole === 'ROLE_SUPERVISOR') return next('/supervisor')
+    if (userRole === 'ROLE_OPERATOR') return next('/operator')
+    if (userRole === 'ROLE_DEV') return next('/dev')
   }
 
   next()
