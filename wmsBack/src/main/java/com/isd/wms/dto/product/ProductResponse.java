@@ -1,10 +1,13 @@
 package com.isd.wms.dto.product;
 
+import java.sql.Timestamp;
+
 public record ProductResponse(
         Long id,
         String name,
         String description,
         Long categoryId,
-        String categoryName
+        Timestamp createdAt,
+        Timestamp updatedAt
 ) {
 }
