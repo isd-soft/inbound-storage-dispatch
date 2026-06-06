@@ -1,9 +1,8 @@
 package com.isd.wms.dto.replenishment;
 
-public record ReplenishmentTaskCreateRequest(
+public record ReplenishmentCreateRequest(
         Long productId,
         Integer requestedQuantity,
-        Long sourceLocationId,
         Long destinationLocationId
 ) {
 }

@@ -1,6 +1,6 @@
 package com.isd.wms.enums;
 
-public enum ReplenishmentTaskStatus {
+public enum ReplenishmentStatus {
     CREATED,
     ASSIGNED,
     IN_PROGRESS,
