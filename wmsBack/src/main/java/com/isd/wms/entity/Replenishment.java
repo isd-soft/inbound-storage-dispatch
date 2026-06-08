@@ -2,10 +2,7 @@ package com.isd.wms.entity;
 
 import com.isd.wms.enums.ReplenishmentStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
@@ -14,6 +11,8 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "replenishments")
 public class Replenishment {
     @Id
@@ -21,8 +20,8 @@ public class Replenishment {
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)

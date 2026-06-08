@@ -4,11 +4,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.Task;
-import com.isd.wms.entity.User;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.ReplenishmentStatus;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
@@ -17,22 +13,10 @@ import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.TaskRepository;
-import com.isd.wms.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import com.isd.wms.enums.ReplenishmentStatus;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.exception.ReplenishmentNotFoundException;
-import com.isd.wms.exception.TaskNotFoundException;
-import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -89,11 +73,20 @@ public class ReplenishmentService {
     @Transactional
     public ReplenishmentResponse updateReplenishment(Long id, ReplenishmentUpdateRequest request) {
         log.info("Updating replenishment: id={}, status={}", id, request.status());
-        validateReplenishmentRequest(request.productId(), request.requestedQuantity(), request.destinationLocationId());
+        validateReplenishmentRequest(
+                request.taskId(),
+                request.productId(),
+                request.requestedQuantity(),
+                request.status(),
+                request.destinationLocationId());
 
         Replenishment replenishment = getReplenishment(id);
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
+
+        if (!request.productId().equals(product.getId()) || request.requestedQuantity() != replenishment.getRequestedQuantity()) {
+            workflowService.updateTask(replenishment.getTask(), request.productId(), request.requestedQuantity());
+        }
 
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
@@ -136,11 +129,6 @@ public class ReplenishmentService {
     private Replenishment getReplenishment(Long replenishmentId) {
         return replenishmentRepository.findById(replenishmentId)
                 .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
-    }
-    
-    private Task getTask(Long taskId) {
-        return taskRepository.findById(taskId)
-                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
     private Product getProduct(Long productId) {
