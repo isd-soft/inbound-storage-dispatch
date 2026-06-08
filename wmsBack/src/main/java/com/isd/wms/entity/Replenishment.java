@@ -2,10 +2,7 @@ package com.isd.wms.entity;
 
 import com.isd.wms.enums.ReplenishmentStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
@@ -14,8 +11,10 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
+@Builder
+@AllArgsConstructor
 @Table(name = "replenishments")
-public class Replenishment {
+public class Replenishment extends BaseTimestampEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "replenishment_seq")
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)

@@ -8,5 +8,7 @@ CREATE TABLE IF NOT EXISTS stocks (
     quantity integer DEFAULT 0 NOT NULL CHECK (quantity >= 0),
     manufacture_date date,
     expiration_date date,
-    version BIGINT DEFAULT 0
+    version BIGINT DEFAULT 0,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

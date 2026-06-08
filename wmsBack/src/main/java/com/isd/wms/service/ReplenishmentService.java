@@ -22,17 +22,9 @@ import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import com.isd.wms.enums.ReplenishmentStatus;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.exception.ReplenishmentNotFoundException;
-import com.isd.wms.exception.TaskNotFoundException;
-import com.isd.wms.mapper.ReplenishmentMapper;
-import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -45,6 +37,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReplenishmentService {
+
     private final ReplenishmentRepository replenishmentRepository;
     private final TaskRepository taskRepository;
     private final ProductRepository productRepository;
@@ -120,9 +113,7 @@ public class ReplenishmentService {
     }
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
-        List<Replenishment> tasks;
-
-        tasks = replenishmentRepository.filter(
+        List<Replenishment> tasks = replenishmentRepository.filter(
                 request.taskId(),
                 request.productId(),
                 request.requestedQuantity(),
@@ -136,11 +127,6 @@ public class ReplenishmentService {
     private Replenishment getReplenishment(Long replenishmentId) {
         return replenishmentRepository.findById(replenishmentId)
                 .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
-    }
-    
-    private Task getTask(Long taskId) {
-        return taskRepository.findById(taskId)
-                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
     private Product getProduct(Long productId) {
@@ -161,20 +147,6 @@ public class ReplenishmentService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
                 .orElseThrow(() -> new ProductNotFoundException(locationId));
-    }
-
-    private void validateReplenishmentRequest(
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull ReplenishmentStatus status,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-        if (status != ReplenishmentStatus.CREATED) {
-            throw new InvalidRequestException("Replenishment status must be CREATED");
-        }
     }
 
     public void validateReplenishmentRequest(
