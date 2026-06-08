@@ -7,15 +7,14 @@ import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.ReplenishmentStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
+import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -30,6 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReplenishmentService {
     private final ReplenishmentRepository replenishmentRepository;
+    private final TaskRepository taskRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final ReplenishmentMapper replenishmentMapper;
@@ -44,8 +44,10 @@ public class ReplenishmentService {
 
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
-
+        Task task = new Task();
+        
         Replenishment replenishment = new Replenishment(
+                task,
                 product,
                 request.requestedQuantity(),
                 ReplenishmentStatus.CREATED,
@@ -64,11 +66,13 @@ public class ReplenishmentService {
                 request.status(),
                 request.destinationLocationId()
         );
-
+        
         Replenishment replenishment = getReplenishment(id);
+        Task task = getTask(request.taskId());
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
+        replenishment.setTask(task);
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
         replenishment.setStatus(request.status());
@@ -78,12 +82,12 @@ public class ReplenishmentService {
     }
 
     @Transactional
-    public void deleteReplenishment(Long replenishmentTaskId) {
-        replenishmentRepository.delete(getReplenishment(replenishmentTaskId));
+    public void deleteReplenishment(Long replenishmentId) {
+        replenishmentRepository.delete(getReplenishment(replenishmentId));
     }
 
-    public ReplenishmentResponse getReplenishmentById(Long replenishmentTaskId) {
-        return replenishmentMapper.toResponse(getReplenishment(replenishmentTaskId));
+    public ReplenishmentResponse getReplenishmentById(Long replenishmentId) {
+        return replenishmentMapper.toResponse(getReplenishment(replenishmentId));
     }
 
     public List<ReplenishmentResponse> getAllReplenishments() {
@@ -106,9 +110,14 @@ public class ReplenishmentService {
         return tasks.stream().map(replenishmentMapper::toResponse).toList();
     }
 
-    private Replenishment getReplenishment(Long replenishmentTaskId) {
-        return replenishmentRepository.findById(replenishmentTaskId)
-                .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentTaskId));
+    private Replenishment getReplenishment(Long replenishmentId) {
+        return replenishmentRepository.findById(replenishmentId)
+                .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
+    }
+    
+    private Task getTask(Long taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
     private Product getProduct(Long productId) {
@@ -146,5 +155,8 @@ public class ReplenishmentService {
             @NonNull Long productId,
             @NonNull Integer requestedQuantity,
             @NonNull Long destinationLocationId) {
+        if (requestedQuantity <= 0) {
+            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
+        }
     }
 }
