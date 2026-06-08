@@ -8,26 +8,8 @@
           <h1 class="text-xl font-bold tracking-wide">ISD WMS</h1>
         </div>
         <nav class="p-4 flex flex-col gap-2">
-          <router-link to="/supervisor" exact-active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-chart-bar"></i> Dashboard
-          </router-link>
-          <router-link to="/supervisor/inventory" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-table"></i> Inventory
-          </router-link>
-          <router-link to="/supervisor/tasks" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-check-square"></i> Tasks
-          </router-link>
-          <router-link to="/supervisor/products" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-tags"></i> Products
-          </router-link>
-          <router-link to="/supervisor/locations" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-map-marker"></i> Locations
-          </router-link>
-          <router-link to="/supervisor/history" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-history"></i> History
-          </router-link>
-          <router-link to="/supervisor/users" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
-            <i class="pi pi-users"></i> Users
+          <router-link v-for="item in menuItems" :key="item.to" :to="item.to" :exact-active-class="item.exact ? 'bg-blue-600 text-white' : undefined" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
+            <i :class="item.icon"></i> {{ item.label }}
           </router-link>
         </nav>
       </div>
@@ -47,13 +29,34 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { computed } from 'vue'
 import Button from 'primevue/button'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+const menuItems = computed(() => {
+  const isDev = authStore.role === 'ROLE_DEV'
+  const items = [
+    { to: '/supervisor', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
+    { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },
+    { to: '/supervisor/tasks', label: 'Tasks', icon: 'pi pi-check-square' },
+    { to: '/supervisor/products', label: 'Products', icon: 'pi pi-tags' },
+    { to: '/supervisor/locations', label: 'Locations', icon: 'pi pi-map-marker' },
+    { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
+    { to: '/supervisor/users', label: 'Users', icon: 'pi pi-users' }
+  ]
+
+  if (isDev) {
+    items.unshift({ to: '/dev', label: 'Dev Overview', icon: 'pi pi-server' })
+    items.push({ to: '/operator', label: 'Operator Console', icon: 'pi pi-box' })
+  }
+
+  return items
+})
+
 const handleLogout = () => {
   authStore.logout()
-  router.push('/')
+  router.push({ name: 'login', query: { loggedOut: '1' } })
 }
 </script>
