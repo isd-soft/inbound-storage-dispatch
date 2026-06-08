@@ -1,0 +1,2 @@
+DROP TABLE picking_orders, picking_order_items, replenishment_tasks;
+DROP SEQUENCE picking_orders_sequence, picking_order_items_sequence, replenishment_tasks_sequence;

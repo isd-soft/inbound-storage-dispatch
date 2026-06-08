@@ -5,5 +5,5 @@ public enum ReplenishmentStatus {
     ASSIGNED,
     IN_PROGRESS,
     COMPLETED,
-    CANCELED
+    CANCELLED
 }

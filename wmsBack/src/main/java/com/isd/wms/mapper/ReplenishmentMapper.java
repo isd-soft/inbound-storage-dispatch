@@ -5,6 +5,7 @@ import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.Task;
+import com.isd.wms.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
