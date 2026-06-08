@@ -3,6 +3,7 @@ package com.isd.wms.service;
 import com.isd.wms.entity.User;
 import com.isd.wms.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -31,6 +32,11 @@ public class CustomUserDetailsService implements UserDetailsService {
                     log.warn("Authentication failed: User identifier '{}' not found in database", usernameOrEmail);
                     return new UsernameNotFoundException("User not found: " + usernameOrEmail);
                 });
+
+        if (!user.isEmailVerified()) {
+            log.warn("Authentication failed: User '{}' has not verified their email", user.getUsername());
+            throw new DisabledException("Email not verified for user: " + user.getUsername());
+        }
 
         log.debug("User '{}' found. Assigning authority/role: '{}'", user.getUsername(), user.getUserRole());
 

@@ -1,0 +1,47 @@
+package com.isd.wms.service;
+
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class EmailService {
+
+    private final JavaMailSender mailSender;
+    private final SpringTemplateEngine templateEngine;
+
+    @Value("${wms.app.url:http://localhost:8080}")
+    private String appUrl;
+
+    public void sendVerificationEmail(String toEmail, String username, String token) {
+        try {
+            Context ctx = new Context();
+            ctx.setVariable("username", username);
+            ctx.setVariable("email", toEmail);
+            ctx.setVariable("confirmUrl", appUrl + "/api/auth/verify?token=" + token);
+
+            String html = templateEngine.process("email/operator-welcome", ctx);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject("Account verification — ISD Warehouse");
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Verification email sent to {}", toEmail);
+
+        } catch (Exception e) {
+            log.error("Failed to send verification email to {}", toEmail, e);
+            throw new RuntimeException("Failed to send verification email");
+        }
+    }
+}
