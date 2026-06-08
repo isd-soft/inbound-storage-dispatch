@@ -11,8 +11,8 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@Builder
 @AllArgsConstructor
+@Builder
 @Table(name = "replenishments")
 public class Replenishment extends BaseTimestampEntity{
     @Id
@@ -20,8 +20,8 @@ public class Replenishment extends BaseTimestampEntity{
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)

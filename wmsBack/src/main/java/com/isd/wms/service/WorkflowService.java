@@ -7,6 +7,7 @@ import com.isd.wms.enums.ProcessStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,36 +22,69 @@ import java.util.List;
 public class WorkflowService {
     private final ProcessRepository processRepository;
     private final StockRepository stockRepository;
+    private final TaskRepository taskRepository;
 
     @Transactional
     public void generateProcessesForTask(Task task, Long productId, int requiredQuantity) {
         int remainingQuantity = requiredQuantity;
-        List<Stock> availableStocks = stockRepository.findAvailableStocksByProductId(productId);
+        List<Stock> availableStocks = stockRepository.findAvailableStocksByProductId(productId).reversed();
         List<Process> processesToSave = new ArrayList<>();
 
-        for (Stock stock : availableStocks) {
-            if (remainingQuantity <= 0) break;
+        availableStocks.sort((s1, s2) -> {
+            int diff1 = s1.getQuantity() - s1.getReservedQuantity();
+            int diff2 = s2.getQuantity() - s2.getReservedQuantity();
+            return Integer.compare(diff1, diff2);
+        });
 
-            int availableInThisStock = stock.getQuantity() - stock.getReservedQuantity();
-            int quantityToTake = Math.min(availableInThisStock, remainingQuantity);
+        while (remainingQuantity > 0) {
+            Stock bestStock = null;
 
-            Process process = Process.builder()
-                    .task(task)
-                    .stock(stock)
-                    .quantity(quantityToTake)
-                    .status(ProcessStatus.CREATED)
-                    .build();
+            for (Stock stock : availableStocks) {
+                int available = stock.getQuantity() - stock.getReservedQuantity();
 
-            processesToSave.add(process);
-            stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
+                if (available <= 0) continue;
+
+                if (available >= remainingQuantity) {
+                    bestStock = stock;
+                    break;
+                }
+
+                bestStock = stock;
+            }
+
+            if (bestStock == null) {
+                throw new InvalidRequestException("Insufficient stock for Product ID: " + productId);
+            }
+
+            int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
+            int quantityToTake = Math.min(available, remainingQuantity);
+
+            processesToSave.add(
+                    Process.builder()
+                            .task(task)
+                            .stock(bestStock)
+                            .quantity(quantityToTake)
+                            .status(ProcessStatus.CREATED)
+                            .build()
+            );
+
+            bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
             remainingQuantity -= quantityToTake;
         }
 
         if (remainingQuantity > 0) {
-            throw new InvalidRequestException("Insufficient unreserved stock for Product ID: " + productId);
+            throw new InvalidRequestException(
+                    "Insufficient unreserved stock for Product ID: " + productId
+            );
         }
+
         processRepository.saveAll(processesToSave);
         stockRepository.saveAll(availableStocks);
     }
 
+    @Transactional
+    public void updateTask(Task task, Long productId, Integer requestedQuantity) {
+        processRepository.deleteByTaskId(task.getId());
+        generateProcessesForTask(task, productId, requestedQuantity);
+    }
 }
