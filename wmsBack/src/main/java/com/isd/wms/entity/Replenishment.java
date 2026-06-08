@@ -13,15 +13,17 @@ import java.util.Objects;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "replenishments")
-public class Replenishment {
+public class Replenishment extends BaseTimestampEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "replenishment_seq")
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)
