@@ -73,6 +73,7 @@ public class InventoryService {
                         .location(location)
                         .sku(sku)
                         .quantity(0)
+                        .reservedQuantity(0)
                         .manufactureDate(request.getManufactureDate())
                         .expirationDate(request.getExpirationDate())
                         .build());
@@ -96,10 +97,13 @@ public class InventoryService {
 
         Stock stock = getStock(request.getStockId());
         User user = getUser(request.getUserId());
-        if (request.getQuantity() > stock.getQuantity()) {
-            log.warn("Insufficient stock: stockId={}, requestedQuantity={}, availableQuantity={}, userId={}",
-                    stock.getId(), request.getQuantity(), stock.getQuantity(), request.getUserId());
-            throw new InsufficientStockException(stock.getId(), request.getQuantity(), stock.getQuantity());
+
+        int availableQuantity = stock.getQuantity() - stock.getReservedQuantity();
+
+        if (request.getQuantity() > availableQuantity) {
+            log.warn("Insufficient unreserved stock: stockId={}, requestedQuantity={}, availableQuantity={}, reservedQuantity={}, userId={}",
+                    stock.getId(), request.getQuantity(), availableQuantity, stock.getReservedQuantity(), request.getUserId());
+            throw new InsufficientStockException(stock.getId(), request.getQuantity(), availableQuantity);
         }
 
         int finalQuantity = stock.getQuantity() - request.getQuantity();
@@ -123,6 +127,13 @@ public class InventoryService {
         }
 
         Stock stock = getStock(request.getStockId());
+
+        if (request.getNewQuantity() < stock.getReservedQuantity()) {
+            log.warn("Cannot adjust stock below reserved quantity: stockId={}, newQuantity={}, reservedQuantity={}",
+                    stock.getId(), request.getNewQuantity(), stock.getReservedQuantity());
+            throw new InvalidRequestException("Cannot adjust quantity below currently reserved quantity (" + stock.getReservedQuantity() + ")");
+        }
+
         User user = getUser(request.getUserId());
         int oldQuantity = stock.getQuantity();
         int alteredQuantity = request.getNewQuantity() - oldQuantity;

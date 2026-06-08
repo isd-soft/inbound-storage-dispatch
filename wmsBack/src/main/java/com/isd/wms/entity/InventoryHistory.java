@@ -31,7 +31,7 @@ import org.hibernate.Hibernate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class InventoryHistory {
+public class InventoryHistory{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "inventory_history_seq")

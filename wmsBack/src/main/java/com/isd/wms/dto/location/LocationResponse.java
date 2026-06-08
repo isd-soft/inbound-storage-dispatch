@@ -1,9 +1,11 @@
 package com.isd.wms.dto.location;
 
+import com.isd.wms.enums.Zone;
+
 public record LocationResponse(
         Long id,
         String locationCode,
-        String zone,
+        Zone zone,
         String description,
         Boolean available
 ) {}

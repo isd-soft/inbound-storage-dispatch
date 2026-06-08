@@ -1,11 +1,12 @@
 package com.isd.wms.dto.location;
 
+import com.isd.wms.enums.Zone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record LocationUpdateRequest (
         @NotBlank(message = "Location code is required") String locationCode,
-        String zone,
+        Zone zone,
         String description,
         @NotNull(message = "Availability status is required") Boolean available
 ) {}

@@ -1,16 +1,11 @@
 package com.isd.wms.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import lombok.*;
+import org.hibernate.Hibernate;
 import java.time.LocalDate;
 import java.util.Objects;
-
-import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.Hibernate;
 
 @Entity
 @Table(name = "stocks")
@@ -19,7 +14,7 @@ import org.hibernate.Hibernate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Stock {
+public class Stock extends BaseTimestampEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stock_seq")
@@ -40,6 +35,10 @@ public class Stock {
     @Min(0)
     @Column(nullable = false)
     private Integer quantity;
+
+    @Column(name = "reserved_quantity", nullable = false)
+    @Builder.Default
+    private Integer reservedQuantity = 0;
 
     @Column(name = "manufacture_date")
     private LocalDate manufactureDate;

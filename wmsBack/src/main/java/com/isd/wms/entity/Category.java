@@ -15,7 +15,7 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @Table(name = "categories")
-public class Category {
+public class Category{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "category_seq")

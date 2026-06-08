@@ -1,5 +1,6 @@
 package com.isd.wms.entity;
 
+import com.isd.wms.enums.Zone;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +14,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Location {
+public class Location{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE , generator = "location_seq")
@@ -23,8 +24,9 @@ public class Location {
     @Column(name = "location_code", nullable = false, unique = true, length = 50)
     private String locationCode;
 
-    @Column(length = 50)
-    private String zone;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "zone")
+    private Zone zone;
 
     @Column
     private String description;

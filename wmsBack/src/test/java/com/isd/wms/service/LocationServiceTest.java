@@ -4,6 +4,7 @@ import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.entity.Location;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
@@ -43,11 +44,11 @@ class LocationServiceTest {
         when(locationRepository.save(any(Location.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         LocationResponse response = locationService.createLocation(
-                new LocationCreateRequest("A-01", "Zone A", "Main storage")
+                new LocationCreateRequest("A-01", Zone.PICKING, "Main storage")
         );
 
         assertThat(response.locationCode()).isEqualTo("A-01");
-        assertThat(response.zone()).isEqualTo("Zone A");
+        assertThat(response.zone()).isEqualTo(Zone.PICKING);
         assertThat(response.available()).isTrue();
     }
 
@@ -55,7 +56,7 @@ class LocationServiceTest {
     void rejectsCreationWhenLocationCodeExists() {
         when(locationRepository.existsByLocationCodeIgnoreCase("A-01")).thenReturn(true);
 
-        assertThatThrownBy(() -> locationService.createLocation(new LocationCreateRequest("A-01", "Zone A", null)))
+        assertThatThrownBy(() -> locationService.createLocation(new LocationCreateRequest("A-01", Zone.PICKING, null)))
                 .isInstanceOf(DuplicateLocationCodeException.class)
                 .hasMessageContaining("A-01");
     }
@@ -63,7 +64,7 @@ class LocationServiceTest {
     @Test
     void getsLocationById() {
         when(locationRepository.findById(1L))
-                .thenReturn(Optional.of(location(1L, "A-01", "Zone A", true)));
+                .thenReturn(Optional.of(location(1L, "A-01", Zone.PICKING, true)));
 
         LocationResponse response = locationService.getLocationById(1L);
 
@@ -80,29 +81,29 @@ class LocationServiceTest {
 
     @Test
     void updatesLocationSuccessfullyWithoutChangingCode() {
-        Location existingLocation = location(1L, "A-01", "Zone A", true);
+        Location existingLocation = location(1L, "A-01", Zone.PICKING, true);
         when(locationRepository.findById(1L)).thenReturn(Optional.of(existingLocation));
         when(locationRepository.save(existingLocation)).thenReturn(existingLocation);
 
         LocationResponse response = locationService.updateLocation(
                 1L,
-                new LocationUpdateRequest("A-01", "Zone B", "Updated desc", false)
+                new LocationUpdateRequest("A-01", Zone.PICKING, "Updated desc", false)
         );
 
-        assertThat(response.zone()).isEqualTo("Zone B");
+        assertThat(response.zone()).isEqualTo(Zone.PICKING);
         assertThat(response.available()).isFalse();
     }
 
     @Test
     void updatesLocationSuccessfullyWithNewCode() {
-        Location existingLocation = location(1L, "A-01", "Zone A", true);
+        Location existingLocation = location(1L, "A-01", Zone.PICKING, true);
         when(locationRepository.findById(1L)).thenReturn(Optional.of(existingLocation));
         when(locationRepository.existsByLocationCodeIgnoreCase("B-02")).thenReturn(false);
         when(locationRepository.save(existingLocation)).thenReturn(existingLocation);
 
         LocationResponse response = locationService.updateLocation(
                 1L,
-                new LocationUpdateRequest("B-02", "Zone B", "Desc", true)
+                new LocationUpdateRequest("B-02", Zone.REPLENISHMENT, "Desc", true)
         );
 
         assertThat(response.locationCode()).isEqualTo("B-02");
@@ -110,17 +111,17 @@ class LocationServiceTest {
 
     @Test
     void rejectsUpdateWhenNewLocationCodeExists() {
-        Location existingLocation = location(1L, "A-01", "Zone A", true);
+        Location existingLocation = location(1L, "A-01", Zone.PICKING, true);
         when(locationRepository.findById(1L)).thenReturn(Optional.of(existingLocation));
         when(locationRepository.existsByLocationCodeIgnoreCase("B-02")).thenReturn(true);
 
-        assertThatThrownBy(() -> locationService.updateLocation(1L, new LocationUpdateRequest("B-02", "Zone B", null, true)))
+        assertThatThrownBy(() -> locationService.updateLocation(1L, new LocationUpdateRequest("B-02", Zone.REPLENISHMENT, null, true)))
                 .isInstanceOf(DuplicateLocationCodeException.class);
     }
 
     @Test
     void deletesLocationSuccessfully() {
-        Location existingLocation = location(1L, "A-01", "Zone A", true);
+        Location existingLocation = location(1L, "A-01", Zone.PICKING, true);
         when(locationRepository.findById(1L)).thenReturn(Optional.of(existingLocation));
 
         locationService.deleteLocation(1L);
@@ -131,8 +132,8 @@ class LocationServiceTest {
     @Test
     void getsAllLocations() {
         when(locationRepository.findAll()).thenReturn(List.of(
-                location(1L, "A-01", "Zone A", true),
-                location(2L, "B-02", "Zone B", false)
+                location(1L, "A-01", Zone.PICKING, true),
+                location(2L, "B-02", Zone.REPLENISHMENT, false)
         ));
 
         List<LocationResponse> responses = locationService.getAllLocations();
@@ -141,7 +142,7 @@ class LocationServiceTest {
         assertThat(responses).extracting(LocationResponse::locationCode).containsExactly("A-01", "B-02");
     }
 
-    private Location location(Long id, String code, String zone, boolean available) {
+    private Location location(Long id, String code, Zone zone, boolean available) {
         Location location = new Location();
         location.setLocationCode(code);
         location.setZone(zone);
