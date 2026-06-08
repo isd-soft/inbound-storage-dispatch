@@ -2,10 +2,7 @@ package com.isd.wms.entity;
 
 import com.isd.wms.enums.ReplenishmentStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
@@ -13,6 +10,8 @@ import java.util.Objects;
 @Entity
 @Getter
 @Setter
+@AllArgsConstructor
+@Builder
 @NoArgsConstructor
 @Table(name = "replenishments")
 public class Replenishment {

@@ -60,12 +60,12 @@ public class UserService {
         return newUser;
     }
 
-    public void verifyEmail(String token) {
+    public String verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
 
         if (user.getVerificationTokenExpiresAt().isBefore(Instant.now())) {
-            throw new RuntimeException("Verification token has expired. Please ask your supervisor to resend the invitation.");
+            throw new RuntimeException("Verification link has expired. Please ask your supervisor to resend the invitation.");
         }
 
         user.setEmailVerified(true);
@@ -74,5 +74,6 @@ public class UserService {
         userRepository.save(user);
 
         log.info("Email verified for user '{}'", user.getUsername());
+        return user.getUsername();
     }
 }

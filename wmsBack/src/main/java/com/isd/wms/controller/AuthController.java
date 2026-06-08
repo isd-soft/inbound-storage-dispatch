@@ -3,6 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.service.UserService;
 import com.isd.wms.security.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -12,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Map;
 
@@ -24,6 +26,9 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
     private final UserService userService;
+
+    @Value("${wms.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     public AuthController(AuthenticationManager authenticationManager,
                           UserDetailsService userDetailsService,
@@ -72,15 +77,19 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+    public ModelAndView verifyEmail(@RequestParam String token) {
         try {
-            userService.verifyEmail(token);
-            log.info("Email verified successfully for token: {}", token);
-            return ResponseEntity.ok(Map.of("message", "Email verified successfully. You can now log in."));
+            String username = userService.verifyEmail(token);
+            log.info("Email verified successfully for user: {}", username);
+            ModelAndView mav = new ModelAndView("email/verify-success");
+            mav.addObject("username", username);
+            mav.addObject("loginUrl", frontendUrl + "/login");
+            return mav;
         } catch (RuntimeException e) {
             log.warn("Email verification failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+            ModelAndView mav = new ModelAndView("email/verify-error");
+            mav.addObject("error", e.getMessage());
+            return mav;
         }
     }
 }
