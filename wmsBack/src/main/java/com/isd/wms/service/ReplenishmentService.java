@@ -8,10 +8,7 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.ReplenishmentStatus;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.exception.ReplenishmentNotFoundException;
-import com.isd.wms.exception.UserNotFoundException;
+import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import lombok.NonNull;
@@ -148,7 +145,7 @@ public class ReplenishmentService {
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new ProductNotFoundException(locationId));
+                .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
     public void validateReplenishmentRequest(
@@ -168,9 +165,6 @@ public class ReplenishmentService {
             @NonNull Long destinationLocationId) {
         if (requestedQuantity <= 0) {
             throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-        if (status == null) {
-            throw new InvalidRequestException("Replenishment status cannot be null");
         }
     }
 }

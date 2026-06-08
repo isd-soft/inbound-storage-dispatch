@@ -34,7 +34,7 @@ public class Order extends BaseTimestampEntity{
 
     public void addOrderLine(OrderLine line) {
         orderLines.add(line);
-        line.setOrder(this);
+//        line.setOrder(this);
     }
 
     @Override
