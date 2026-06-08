@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -31,39 +30,54 @@ public class WorkflowService {
         List<Stock> availableStocks = stockRepository.findAvailableStocksByProductId(productId).reversed();
         List<Process> processesToSave = new ArrayList<>();
 
-        availableStocks.sort(Comparator.comparing(Stock::getQuantity));
-
-        int lastIndex = availableStocks.size() - 1;
+        availableStocks.sort((s1, s2) -> {
+            int diff1 = s1.getQuantity() - s1.getReservedQuantity();
+            int diff2 = s2.getQuantity() - s2.getReservedQuantity();
+            return Integer.compare(diff1, diff2);
+        });
 
         while (remainingQuantity > 0) {
-            for (int i = 0; i <= lastIndex; i++) {
-                Stock stock = availableStocks.get(i);
+            Stock bestStock = null;
 
-                if (i < lastIndex && availableStocks.get(i + 1).getQuantity() > remainingQuantity) {
-                    continue;
+            for (Stock stock : availableStocks) {
+                int available = stock.getQuantity() - stock.getReservedQuantity();
+
+                if (available <= 0) continue;
+
+                if (available >= remainingQuantity) {
+                    bestStock = stock;
+                    break;
                 }
 
-                int quantityToTake = Math.min(stock.getQuantity() - stock.getReservedQuantity(), remainingQuantity);
-
-                processesToSave.add(
-                        Process.builder()
-                                .task(task)
-                                .stock(stock)
-                                .quantity(quantityToTake)
-                                .status(ProcessStatus.CREATED)
-                                .build()
-                );
-
-                stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
-
-                remainingQuantity -= quantityToTake;
-                break;
+                bestStock = stock;
             }
+
+            if (bestStock == null) {
+                throw new InvalidRequestException("Insufficient stock for Product ID: " + productId);
+            }
+
+            int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
+            int quantityToTake = Math.min(available, remainingQuantity);
+
+            processesToSave.add(
+                    Process.builder()
+                            .task(task)
+                            .stock(bestStock)
+                            .quantity(quantityToTake)
+                            .status(ProcessStatus.CREATED)
+                            .build()
+            );
+
+            bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
+            remainingQuantity -= quantityToTake;
         }
 
         if (remainingQuantity > 0) {
-            throw new InvalidRequestException("Insufficient unreserved stock for Product ID: " + productId);
+            throw new InvalidRequestException(
+                    "Insufficient unreserved stock for Product ID: " + productId
+            );
         }
+
         processRepository.saveAll(processesToSave);
         stockRepository.saveAll(availableStocks);
     }
