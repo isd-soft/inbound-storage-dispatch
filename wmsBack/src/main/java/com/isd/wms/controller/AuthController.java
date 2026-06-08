@@ -42,8 +42,6 @@ public class AuthController {
             );
         } catch (BadCredentialsException e) {
 
-            log.error("Detailed auth error: ", e);
-
             log.warn("Authentification failed for '{}': Incorrect credentials.", usernameOrEmail);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Incorrect username or password."));
