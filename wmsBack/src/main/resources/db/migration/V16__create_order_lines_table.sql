@@ -8,4 +8,6 @@ CREATE TABLE IF NOT EXISTS order_lines(
     requested_quantity integer NOT NULL,
     status varchar(30) DEFAULT 'CREATED' NOT NULL,
     destination_location_id bigint REFERENCES locations(id) NOT NULL,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
     );

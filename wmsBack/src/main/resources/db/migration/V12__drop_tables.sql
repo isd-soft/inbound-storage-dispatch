@@ -1,2 +1,2 @@
-DROP TABLE picking_orders, picking_order_items, replenishment_tasks;
+DROP TABLE picking_orders CASCADE, picking_order_items CASCADE, replenishment_tasks CASCADE;
 DROP SEQUENCE picking_orders_sequence, picking_order_items_sequence, replenishment_tasks_sequence;
