@@ -17,7 +17,7 @@ import java.util.function.Function;
 public class JwtUtil {
 
     private final SecretKey SECRET_KEY;
-    private final long JWT_EXPIRATION_TIME = 864000000; // 10 days
+    private final long JWT_EXPIRATION_TIME = 86400000; // 24 hours
 
     public JwtUtil(@Value("${wms.jwt.secret}") String secretString) {
         if (secretString == null || secretString.isBlank()) {
@@ -28,10 +28,11 @@ public class JwtUtil {
         this.SECRET_KEY = Keys.hmacShaKeyFor(secretString.getBytes());
     }
 
-    public String generateToken(String username) {
-        log.debug("Generating JWT token for user: '{}'", username);
+    public String generateToken(String username, String role) {
+        log.debug("Generating JWT token for user: '{}' with role: '{}'", username, role);
         String token = Jwts.builder()
                 .setSubject(username)
+                .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_TIME))
                 .signWith(SECRET_KEY)
@@ -42,6 +43,10 @@ public class JwtUtil {
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
     public boolean validateToken(String token, String username) {
