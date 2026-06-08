@@ -1,5 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <Toast />
+
     <div class="sm:mx-auto sm:w-full sm:max-w-md mb-8">
       <h2 class="text-center text-3xl font-extrabold text-blue-400">
         Inbound Storage Dispatch
@@ -14,15 +16,15 @@
         <form @submit.prevent="handleLogin" class="flex flex-col gap-4">
 
           <div class="flex flex-col gap-2">
-            <label for="email" class="font-medium text-gray-300">Username or Email</label>
+            <label for="username" class="font-medium text-gray-300">Username or Email</label>
             <InputText
-              id="email"
-              v-model="email"
+              id="username"
+              v-model.trim="username"
               type="text"
-              required
               placeholder="You shall not pass!"
               class="w-full"
             />
+            <small v-if="submitted && !username" class="text-red-400">Username or email is required.</small>
           </div>
 
           <div class="flex flex-col gap-2">
@@ -32,10 +34,10 @@
               v-model="password"
               :feedback="false"
               toggleMask
-              required
               inputClass="w-full"
               class="w-full [&>input]:w-full"
             />
+            <small v-if="submitted && !password" class="text-red-400">Password is required.</small>
           </div>
 
           <Message v-if="errorMessage" severity="error" :closable="false">
@@ -56,8 +58,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '@/stores/auth'
 
 import Card from 'primevue/card'
@@ -65,33 +68,49 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
+import Toast from 'primevue/toast'
 
 const router = useRouter()
+const route = useRoute()
+const toast = useToast()
 const authStore = useAuthStore()
 
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
+const submitted = ref(false)
+
+const getErrorMessage = (error) => {
+  return error.response?.data?.error || error.response?.data?.message || error.message || 'Wrong Username or Password'
+}
 
 const handleLogin = async () => {
+  submitted.value = true
   errorMessage.value = ''
+
+  if (!username.value || !password.value) {
+    errorMessage.value = 'Username and password are required.'
+    return
+  }
+
   isLoading.value = true
 
   try {
-    const result = await authStore.login(email.value, password.value)
+    await authStore.login(username.value, password.value)
 
-    if (result.role === 'ROLE_SUPERVISOR') {
-      router.push('/supervisor')
-    } else if (result.role === 'ROLE_OPERATOR') {
-      router.push('/operator')
-    } else if (result.role === 'ROLE_DEV') {
-      router.push('/dev')
-    }
+    router.push(route.query.redirect || authStore.dashboardPath)
   } catch (error) {
-    errorMessage.value = error.message || 'Wrong Username or Password'
+    errorMessage.value = getErrorMessage(error)
+    toast.add({ severity: 'error', summary: 'Login failed', detail: errorMessage.value, life: 4000 })
   } finally {
     isLoading.value = false
   }
 }
+
+onMounted(() => {
+  if (route.query.loggedOut) {
+    toast.add({ severity: 'success', summary: 'Logged out', detail: 'You have been logged out successfully.', life: 3000 })
+  }
+})
 </script>

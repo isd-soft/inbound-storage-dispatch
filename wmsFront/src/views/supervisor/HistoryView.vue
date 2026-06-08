@@ -1,24 +1,61 @@
 <template>
   <div class="p-6">
-    <h2 class="text-2xl font-bold text-gray-100 mb-6">Inventory History</h2>
+    <Toast />
+
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-100">Inventory History</h2>
+        <p class="text-sm text-gray-400 mt-1">Review inventory movement and manual stock modification records.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <Button label="All History" icon="pi pi-list" severity="secondary" outlined @click="showAllHistory" />
+        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadHistory" />
+      </div>
+    </div>
 
     <Card class="bg-gray-800 border-none shadow-lg">
       <template #content>
-        <DataTable :value="mockHistory" paginator :rows="10" stripedRows class="p-datatable-sm">
-          <Column field="timestamp" header="Date/Time" sortable></Column>
-          <Column field="sku" header="SKU" sortable></Column>
-          <Column field="operationType" header="Operation"></Column>
-          <Column field="alteredQuantity" header="Change">
+        <DataTable
+          :value="historyItems"
+          :loading="loading"
+          paginator
+          :rows="10"
+          stripedRows
+          class="p-datatable-sm"
+          dataKey="id"
+          emptyMessage="No inventory history records found."
+        >
+          <Column field="timestamp" header="Date/Time" sortable>
             <template #body="slotProps">
-              <span :class="slotProps.data.alteredQuantity > 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'">
+              {{ formatTimestamp(slotProps.data.timestamp) }}
+            </template>
+          </Column>
+          <Column field="productName" header="Product" sortable></Column>
+          <Column field="sku" header="SKU" sortable></Column>
+          <Column field="alteredQuantity" header="Altered Qty" sortable>
+            <template #body="slotProps">
+              <span :class="slotProps.data.alteredQuantity >= 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'">
                 {{ slotProps.data.alteredQuantity > 0 ? '+' : '' }}{{ slotProps.data.alteredQuantity }}
               </span>
             </template>
           </Column>
-          <Column field="quantityAfterChange" header="Total Qty"></Column>
-          <Column field="sourceLocation" header="From"></Column>
-          <Column field="destinationLocation" header="To"></Column>
-          <Column field="userId" header="User ID"></Column>
+          <Column field="quantityAfterChange" header="Qty After" sortable></Column>
+          <Column field="sourceLocationCode" header="Source Location" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.sourceLocationCode || '-' }}
+            </template>
+          </Column>
+          <Column field="destinationLocationCode" header="Destination Location" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.destinationLocationCode || '-' }}
+            </template>
+          </Column>
+          <Column field="operationType" header="Operation" sortable></Column>
+          <Column field="username" header="User" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.username || `User #${slotProps.data.userId}` }}
+            </template>
+          </Column>
         </DataTable>
       </template>
     </Card>
@@ -26,14 +63,58 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 
-const mockHistory = ref([
-  { id: 1, timestamp: '2026-06-05 14:30', sku: 'BOX-L-99', operationType: 'REPLENISHMENT', alteredQuantity: 50, quantityAfterChange: 150, sourceLocation: 'RECEIVING-01', destinationLocation: 'PICK-A1', userId: 2 },
-  { id: 2, timestamp: '2026-06-05 15:45', sku: 'BOX-L-99', operationType: 'PICKING', alteredQuantity: -10, quantityAfterChange: 140, sourceLocation: 'PICK-A1', destinationLocation: 'DISPATCH-01', userId: 3 },
-  { id: 3, timestamp: '2026-06-05 16:00', sku: 'SCN-01', operationType: 'MANUAL_ADJUST', alteredQuantity: 2, quantityAfterChange: 2, sourceLocation: 'NONE', destinationLocation: 'PICK-B2', userId: 1 }
-])
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Toast from 'primevue/toast'
+
+import { inventoryApi } from '@/api/inventoryApi'
+
+const route = useRoute()
+const router = useRouter()
+const toast = useToast()
+
+const historyItems = ref([])
+const loading = ref(false)
+
+const getErrorMessage = (error) => {
+  return error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+}
+
+const loadHistory = async () => {
+  loading.value = true
+  try {
+    const stockId = route.query.stockId
+    const response = stockId ? await inventoryApi.getStockHistory(stockId) : await inventoryApi.getAllHistory()
+    historyItems.value = response.data
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'History load failed', detail: getErrorMessage(error), life: 4000 })
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '-'
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(timestamp))
+}
+
+const showAllHistory = () => {
+  router.push({ name: 'history' })
+}
+
+watch(() => route.query.stockId, loadHistory)
+
+onMounted(loadHistory)
 </script>
