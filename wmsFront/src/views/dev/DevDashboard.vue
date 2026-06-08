@@ -6,7 +6,11 @@
         <i class="pi pi-server text-2xl text-blue-400"></i>
         <h1 class="text-xl font-bold tracking-wide">System Overview</h1>
       </div>
-      <Button icon="pi pi-sign-out" label="Logout" severity="danger" text @click="handleLogout" />
+      <div class="flex flex-wrap items-center gap-2">
+        <Button label="Supervisor" icon="pi pi-chart-bar" severity="secondary" text @click="router.push('/supervisor')" />
+        <Button label="Operator" icon="pi pi-box" severity="secondary" text @click="router.push('/operator')" />
+        <Button icon="pi pi-sign-out" label="Logout" severity="danger" text @click="handleLogout" />
+      </div>
     </header>
 
     <main class="p-4 max-w-7xl mx-auto mt-4">
@@ -71,7 +75,7 @@ const authStore = useAuthStore()
 
 const handleLogout = () => {
   authStore.logout()
-  router.push('/')
+  router.push({ name: 'login', query: { loggedOut: '1' } })
 }
 
 const systemLogs = ref([

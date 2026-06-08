@@ -5,5 +5,5 @@ public enum ProcessStatus {
     ASSIGNED,
     IN_PROGRESS,
     COMPLETED,
-    CANCELLED
+    CANCELED
 }

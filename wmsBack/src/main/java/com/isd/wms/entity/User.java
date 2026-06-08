@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.Instant;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
@@ -37,6 +38,15 @@ public class User{
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false, length = 30)
     private Role userRole;
+
+    @Column(name = "email_verified")
+    private boolean emailVerified = false;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "verification_token_expires_at")
+    private Instant verificationTokenExpiresAt;
 
     @Override
     public boolean equals(Object o) {

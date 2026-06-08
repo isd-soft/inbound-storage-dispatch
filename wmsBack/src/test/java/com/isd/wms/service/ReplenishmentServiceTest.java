@@ -169,7 +169,7 @@ class ReplenishmentServiceTest {
     }
 
     @Test
-    void updateReplenishment_notFound_throwsReplenishmentTaskNotFoundException() {
+    void updateReplenishment_notFound_throwsReplenishmentNotFoundException() {
         ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 20, ReplenishmentStatus.COMPLETED, 3L);
         when(replenishmentRepository.findById(99L)).thenReturn(Optional.empty());
 

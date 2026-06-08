@@ -57,6 +57,6 @@ const authStore = useAuthStore()
 
 const handleLogout = () => {
   authStore.logout()
-  router.push('/')
+  router.push({ name: 'login', query: { loggedOut: '1' } })
 }
 </script>

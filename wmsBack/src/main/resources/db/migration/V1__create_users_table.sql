@@ -5,5 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
     username varchar(50) UNIQUE,
     email varchar(100) NOT NULL UNIQUE,
     password varchar(255) NOT NULL,
-    user_role varchar(30) NOT NULL
+    user_role varchar(30) NOT NULL,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_token VARCHAR(255),
+    verification_token_expires_at TIMESTAMPTZ
 );
