@@ -1,32 +1,57 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-6">
-    <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Super_Dashboard</h1>
-
-      <button
-        @click="handleLogout"
-        class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
-      >
-        Exit light
-      </button>
+  <div class="p-6">
+    <div class="flex items-center gap-3 mb-6">
+      <h2 class="text-2xl font-bold text-gray-100">Warehouse Operations</h2>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-      <p class="text-gray-500">Soon......</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <Card class="bg-gray-800 border-none shadow-lg">
+        <template #title><span class="text-gray-300">Total Products</span></template>
+        <template #content><span class="text-4xl font-bold text-gray-100">142</span></template>
+      </Card>
+
+      <Card class="bg-gray-800 border-none shadow-lg">
+        <template #title><span class="text-gray-300">Open Replenishments</span></template>
+        <template #content><span class="text-4xl font-bold text-blue-400">8</span></template>
+      </Card>
+
+      <Card class="bg-gray-800 border-none shadow-lg">
+        <template #title><span class="text-gray-300">Low Stock Alerts</span></template>
+        <template #content><span class="text-4xl font-bold text-red-500">3</span></template>
+      </Card>
     </div>
+
+    <Card class="bg-gray-800 border-none shadow-lg">
+      <template #title><span class="text-gray-300">Low Stock Inventory</span></template>
+      <template #content>
+        <DataTable :value="inventory" class="p-datatable-sm">
+          <Column field="sku" header="SKU"></Column>
+          <Column field="name" header="Product Name"></Column>
+          <Column field="quantity" header="Quantity">
+            <template #body="slotProps">
+              <span class="text-red-400 font-bold">{{ slotProps.data.quantity }}</span>
+            </template>
+          </Column>
+          <Column header="Action">
+            <template #body>
+              <Button label="Create Task" icon="pi pi-plus" size="small" severity="success" outlined />
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { ref } from 'vue'
+import Card from 'primevue/card'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
 
-const router = useRouter()
-const authStore = useAuthStore()
-
-const handleLogout = () => {
-  authStore.logout()
-
-  router.push('/login')
-}
+const inventory = ref([
+  { sku: 'SCN-WLS-001', name: 'Wireless Scanner', quantity: 2 },
+  { sku: 'TOWELS-12R', name: 'Paper Towels', quantity: 5 }
+])
 </script>

@@ -11,21 +11,30 @@ export const useAuthStore = defineStore('auth', () => {
       setTimeout(() => {
         if (email === 'supervisor@gmail.com') {
           token.value = 'mock-jwt-token-123';
-          role.value = 'SUPERVISOR';
+          role.value = 'ROLE_SUPERVISOR';
           user.value = { email: 'supervisor@gmail.com' };
 
           localStorage.setItem('jwt_token', token.value);
           localStorage.setItem('user_role', role.value);
-          resolve({ role: 'SUPERVISOR' });
+          resolve({ role: 'ROLE_SUPERVISOR' });
 
         } else if (email === 'smoothOperator@gmail.com') {
           token.value = 'mock-jwt-token-456';
-          role.value = 'OPERATOR';
+          role.value = 'ROLE_OPERATOR';
           user.value = { email: 'smoothOperator@gmail.com' };
 
           localStorage.setItem('jwt_token', token.value);
           localStorage.setItem('user_role', role.value);
-          resolve({ role: 'OPERATOR' });
+          resolve({ role: 'ROLE_OPERATOR' });
+
+        } else if (email === 'dev@gmail.com') {
+          token.value = 'mock-jwt-token-789';
+          role.value = 'ROLE_DEV';
+          user.value = { email: 'dev@gmail.com' };
+
+          localStorage.setItem('jwt_token', token.value);
+          localStorage.setItem('user_role', role.value);
+          resolve({ role: 'ROLE_DEV' });
 
         } else {
           reject(new Error('Wrong Data'));
