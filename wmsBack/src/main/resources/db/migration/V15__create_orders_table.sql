@@ -3,5 +3,7 @@ CREATE SEQUENCE orders_sequence START 1 INCREMENT BY 1;
 CREATE TABLE IF NOT EXISTS orders(
     id bigint DEFAULT nextval('orders_sequence') PRIMARY KEY,
     logic_id varchar(50) NOT NULL,
-    status varchar(30) DEFAULT 'CREATED' NOT NULL
+    status varchar(30) DEFAULT 'CREATED' NOT NULL,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL
     );

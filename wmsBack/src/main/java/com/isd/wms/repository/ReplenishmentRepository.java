@@ -13,9 +13,7 @@ import java.util.List;
 @Repository
 public interface ReplenishmentRepository extends JpaRepository<Replenishment, Long> {
 
-    List<Replenishment> findReplenishmentTasksByOperator(User operator);
-
-    List<Replenishment> findReplenishmentTasksByStatus(ReplenishmentStatus status);
+    List<Replenishment> findByStatus(ReplenishmentStatus status);
 
     @Query("""
             SELECT r FROM Replenishment r

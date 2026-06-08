@@ -36,7 +36,7 @@ public class Stock extends BaseTimestampEntity {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "reserved_quantity", nullable = false)
+    @Column(name = "quantity_reserved", nullable = false)
     @Builder.Default
     private Integer reservedQuantity = 0;
 

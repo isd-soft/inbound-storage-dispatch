@@ -14,7 +14,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Builder
 @Table(name = "replenishments")
-public class Replenishment {
+public class Replenishment extends BaseTimestampEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "replenishment_seq")
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)

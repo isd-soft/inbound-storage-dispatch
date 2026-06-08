@@ -29,6 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReplenishmentService {
+
     private final ReplenishmentRepository replenishmentRepository;
     private final TaskRepository taskRepository;
     private final ProductRepository productRepository;
@@ -113,9 +114,7 @@ public class ReplenishmentService {
     }
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
-        List<Replenishment> tasks;
-
-        tasks = replenishmentRepository.filter(
+        List<Replenishment> tasks = replenishmentRepository.filter(
                 request.taskId(),
                 request.productId(),
                 request.requestedQuantity(),
@@ -149,20 +148,6 @@ public class ReplenishmentService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
                 .orElseThrow(() -> new ProductNotFoundException(locationId));
-    }
-
-    private void validateReplenishmentRequest(
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull ReplenishmentStatus status,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-        if (status != ReplenishmentStatus.CREATED) {
-            throw new InvalidRequestException("Replenishment status must be CREATED");
-        }
     }
 
     public void validateReplenishmentRequest(
