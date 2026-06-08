@@ -43,11 +43,11 @@ public class ReplenishmentController {
         return replenishmentService.updateReplenishment(id, request);
     }
 
-    @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ReplenishmentResponse assignReplenishmentTask(@PathVariable Long id) {
-        return replenishmentService.assignReplenishment(id);
-    }
+//    @PatchMapping("/{id}")
+//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+//    public ReplenishmentResponse assignReplenishmentTask(@PathVariable Long id) {
+//        return replenishmentService.assignReplenishment(id);
+//    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReplenishmentTask(@PathVariable Long id) {
