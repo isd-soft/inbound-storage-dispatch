@@ -15,18 +15,24 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({ProductNotFoundException.class,
+    @ExceptionHandler({
+            ProductNotFoundException.class,
             CategoryNotFoundException.class,
             LocationNotFoundException.class,
             StockNotFoundException.class,
-            UserNotFoundException.class})
+            UserNotFoundException.class,
+            ReplenishmentNotFoundException.class,
+            OrderNotFoundException.class
+    })
     public ResponseEntity<ApiErrorResponse> handleNotFound(RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), Map.of());
     }
 
-    @ExceptionHandler({DuplicateCategoryNameException.class,
+    @ExceptionHandler({
+            DuplicateCategoryNameException.class,
             CategoryInUseException.class,
-            DuplicateLocationCodeException.class})
+            DuplicateLocationCodeException.class
+    })
     public ResponseEntity<ApiErrorResponse> handleConflict(RuntimeException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), Map.of());
     }

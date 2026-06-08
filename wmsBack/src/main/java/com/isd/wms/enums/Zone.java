@@ -1,6 +1,7 @@
 package com.isd.wms.enums;
 
-public enum TaskType {
+public enum Zone {
+    PICKING,
     REPLENISHMENT,
-    PICKING_ORDER
+    DISPATCH
 }
