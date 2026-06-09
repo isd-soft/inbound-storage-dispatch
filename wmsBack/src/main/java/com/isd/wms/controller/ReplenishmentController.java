@@ -6,6 +6,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.service.ReplenishmentService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,13 +16,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/replenishments")
+@RequiredArgsConstructor
 public class ReplenishmentController {
 
     private final ReplenishmentService replenishmentService;
 
-    public ReplenishmentController(ReplenishmentService replenishmentService) {
-        this.replenishmentService = replenishmentService;
-    }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
