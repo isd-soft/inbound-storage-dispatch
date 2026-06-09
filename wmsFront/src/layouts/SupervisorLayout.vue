@@ -1,20 +1,21 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-gray-100 font-sans flex">
+  <div class="app-shell font-sans flex">
 
-    <aside class="w-64 bg-gray-800 shadow-xl flex flex-col justify-between hidden md:flex">
+    <aside class="app-sidebar w-64 shadow-xl flex-col justify-between hidden md:flex">
       <div>
-        <div class="p-6 flex items-center gap-3 border-b border-gray-700">
-          <i class="pi pi-box text-2xl text-blue-400"></i>
-          <h1 class="text-xl font-bold tracking-wide">ISD WMS</h1>
+        <div class="p-6 flex items-center gap-3 border-b border-white/10">
+          <i class="pi pi-box text-2xl app-brand"></i>
+          <h1 class="app-title text-xl font-bold tracking-wide">ISD WMS</h1>
         </div>
         <nav class="p-4 flex flex-col gap-2">
-          <router-link v-for="item in menuItems" :key="item.to" :to="item.to" :exact-active-class="item.exact ? 'bg-blue-600 text-white' : undefined" active-class="bg-blue-600 text-white" class="p-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3">
+          <router-link v-for="item in menuItems" :key="item.to" :to="item.to" :exact-active-class="item.exact ? 'app-nav-link-active' : undefined" active-class="app-nav-link-active" class="app-nav-link p-3 rounded-lg transition flex items-center gap-3">
             <i :class="item.icon"></i> {{ item.label }}
           </router-link>
         </nav>
       </div>
 
-      <div class="p-4 border-t border-gray-700">
+      <div class="p-4 border-t border-white/10 flex flex-col gap-3">
+        <ThemeToggle show-label class="w-full justify-center" />
         <Button icon="pi pi-sign-out" label="Logout" severity="danger" text class="w-full justify-start" @click="handleLogout" />
       </div>
     </aside>
@@ -31,6 +32,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { computed } from 'vue'
 import Button from 'primevue/button'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

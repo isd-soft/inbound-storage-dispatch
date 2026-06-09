@@ -5,8 +5,8 @@
 
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
       <div>
-        <h2 class="text-2xl font-bold text-gray-100">Live Inventory</h2>
-        <p class="text-sm text-gray-400 mt-1">Monitor stock quantities and apply manual stock changes.</p>
+        <h2 class="app-title text-2xl font-bold">Live Inventory</h2>
+        <p class="app-subtitle text-sm mt-1">Monitor stock quantities and apply manual stock changes.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <Button v-if="canManageStock" label="Add Stock" icon="pi pi-plus" severity="success" @click="openAddDialog" />
@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card">
       <template #content>
         <DataTable
           :value="stockItems"
@@ -31,7 +31,7 @@
           <Column field="locationCode" header="Location" sortable></Column>
           <Column field="quantity" header="Quantity" sortable>
             <template #body="slotProps">
-              <span :class="slotProps.data.quantity < 10 ? 'text-red-400 font-bold' : 'text-green-400'">
+              <span :class="slotProps.data.quantity < 10 ? 'app-danger font-bold' : 'app-success'">
                 {{ slotProps.data.quantity }}
               </span>
             </template>
