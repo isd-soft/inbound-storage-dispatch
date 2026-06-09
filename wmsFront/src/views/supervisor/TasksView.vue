@@ -1,11 +1,11 @@
 <template>
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-gray-100">Warehouse Tasks</h2>
+      <h2 class="app-title text-2xl font-bold">Warehouse Tasks</h2>
       <Button label="Create Task" icon="pi pi-plus" severity="success" />
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card">
       <template #content>
         <DataTable :value="mockTasks" paginator :rows="10" stripedRows class="p-datatable-sm">
           <Column field="id" header="Task ID" sortable></Column>

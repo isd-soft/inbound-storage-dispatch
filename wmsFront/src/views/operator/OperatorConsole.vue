@@ -1,23 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-gray-100 font-sans">
-    <header class="flex justify-between items-center p-4 bg-gray-800 shadow-md">
+  <div class="app-shell font-sans">
+
+    <header class="app-header flex justify-between items-center p-4 shadow-md">
       <div class="flex items-center gap-3">
-        <i class="pi pi-box text-2xl text-orange-400"></i>
+        <i class="pi pi-box text-2xl app-warm"></i>
         <h1 class="text-xl font-bold tracking-wide">Operator</h1>
       </div>
-      <Button icon="pi pi-sign-out" severity="danger" text rounded @click="handleLogout" />
+      <div class="flex items-center gap-2">
+        <ThemeToggle />
+        <Button icon="pi pi-sign-out" severity="danger" text rounded @click="handleLogout" />
+      </div>
     </header>
 
     <main class="p-4 max-w-md mx-auto mt-6">
       <!-- Status -->
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-100">Ready for Work</h2>
-        <p class="text-gray-400 mt-1">
-          Active Task:
-          <span class="font-medium" :class="myTasks.length ? 'text-orange-400' : 'text-gray-500'">
-            {{ myTasks.length ? `${myTasks.length} in progress` : 'None' }}
-          </span>
-        </p>
+        <h2 class="app-title text-2xl font-bold">Ready for Work</h2>
+        <p class="app-subtitle mt-1">Active Task: <span class="app-warm font-medium">None</span></p>
       </div>
 
       <!-- Main actions -->

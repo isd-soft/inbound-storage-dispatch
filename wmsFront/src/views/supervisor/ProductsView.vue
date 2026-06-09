@@ -1,11 +1,11 @@
 <template>
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-gray-100">Product Management</h2>
+      <h2 class="app-title text-2xl font-bold">Product Management</h2>
       <Button label="Add Product" icon="pi pi-plus" severity="success" />
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card">
       <template #content>
         <DataTable :value="mockProducts" stripedRows class="p-datatable-sm">
           <Column field="id" header="ID" sortable></Column>

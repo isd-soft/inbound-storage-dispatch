@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/auth/verify").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/auth/verify", "/error").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         .requestMatchers("/api/supervisor/**").hasAnyAuthority("ROLE_SUPERVISOR", "ROLE_DEV", "SUPERVISOR", "DEV")
@@ -64,7 +64,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:[*]"));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
