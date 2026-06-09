@@ -24,8 +24,7 @@ public class OrderLineController {
         return ResponseEntity.ok(orderLineService.getAll());
     }
 
-    @RequestMapping("/{id}")
-    @GetMapping
+    @GetMapping("/{id}")
     public ResponseEntity<OrderLineResponse> getOrderLineById(@PathVariable Long id) {
         return ResponseEntity.ok(orderLineService.getOrderLineById(id));
     }
@@ -35,14 +34,12 @@ public class OrderLineController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderLineService.addOrderLine(request));
     }
 
-    @RequestMapping("/{id}")
-    @PutMapping
+    @PutMapping("/{id}")
     public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @NonNull OrderLineUpdateRequest request) {
         return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
     }
 
-    @RequestMapping("/{id}")
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteOrderLine(@PathVariable Long id) {
         orderLineService.deleteOrderLine(id);
         return ResponseEntity.noContent().build();

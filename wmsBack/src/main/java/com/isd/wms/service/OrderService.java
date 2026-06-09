@@ -20,9 +20,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Service
 public class OrderService {
-    private ExtendedOrderMapper extendedOrderMapper;
-    private OrderMapper orderMapper;
-    private OrderRepository orderRepository;
+    private final ExtendedOrderMapper extendedOrderMapper;
+    private final OrderMapper orderMapper;
+    private final OrderRepository orderRepository;
 
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {

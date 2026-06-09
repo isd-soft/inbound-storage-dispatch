@@ -22,22 +22,19 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
-    @RequestMapping("/extended")
-    @GetMapping
+    @GetMapping("/extended")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<List<ExtendedOrderResponse>> getExtendedOrders() {
         return ResponseEntity.ok(orderService.getAllExtendedOrders());
     }
 
-    @RequestMapping("/{id}")
-    @GetMapping
+    @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    @RequestMapping("/extended/{id}")
-    @GetMapping
+    @GetMapping("/extended/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ExtendedOrderResponse> getExtendedOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getExtendedOrderById(id));
@@ -49,24 +46,23 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
     }
 
-    @RequestMapping("/{id}")
-    @PutMapping
+    @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<OrderResponse> updateOrder(@PathVariable Long id, @RequestBody OrderUpdateRequest request) {
         return ResponseEntity.ok(orderService.updateOrder(id, request));
     }
 
-    @RequestMapping("/{id}")
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<String> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrderById(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
+
+    @GetMapping("/filter")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<List<OrderResponse>> searchOrders(OrderSearchRequest request) {
+    public ResponseEntity<List<OrderResponse>> searchOrders(@ModelAttribute OrderSearchRequest request) {
         return ResponseEntity.ok(orderService.searchOrders(request));
     }
 }
