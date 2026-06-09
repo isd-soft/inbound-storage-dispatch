@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
@@ -62,7 +62,7 @@ public class OrderController {
     @RequestMapping("/{id}")
     @DeleteMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity deleteOrder(@PathVariable Long id) {
+    public ResponseEntity<String> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrderById(id);
         return ResponseEntity.noContent().build();
     }
@@ -70,7 +70,7 @@ public class OrderController {
     @RequestMapping("/")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<Optional<List<OrderResponse>>> searchOrders(OrderSearchRequest request) {
+    public ResponseEntity<List<OrderResponse>> searchOrders(OrderSearchRequest request) {
         return ResponseEntity.ok(orderService.searchOrders(request));
     }
 }

@@ -70,10 +70,10 @@ public class OrderService {
         return extendedOrderMapper.toResponse(order);
     }
 
-    public Optional<List<OrderResponse>> searchOrders(OrderSearchRequest request) {
-        return Optional.of(orderRepository.filter(request.logicId(), request.status(), request.createdAt(), request.updatedAt()).stream()
+    public List<OrderResponse> searchOrders(OrderSearchRequest request) {
+        return orderRepository.filter(request.logicId(), request.status(), request.createdAt(), request.updatedAt()).stream()
                 .map(orderMapper::toResponse)
-                .toList());
+                .toList();
     }
 
     private void validateOrderRequest(@NonNull Long id, @NonNull String s, @NonNull OrderStatus status) {
