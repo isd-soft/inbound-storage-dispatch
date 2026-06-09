@@ -5,6 +5,7 @@ import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.dto.product.ProductUpdateRequest;
 import com.isd.wms.service.ProductService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,14 +24,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
+@RequiredArgsConstructor
 @Slf4j
 public class ProductController {
 
     private final ProductService productService;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")

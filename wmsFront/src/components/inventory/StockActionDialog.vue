@@ -9,7 +9,7 @@
   >
     <form class="flex flex-col gap-4" @submit.prevent="submitForm">
       <div v-if="mode === 'add'" class="flex flex-col gap-2">
-        <label for="productId" class="font-medium text-gray-300">Product</label>
+        <label for="productId" class="app-subtitle font-medium">Product</label>
         <Dropdown
           id="productId"
           v-model="form.productId"
@@ -20,17 +20,17 @@
           class="w-full"
           filter
         />
-        <small v-if="submitted && !form.productId" class="text-red-400">Product is required.</small>
+        <small v-if="submitted && !form.productId" class="app-danger">Product is required.</small>
       </div>
 
       <div v-if="mode === 'add'" class="flex flex-col gap-2">
-        <label for="sku" class="font-medium text-gray-300">SKU</label>
+        <label for="sku" class="app-subtitle font-medium">SKU</label>
         <InputText id="sku" v-model.trim="form.sku" placeholder="SKU" class="w-full" />
-        <small v-if="submitted && !form.sku" class="text-red-400">SKU is required.</small>
+        <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
       </div>
 
       <div v-if="mode === 'add'" class="flex flex-col gap-2">
-        <label for="locationId" class="font-medium text-gray-300">Location</label>
+        <label for="locationId" class="app-subtitle font-medium">Location</label>
         <Dropdown
           id="locationId"
           v-model="form.locationId"
@@ -41,16 +41,16 @@
           class="w-full"
           filter
         />
-        <small v-if="submitted && !form.locationId" class="text-red-400">Location is required.</small>
+        <small v-if="submitted && !form.locationId" class="app-danger">Location is required.</small>
       </div>
 
-      <div v-if="selectedStock && mode !== 'add'" class="rounded-lg bg-gray-900 p-3 text-sm text-gray-300">
-        <div class="font-semibold text-gray-100">{{ selectedStock.productName }}</div>
+      <div v-if="selectedStock && mode !== 'add'" class="app-muted-panel rounded-lg p-3 text-sm">
+        <div class="app-title font-semibold">{{ selectedStock.productName }}</div>
         <div>{{ selectedStock.sku }} · {{ selectedStock.locationCode }} · Current qty: {{ selectedStock.quantity }}</div>
       </div>
 
       <div class="flex flex-col gap-2">
-        <label :for="quantityField" class="font-medium text-gray-300">{{ quantityLabel }}</label>
+        <label :for="quantityField" class="app-subtitle font-medium">{{ quantityLabel }}</label>
         <InputNumber
           :id="quantityField"
           v-model="form[quantityField]"
@@ -59,16 +59,16 @@
           class="w-full"
           inputClass="w-full"
         />
-        <small v-if="submitted && !isQuantityValid" class="text-red-400">{{ quantityValidationMessage }}</small>
+        <small v-if="submitted && !isQuantityValid" class="app-danger">{{ quantityValidationMessage }}</small>
       </div>
 
       <div v-if="mode === 'add'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-2">
-          <label for="manufactureDate" class="font-medium text-gray-300">Manufacture Date</label>
+          <label for="manufactureDate" class="app-subtitle font-medium">Manufacture Date</label>
           <InputText id="manufactureDate" v-model="form.manufactureDate" type="date" class="w-full" />
         </div>
         <div class="flex flex-col gap-2">
-          <label for="expirationDate" class="font-medium text-gray-300">Expiration Date</label>
+          <label for="expirationDate" class="app-subtitle font-medium">Expiration Date</label>
           <InputText id="expirationDate" v-model="form.expirationDate" type="date" class="w-full" />
         </div>
       </div>
