@@ -34,33 +34,19 @@ public class ReplenishmentService {
     private final LocationRepository locationRepository;
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
+    private final TaskService taskService;
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
         log.info("Creating replenishment: productId={}, requestedQuantity={}, destinationLocationId={}",
                 request.productId(), request.requestedQuantity(), request.destinationLocationId());
 
-        validateReplenishmentRequest(request.productId(), request.requestedQuantity(), request.destinationLocationId());
-
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
-        User supervisor = getUser(getCurrentUsername());
 
-        Task task = Task.builder()
-                .supervisor(supervisor)
-                .taskType(TaskType.REPLENISHMENT)
-                .requestedQuantity(request.requestedQuantity())
-                .status(TaskStatus.CREATED)
-                .build();
-        task = taskRepository.save(task);
+        Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());
 
-        Replenishment replenishment = Replenishment.builder()
-                .product(product)
-                .task(task)
-                .requestedQuantity(request.requestedQuantity())
-                .status(ReplenishmentStatus.CREATED)
-                .destinationLocation(destinationLocation)
-                .build();
+        Replenishment replenishment = new Replenishment(task, product, request.requestedQuantity(), destinationLocation);
         replenishment = replenishmentRepository.save(replenishment);
 
         workflowService.generateProcessesForTask(task, product.getId(), request.requestedQuantity());
@@ -71,19 +57,12 @@ public class ReplenishmentService {
     @Transactional
     public ReplenishmentResponse updateReplenishment(Long id, ReplenishmentUpdateRequest request) {
         log.info("Updating replenishment: id={}, status={}", id, request.status());
-        validateUpdateReplenishmentRequest(
-                request.taskId(),
-                request.productId(),
-                request.requestedQuantity(),
-                request.status(),
-                request.destinationLocationId()
-        );
 
         Replenishment replenishment = getReplenishment(id);
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        if (!request.productId().equals(product.getId()) || !request.requestedQuantity().equals(replenishment.getRequestedQuantity())) {
+        if (!request.productId().equals(replenishment.getProduct().getId()) || !request.requestedQuantity().equals(replenishment.getRequestedQuantity())) {
             workflowService.updateTask(replenishment.getTask(), request.productId(), request.requestedQuantity());
         }
 
@@ -146,25 +125,5 @@ public class ReplenishmentService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
                 .orElseThrow(() -> new LocationNotFoundException(locationId));
-    }
-
-    public void validateReplenishmentRequest(
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-    }
-
-    private void validateUpdateReplenishmentRequest(
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull ReplenishmentStatus status,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
     }
 }

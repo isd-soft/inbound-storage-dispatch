@@ -13,7 +13,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "orders")
 public class Order extends BaseTimestampEntity{
     @Id
@@ -21,14 +20,17 @@ public class Order extends BaseTimestampEntity{
     @SequenceGenerator(name = "order_gen", sequenceName = "orders_sequence", allocationSize = 1)
     private Long id;
 
+    public Order(String logicId) {
+        this.logicId = logicId;
+    }
+
     @Column(name = "logic_id", nullable = false, unique = true)
     private String logicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
+    private OrderStatus status = OrderStatus.CREATED;
 
-    @Builder.Default
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLine> orderLines = new ArrayList<>();
 

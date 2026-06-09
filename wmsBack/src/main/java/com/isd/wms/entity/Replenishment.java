@@ -12,7 +12,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "replenishments")
 public class Replenishment extends BaseTimestampEntity{
     @Id
@@ -29,7 +28,7 @@ public class Replenishment extends BaseTimestampEntity{
     private Product product;
 
     @NonNull
-    private Integer requestedQuantity;
+    private Integer requestedQuantity = 0;
 
     @Enumerated(EnumType.STRING)
     @NonNull
@@ -39,11 +38,10 @@ public class Replenishment extends BaseTimestampEntity{
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
 
-    public Replenishment(Task task, Product product, Integer requestedQuantity, ReplenishmentStatus status, Location destinationLocation) {
+    public Replenishment(Task task, Product product, Integer requestedQuantity, Location destinationLocation) {
         this.task = task;
         this.product = product;
         this.requestedQuantity = requestedQuantity;
-        this.status = status;
         this.destinationLocation = destinationLocation;
     }
 

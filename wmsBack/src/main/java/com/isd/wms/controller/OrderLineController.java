@@ -5,6 +5,7 @@ import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
 import com.isd.wms.service.OrderLineService;
+import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,12 +31,12 @@ public class OrderLineController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderLineResponse> addOrderLine(@RequestBody OrderLineCreateRequest request) {
+    public ResponseEntity<OrderLineResponse> addOrderLine(@Valid @RequestBody OrderLineCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderLineService.addOrderLine(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @NonNull OrderLineUpdateRequest request) {
+    public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @Valid @NonNull OrderLineUpdateRequest request) {
         return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
     }
 

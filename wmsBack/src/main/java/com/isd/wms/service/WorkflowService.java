@@ -102,8 +102,7 @@ public class WorkflowService {
         Stock sourceStock = process.getStock();
         int quantityToMove = process.getQuantity();
 
-        sourceStock.setQuantity(sourceStock.getQuantity() - quantityToMove);
-        sourceStock.setReservedQuantity(sourceStock.getReservedQuantity() - quantityToMove);
+        sourceStock.removeQuantity(quantityToMove);
         stockRepository.save(sourceStock);
 
         Task task = process.getTask();

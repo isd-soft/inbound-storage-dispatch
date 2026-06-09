@@ -19,6 +19,7 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
+@Transactional(readOnly = true)
 public class OrderService {
     private final ExtendedOrderMapper extendedOrderMapper;
     private final OrderMapper orderMapper;
@@ -26,17 +27,15 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
-        validateOrderRequest(request.logicId());
-        Order order = Order.builder()
-                .logicId(request.logicId())
-                .build();
+        Order order = new Order(request.logicId());
         return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
-        validateOrderRequest(id, request.logicId(), request.status());
-
+        if (!request.status().equals(OrderStatus.CREATED)) {
+            throw new InvalidRequestException("Order status must be CREATED");
+        }
         Order order = getOrder(id);
 
         order.setLogicId(request.logicId());
@@ -74,18 +73,6 @@ public class OrderService {
         return orderRepository.filter(request.logicId(), request.status(), request.createdAt(), request.updatedAt()).stream()
                 .map(orderMapper::toResponse)
                 .toList();
-    }
-
-    private void validateOrderRequest(@NonNull Long id, @NonNull String s, @NonNull OrderStatus status) {
-        if (s.isEmpty()) {
-            throw new InvalidRequestException("Order logic id cannot be empty");
-        }
-    }
-
-    private void validateOrderRequest(@NonNull String s) {
-        if (s.isEmpty()) {
-            throw new InvalidRequestException("Order logic id cannot be empty");
-        }
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {

@@ -1,9 +1,10 @@
 package com.isd.wms.dto.order;
 
 import com.isd.wms.enums.OrderStatus;
+import lombok.NonNull;
 
 public record OrderUpdateRequest(
-        String logicId,
-        OrderStatus status
+        @NonNull String logicId,
+        @NonNull OrderStatus status
 ) {
 }

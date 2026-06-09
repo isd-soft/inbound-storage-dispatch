@@ -49,6 +49,11 @@ public class Stock extends BaseTimestampEntity {
     @Version
     private Long version;
 
+    public void removeQuantity(int quantityToMove) {
+        this.quantity -= quantityToMove;
+        this.reservedQuantity += quantityToMove;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -61,4 +66,5 @@ public class Stock extends BaseTimestampEntity {
     public int hashCode() {
         return getClass().hashCode();
     }
+
 }

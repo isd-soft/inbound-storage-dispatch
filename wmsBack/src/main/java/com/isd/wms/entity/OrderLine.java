@@ -11,7 +11,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "order_lines")
 public class OrderLine extends BaseTimestampEntity {
     @Id
@@ -36,11 +35,20 @@ public class OrderLine extends BaseTimestampEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
+    private OrderStatus status = OrderStatus.CREATED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_location_id", nullable = false)
     private Location destinationLocation;
+
+    public OrderLine(Order order, Task task, Product product, Integer requestedQuantity, OrderStatus status, Location destinationLocation) {
+        this.order = order;
+        this.task = task;
+        this.product = product;
+        this.requestedQuantity = requestedQuantity;
+        this.status = status;
+        this.destinationLocation = destinationLocation;
+    }
 
     @Override
     public boolean equals(Object o) {

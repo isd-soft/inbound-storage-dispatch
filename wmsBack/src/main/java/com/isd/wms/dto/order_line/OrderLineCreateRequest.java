@@ -1,12 +1,15 @@
 package com.isd.wms.dto.order_line;
 
-import com.isd.wms.enums.OrderStatus;
+import jakarta.validation.constraints.Min;
+import lombok.NonNull;
 
 public record OrderLineCreateRequest(
-        Long orderId,
-        Long taskId,
-        Long productId,
+        @NonNull Long orderId,
+        @NonNull Long taskId,
+        @NonNull Long productId,
+        @NonNull
+        @Min(0)
         Integer requestedQuantity,
-        Long destinationLocationId
+        @NonNull Long destinationLocationId
 ) {
 }
