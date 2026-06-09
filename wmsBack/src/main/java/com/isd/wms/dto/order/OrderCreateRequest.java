@@ -7,6 +7,7 @@ import java.util.List;
 
 public record OrderCreateRequest(
         @NonNull String logicId,
+        @NonNull Long destinationLocationId,
         @NonNull List<OrderLineCreateRequest> orderLines
 ) {
 }

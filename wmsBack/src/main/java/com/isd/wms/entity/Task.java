@@ -3,7 +3,10 @@ package com.isd.wms.entity;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.sql.Timestamp;

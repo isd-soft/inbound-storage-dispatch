@@ -11,7 +11,6 @@ public record OrderLineUpdateRequest(
         @NonNull
         @Min(0)
         Integer requestedQuantity,
-        @NonNull OrderStatus status,
-        @NonNull Long destinationLocationId
+        @NonNull OrderStatus status
 ) {
 }

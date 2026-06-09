@@ -2,8 +2,12 @@ package com.isd.wms.entity;
 
 import com.isd.wms.enums.OrderStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
+
 import java.util.Objects;
 
 @Entity
@@ -37,17 +41,11 @@ public class OrderLine extends BaseTimestampEntity {
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.CREATED;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "destination_location_id", nullable = false)
-    private Location destinationLocation;
-
-    public OrderLine(Order order, Task task, Product product, Integer requestedQuantity, OrderStatus status, Location destinationLocation) {
+    public OrderLine(Order order, Task task, Product product, Integer requestedQuantity) {
         this.order = order;
         this.task = task;
         this.product = product;
         this.requestedQuantity = requestedQuantity;
-        this.status = status;
-        this.destinationLocation = destinationLocation;
     }
 
     @Override

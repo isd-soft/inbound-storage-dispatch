@@ -31,6 +31,10 @@ public class Order extends BaseTimestampEntity{
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.CREATED;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_location_id", nullable = false)
+    private Location destinationLocation;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLine> orderLines = new ArrayList<>();
 

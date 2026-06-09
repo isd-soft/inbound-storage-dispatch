@@ -3,12 +3,20 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
-import com.isd.wms.entity.*;
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
+import com.isd.wms.entity.Product;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.*;
+import com.isd.wms.exception.OrderLineNotFoundException;
+import com.isd.wms.exception.OrderNotFoundException;
+import com.isd.wms.exception.ProductNotFoundException;
+import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.mapper.OrderLineMapper;
-import com.isd.wms.repository.*;
+import com.isd.wms.repository.OrderLineRepository;
+import com.isd.wms.repository.OrderRepository;
+import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.repository.TaskRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +28,6 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class OrderLineService {
-    private final LocationRepository locationRepository;
     private final OrderRepository orderRepository;
     private final OrderLineRepository orderLineRepository;
     private final OrderLineMapper orderLineMapper;
@@ -29,18 +36,14 @@ public class OrderLineService {
     private final TaskService taskService;
 
     @Transactional
-    public OrderLineResponse addOrderLine(OrderLineCreateRequest request) {
-        Order order = getOrder(request.orderId());
-
-
+    public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
-        Location destinationLocation = getLocation(request.destinationLocationId());
 
         Task task = taskService.createTask(TaskType.PICKING_ORDER, request.requestedQuantity(), request.productId());
 
-        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity(), OrderStatus.CREATED, destinationLocation);
+        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity());
 
-        return orderLineMapper.toResponse(orderLineRepository.save(orderLine));
+        orderLineRepository.save(orderLine);
     }
 
     @Transactional
@@ -56,7 +59,6 @@ public class OrderLineService {
         orderLine.setOrder(getOrder(request.orderId()));
         orderLine.setTask(getTask(request.taskId()));
         orderLine.setProduct(getProduct(request.productId()));
-        orderLine.setDestinationLocation(getLocation(request.destinationLocationId()));
         orderLine.setRequestedQuantity(request.requestedQuantity());
         orderLine.setStatus(request.status());
     }
@@ -69,10 +71,6 @@ public class OrderLineService {
         return orderLineRepository.findAll().stream()
                 .map(orderLineMapper::toResponse)
                 .toList();
-    }
-
-    public List<OrderLine> getAllOrderLinesByOrderId(Long orderId) {
-        return orderLineRepository.findAllByOrderId(orderId);
     }
 
     private Order getOrder(@NonNull Long orderId) {
@@ -92,11 +90,6 @@ public class OrderLineService {
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
-    }
-
-    private Location getLocation(Long locationId) {
-        return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
     private Task getTask(Long taskId) {

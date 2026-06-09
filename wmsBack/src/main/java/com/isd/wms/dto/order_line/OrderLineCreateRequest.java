@@ -4,12 +4,14 @@ import jakarta.validation.constraints.Min;
 import lombok.NonNull;
 
 public record OrderLineCreateRequest(
-        @NonNull Long orderId,
+        Long orderId,
         @NonNull Long taskId,
         @NonNull Long productId,
         @NonNull
         @Min(0)
-        Integer requestedQuantity,
-        @NonNull Long destinationLocationId
+        Integer requestedQuantity
 ) {
+        public OrderLineCreateRequest(OrderLineCreateRequest request, Long orderId) {
+            this(orderId, request.taskId(), request.productId(), request.requestedQuantity());
+        }
 }

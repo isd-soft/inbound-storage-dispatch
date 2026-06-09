@@ -43,8 +43,8 @@ public class OrderController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody ExtendedOrderCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.addExtendedOrder(request));
     }
 
     @PutMapping("/{id}")

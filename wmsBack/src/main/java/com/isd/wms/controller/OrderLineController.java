@@ -30,11 +30,6 @@ public class OrderLineController {
         return ResponseEntity.ok(orderLineService.getOrderLineById(id));
     }
 
-    @PostMapping
-    public ResponseEntity<OrderLineResponse> addOrderLine(@Valid @RequestBody OrderLineCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderLineService.addOrderLine(request));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @Valid @NonNull OrderLineUpdateRequest request) {
         return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
