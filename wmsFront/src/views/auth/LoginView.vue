@@ -1,22 +1,25 @@
 <template>
-  <div class="min-h-screen bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="app-shell relative flex flex-col items-center justify-center px-6 py-12 sm:px-6 lg:px-8">
     <Toast />
+    <div class="absolute right-6 top-6">
+      <ThemeToggle />
+    </div>
 
-    <div class="sm:mx-auto sm:w-full sm:max-w-md mb-8">
-      <h2 class="text-center text-3xl font-extrabold text-blue-400">
+    <div class="w-full max-w-md mb-8">
+      <h2 class="app-brand text-center text-3xl font-extrabold">
         Inbound Storage Dispatch
       </h2>
-      <p class="mt-2 text-center text-sm text-blue-200">
+      <p class="app-subtitle mt-2 text-center text-sm">
         Welcome to WMS
       </p>
     </div>
 
-    <Card class="sm:mx-auto sm:w-full sm:max-w-md shadow-lg bg-gray-800 border-none">
+    <Card class="app-card w-full max-w-md">
       <template #content>
         <form @submit.prevent="handleLogin" class="flex flex-col gap-4">
 
           <div class="flex flex-col gap-2">
-            <label for="username" class="font-medium text-gray-300">Username or Email</label>
+            <label for="username" class="app-subtitle font-medium">Username or Email</label>
             <InputText
               id="username"
               v-model.trim="username"
@@ -24,11 +27,11 @@
               placeholder="You shall not pass!"
               class="w-full"
             />
-            <small v-if="submitted && !username" class="text-red-400">Username or email is required.</small>
+            <small v-if="submitted && !username" class="app-danger">Username or email is required.</small>
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="password" class="font-medium text-gray-300">Password</label>
+            <label for="password" class="app-subtitle font-medium">Password</label>
             <Password
               id="password"
               v-model="password"
@@ -37,7 +40,7 @@
               inputClass="w-full"
               class="w-full [&>input]:w-full"
             />
-            <small v-if="submitted && !password" class="text-red-400">Password is required.</small>
+            <small v-if="submitted && !password" class="app-danger">Password is required.</small>
           </div>
 
           <Message v-if="errorMessage" severity="error" :closable="false">
@@ -69,6 +72,7 @@ import Password from 'primevue/password'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Toast from 'primevue/toast'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()

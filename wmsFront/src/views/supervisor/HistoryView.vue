@@ -4,8 +4,8 @@
 
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
       <div>
-        <h2 class="text-2xl font-bold text-gray-100">Inventory History</h2>
-        <p class="text-sm text-gray-400 mt-1">Review inventory movement and manual stock modification records.</p>
+        <h2 class="app-title text-2xl font-bold">Inventory History</h2>
+        <p class="app-subtitle text-sm mt-1">Review inventory movement and manual stock modification records.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <Button label="All History" icon="pi pi-list" severity="secondary" outlined @click="showAllHistory" />
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card">
       <template #content>
         <DataTable
           :value="historyItems"
@@ -34,7 +34,7 @@
           <Column field="sku" header="SKU" sortable></Column>
           <Column field="alteredQuantity" header="Altered Qty" sortable>
             <template #body="slotProps">
-              <span :class="slotProps.data.alteredQuantity >= 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'">
+              <span :class="slotProps.data.alteredQuantity >= 0 ? 'app-success font-bold' : 'app-danger font-bold'">
                 {{ slotProps.data.alteredQuantity > 0 ? '+' : '' }}{{ slotProps.data.alteredQuantity }}
               </span>
             </template>

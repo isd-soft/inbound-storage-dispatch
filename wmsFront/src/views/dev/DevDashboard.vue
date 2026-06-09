@@ -1,12 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-gray-100 font-sans">
+  <div class="app-shell font-sans">
 
-    <header class="flex justify-between items-center p-4 bg-gray-800 shadow-md">
+    <header class="app-header flex justify-between items-center p-4 shadow-md">
       <div class="flex items-center gap-3">
-        <i class="pi pi-server text-2xl text-blue-400"></i>
+        <i class="pi pi-server text-2xl app-brand"></i>
         <h1 class="text-xl font-bold tracking-wide">System Overview</h1>
       </div>
       <div class="flex flex-wrap items-center gap-2">
+        <ThemeToggle />
         <Button label="Supervisor" icon="pi pi-chart-bar" severity="secondary" text @click="router.push('/supervisor')" />
         <Button label="Operator" icon="pi pi-box" severity="secondary" text @click="router.push('/operator')" />
         <Button icon="pi pi-sign-out" label="Logout" severity="danger" text @click="handleLogout" />
@@ -15,32 +16,32 @@
 
     <main class="p-4 max-w-7xl mx-auto mt-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card class="bg-gray-800 border-none shadow-lg">
-          <template #title><span class="text-gray-300">Backend API</span></template>
+        <Card class="app-card">
+          <template #title><span class="app-subtitle">Backend API</span></template>
           <template #content>
             <Tag severity="success" value="Online"></Tag>
-            <p class="mt-2 text-sm text-gray-500">v1.0.0 | Java 21</p>
+            <p class="app-muted mt-2 text-sm">v1.0.0 | Java 21</p>
           </template>
         </Card>
 
-        <Card class="bg-gray-800 border-none shadow-lg">
-          <template #title><span class="text-gray-300">Database</span></template>
+        <Card class="app-card">
+          <template #title><span class="app-subtitle">Database</span></template>
           <template #content>
             <Tag severity="success" value="Connected"></Tag>
-            <p class="mt-2 text-sm text-gray-500">PostgreSQL 16</p>
+            <p class="app-muted mt-2 text-sm">PostgreSQL 16</p>
           </template>
         </Card>
 
-        <Card class="bg-gray-800 border-none shadow-lg">
-          <template #title><span class="text-gray-300">Active Tokens</span></template>
+        <Card class="app-card">
+          <template #title><span class="app-subtitle">Active Tokens</span></template>
           <template #content>
-            <span class="text-3xl font-bold text-blue-400">12</span>
+            <span class="app-brand text-3xl font-bold">12</span>
           </template>
         </Card>
       </div>
 
-      <Card class="bg-gray-800 border-none shadow-lg">
-        <template #title><span class="text-gray-300">Recent System Errors</span></template>
+      <Card class="app-card">
+        <template #title><span class="app-subtitle">Recent System Errors</span></template>
         <template #content>
           <DataTable :value="systemLogs" class="p-datatable-sm">
             <Column field="timestamp" header="Time"></Column>
@@ -68,6 +69,7 @@ import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import 'primeicons/primeicons.css'
 
 const router = useRouter()
