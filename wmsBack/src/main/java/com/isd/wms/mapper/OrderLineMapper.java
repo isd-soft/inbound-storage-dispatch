@@ -1,8 +1,6 @@
 package com.isd.wms.mapper;
 
-import com.isd.wms.dto.order.OrderResponse;
 import com.isd.wms.dto.order_line.OrderLineResponse;
-import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import org.springframework.stereotype.Component;
 
@@ -12,11 +10,14 @@ public class OrderLineMapper {
     ) {
         return new OrderLineResponse(
                 orderLine.getId(),
-                orderLine.getOrder(),
+                orderLine.getOrder().getId(),
                 orderLine.getTask().getId(),
                 orderLine.getProduct().getId(),
                 orderLine.getRequestedQuantity(),
-                orderLine.getDestinationLocation().getId()
+                orderLine.getStatus(),
+                orderLine.getDestinationLocation().getId(),
+                orderLine.getCreatedAt(),
+                orderLine.getUpdatedAt()
         );
     }
 }

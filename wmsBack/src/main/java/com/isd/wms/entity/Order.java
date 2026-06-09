@@ -29,13 +29,8 @@ public class Order extends BaseTimestampEntity{
     private OrderStatus status;
 
     @Builder.Default
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLine> orderLines = new ArrayList<>();
-
-    public void addOrderLine(OrderLine line) {
-        orderLines.add(line);
-//        line.setOrder(this);
-    }
 
     @Override
     public boolean equals(Object o) {

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -37,6 +38,10 @@ public class Process extends BaseTimestampEntity{
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProcessStatus status;
+
+    public Optional<User> getOperator() {
+        return Optional.of(operator);
+    }
 
     @Override
     public boolean equals(Object o) {

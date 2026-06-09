@@ -1,14 +1,13 @@
 package com.isd.wms.dto.order;
 
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.ReplenishmentStatus;
 
 import java.sql.Timestamp;
 
-public record OrderResponse(
-        Long id,
+public record OrderSearchRequest(
+        Long orderId,
         String logicId,
-        OrderStatus Status,
+        OrderStatus status,
         Timestamp createdAt,
         Timestamp updatedAt
 ) {
