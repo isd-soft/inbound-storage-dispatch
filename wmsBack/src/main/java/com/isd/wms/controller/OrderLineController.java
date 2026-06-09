@@ -7,37 +7,44 @@ import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
 import com.isd.wms.service.OrderLineService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/order-lines")
+@RequestMapping("/api/v1/order-lines")
 @RequiredArgsConstructor
 public class OrderLineController {
     private final OrderLineService orderLineService;
 
-    @RequestMapping("/")
     @GetMapping
-    public List<OrderLineResponse> getOrderLines() {
-        return orderLineService.getAll();
+    public ResponseEntity<List<OrderLineResponse>> getAllOrderLines() {
+        return ResponseEntity.ok(orderLineService.getAll());
     }
 
     @RequestMapping("/{id}")
     @GetMapping
-    public OrderLineResponse getOrderLine(@NonNull Long orderLineId) {
-        return orderLineService.getOrderLineById(orderLineId);
+    public ResponseEntity<OrderLineResponse> getOrderLineById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderLineService.getOrderLineById(id));
     }
 
-    @RequestMapping("/")
     @PostMapping
-    public OrderLineResponse createOrderLine(@NonNull OrderLineCreateRequest request) {
-        return orderLineService.createOrderLine(request);
+    public ResponseEntity<OrderLineResponse> addOrderLine(@RequestBody OrderLineCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderLineService.addOrderLine(request));
     }
 
     @RequestMapping("/{id}")
     @PutMapping
-    public OrderLineResponse updateOrderLine(@NonNull Long orderLineId, @NonNull OrderLineUpdateRequest request) {
-        return orderLineService.updateOrderLine(orderLineId, request);
+    public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @NonNull OrderLineUpdateRequest request) {
+        return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
+    }
+
+    @RequestMapping("/{id}")
+    @DeleteMapping
+    public ResponseEntity<String> deleteOrderLine(@PathVariable Long id) {
+        orderLineService.deleteOrderLine(id);
+        return ResponseEntity.noContent().build();
     }
 }

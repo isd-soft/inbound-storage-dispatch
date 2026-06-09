@@ -12,6 +12,7 @@ import com.isd.wms.mapper.OrderLineMapper;
 import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class OrderLineService {
     private final WorkflowService workflowService;
 
     @Transactional
-    public OrderLineResponse createOrderLine(OrderLineCreateRequest request) {
+    public OrderLineResponse addOrderLine(OrderLineCreateRequest request) {
         validateOrderLineRequest(
                 request.orderId(),
                 request.taskId(),
@@ -94,6 +95,14 @@ public class OrderLineService {
         orderLine.setDestinationLocation(location);
 
         return orderLineMapper.toResponse(orderLineRepository.save(orderLine));
+    }
+
+    public boolean deleteOrderLine(Long orderLineId) {
+        if (orderLineRepository.existsById(orderLineId)) {
+            orderLineRepository.deleteById(orderLineId);
+            return true;
+        }
+        return false;
     }
 
     public List<OrderLineResponse> getAll() {

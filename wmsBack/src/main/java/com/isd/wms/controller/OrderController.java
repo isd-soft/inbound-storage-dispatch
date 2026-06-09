@@ -3,6 +3,8 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.order.*;
 import com.isd.wms.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,62 +15,62 @@ import java.util.Optional;
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
-    private OrderService orderService;
+    private final OrderService orderService;
 
     @RequestMapping("/")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public List<OrderResponse> getOrders() {
-        return orderService.getAllOrders();
+    public ResponseEntity<List<OrderResponse>> getOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
     }
 
     @RequestMapping("/extended")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public List<ExtendedOrderResponse> getExtendedOrders() {
-        return orderService.getAllExtendedOrders();
+    public ResponseEntity<List<ExtendedOrderResponse>> getExtendedOrders() {
+        return ResponseEntity.ok(orderService.getAllExtendedOrders());
     }
 
     @RequestMapping("/{id}")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public OrderResponse getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id);
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    @RequestMapping("/{id}/extended")
+    @RequestMapping("/extended/{id}")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ExtendedOrderResponse getExtendedOrderById(@PathVariable Long id) {
-        return orderService.getExtendedOrderById(id);
+    public ResponseEntity<ExtendedOrderResponse> getExtendedOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getExtendedOrderById(id));
     }
 
     @RequestMapping("/")
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public OrderResponse createOrder(@RequestBody OrderCreateRequest request) {
-        return orderService.createOrder(request);
+    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
     }
 
     @RequestMapping("/{id}")
     @PutMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public OrderResponse updateOrder(@PathVariable Long id, @RequestBody OrderUpdateRequest request) {
-        return orderService.updateOrder(id, request);
+    public ResponseEntity<OrderResponse> updateOrder(@PathVariable Long id, @RequestBody OrderUpdateRequest request) {
+        return ResponseEntity.ok(orderService.updateOrder(id, request));
     }
 
     @RequestMapping("/{id}")
     @DeleteMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public void deleteOrder(@PathVariable Long id) {
+    public ResponseEntity deleteOrder(@PathVariable Long id) {
         orderService.deleteOrderById(id);
+        return ResponseEntity.noContent().build();
     }
 
     @RequestMapping("/")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public Optional<List<OrderResponse>> searchOrders(OrderSearchRequest request) {
-        return orderService.searchOrders(request);
+    public ResponseEntity<Optional<List<OrderResponse>>> searchOrders(OrderSearchRequest request) {
+        return ResponseEntity.ok(orderService.searchOrders(request));
     }
-
 }
