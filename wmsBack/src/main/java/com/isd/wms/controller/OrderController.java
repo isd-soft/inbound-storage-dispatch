@@ -9,7 +9,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -17,7 +16,6 @@ import java.util.Optional;
 public class OrderController {
     private final OrderService orderService;
 
-    @RequestMapping("/")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<List<OrderResponse>> getOrders() {
@@ -45,7 +43,6 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getExtendedOrderById(id));
     }
 
-    @RequestMapping("/")
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderCreateRequest request) {
@@ -67,7 +64,6 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
-    @RequestMapping("/")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<List<OrderResponse>> searchOrders(OrderSearchRequest request) {
