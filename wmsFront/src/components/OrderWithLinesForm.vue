@@ -33,7 +33,6 @@
         </div>
       </div>
 
-      <!-- Dynamic lines section -->
       <div>
         <h3 class="mb-2">Order Lines</h3>
         <div
@@ -75,7 +74,7 @@
           </div>
         </div>
 
-        <Button label="+ Add line" icon="pi pi-plus" outlined @click="addLine" class="mt-2" />
+        <Button label="Add line" icon="pi pi-plus" outlined @click="addLine" class="mt-2" />
       </div>
 
       <div class="flex justify-end">
@@ -86,7 +85,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Form } from '@primevue/forms'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
@@ -94,6 +93,58 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import { useRouter } from 'vue-router'
+import { orderApi } from '@/api/orderApi.js'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const products = ref([])
+const locations = ref([])
+const loading = ref(false)
+const actionLoading = ref(false)
+const canManageStock = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
+
+const getErrorMessage = (error) => {
+  return (
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message ||
+    'Request failed.'
+  )
+}
+
+const currentUserId = () => {
+  if (authStore.user?.id) return authStore.user.id
+  const storedUserId = localStorage.getItem('user_id')
+  if (storedUserId) return Number(storedUserId)
+  if (authStore.role === 'ROLE_DEV') return 1
+  if (authStore.role === 'ROLE_SUPERVISOR') return 2
+  if (authStore.role === 'ROLE_OPERATOR') return 3
+  return null
+}
+
+const loadOrderCreateData = async () => {
+  loading.value = true
+  try {
+    const [productsResponse, locationsResponse] = await Promise.all([
+      orderApi.getProducts(),
+      orderApi.getLocations(),
+    ])
+    products.value = productsResponse.data
+    locations.value = locationsResponse.data.filter((location) => location.available !== false)
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Inventory load failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
+  } finally {
+    loading.value = false
+  }
+}
 
 const toast = useToast()
 
@@ -102,19 +153,6 @@ const formData = reactive({
   location: null,
   lines: [],
 })
-
-const locations = ref([
-  { name: 'Warehouse A', code: 'WH_A' },
-  { name: 'Warehouse B', code: 'WH_B' },
-  { name: 'Store C', code: 'ST_C' },
-])
-
-const products = ref([
-  { id: 1, name: 'Laptop' },
-  { id: 2, name: 'Mouse' },
-  { id: 3, name: 'Keyboard' },
-  { id: 4, name: 'Monitor' },
-])
 
 let nextLineId = 1
 const addLine = () => {
@@ -150,7 +188,6 @@ const onSubmit = (event) => {
     return
   }
 
-  // Prepare payload
   const payload = {
     logicId: formData.logicId,
     location: formData.location,
@@ -169,9 +206,10 @@ const onSubmit = (event) => {
     detail: `${formData.lines.length} line(s) added.`,
     life: 5000,
   })
-
+  router.push({ name: 'history', query: { stockId: stock.id } })
 }
 
+onMounted(loadOrderCreateData)
 addLine()
 </script>
 

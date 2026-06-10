@@ -1,6 +1,6 @@
 import apiClient from './index'
 
-export const replenishmentApi = {
+export const orderApi = {
   getAll() {
     return apiClient.get('/orders/extended')
   },
@@ -15,5 +15,11 @@ export const replenishmentApi = {
   },
   delete(id) {
     return apiClient.delete(`/orders/${id}`)
-  }
+  },
+  getProducts() {
+    return apiClient.get('/products')
+  },
+  getLocations() {
+    return apiClient.get('/locations')
+  },
 }
