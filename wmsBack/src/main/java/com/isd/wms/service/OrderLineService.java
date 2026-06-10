@@ -10,10 +10,9 @@ import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.OrderLineMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,25 +29,19 @@ public class OrderLineService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
+    private final SecurityFacade securityFacade;
 
     @Transactional
     public OrderLineResponse createOrderLine(OrderLineCreateRequest request) {
-        validateOrderLineRequest(
-                request.orderId(),
-                request.taskId(),
-                request.productId(),
-                request.requestedQuantity(),
-                request.destinationLocationId()
-        );
         Order order = getOrder(request.orderId());
+        User supervisor = getUser(securityFacade.getCurrentUsername());
 
-        User supervisor = getUser(getCurrentUsername());
-        Task task = Task.builder()
-                .supervisor(supervisor)
-                .taskType(TaskType.REPLENISHMENT)
-                .requestedQuantity(request.requestedQuantity())
-                .status(TaskStatus.CREATED)
-                .build();
+        Task task = new Task();
+        task.setSupervisor(supervisor);
+        task.setTaskType(TaskType.REPLENISHMENT);
+        task.setRequestedQuantity(request.requestedQuantity());
+        task.setStatus(TaskStatus.CREATED);
+
         task = taskRepository.save(task);
 
         workflowService.generateProcessesForTask(task, request.productId(), request.requestedQuantity());
@@ -56,29 +49,19 @@ public class OrderLineService {
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        OrderLine orderLine = OrderLine.builder()
-                .order(order)
-                .task(task)
-                .product(product)
-                .requestedQuantity(request.requestedQuantity())
-                .destinationLocation(destinationLocation)
-                .status(OrderStatus.CREATED)
-                .build();
+        OrderLine orderLine = new OrderLine();
+        orderLine.setOrder(order);
+        orderLine.setTask(task);
+        orderLine.setProduct(product);
+        orderLine.setRequestedQuantity(request.requestedQuantity());
+        orderLine.setDestinationLocation(destinationLocation);
+        orderLine.setStatus(OrderStatus.CREATED);
 
         return orderLineMapper.toResponse(orderLineRepository.save(orderLine));
     }
 
     @Transactional
     public OrderLineResponse updateOrderLine(Long id, OrderLineUpdateRequest request) {
-        validateOrderLineRequest(
-                id,
-                request.orderId(),
-                request.taskId(),
-                request.productId(),
-                request.requestedQuantity(),
-                request.status(),
-                request.destinationLocationId()
-        );
 
         OrderLine orderLine = getOrderLine(id);
         Order order = getOrder(request.orderId());
@@ -125,11 +108,6 @@ public class OrderLineService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
     }
 
-    private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getName();
-    }
-
     private User getUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException(username));
@@ -143,31 +121,5 @@ public class OrderLineService {
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException(taskId));
-    }
-
-    private void validateOrderLineRequest(
-            @NonNull Long orderId,
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull Long destinationLocationId
-    ) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-    }
-
-    private void validateOrderLineRequest(
-            @NonNull Long orderLineId,
-            @NonNull Long orderId,
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull OrderStatus status,
-            @NonNull Long destinationLocationId
-    ) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
     }
 }

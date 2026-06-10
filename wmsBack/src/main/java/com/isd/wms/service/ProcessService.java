@@ -9,6 +9,7 @@ import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.UserRepository;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -27,6 +28,7 @@ public class ProcessService {
     private final ProcessRepository processRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
+    private final SecurityFacade securityFacade;
 
     public List<ProcessResponse> getAvailableProcesses() {
         List<Process> processes = processRepository.findByStatus(ProcessStatus.CREATED);
@@ -34,7 +36,9 @@ public class ProcessService {
     }
 
     public List<ProcessResponse> getMyProcesses() {
-        User operator = getCurrentUser();
+        User operator = userRepository.findByUsername(securityFacade.getCurrentUsername())
+                .orElseThrow(() -> new UserNotFoundException(securityFacade.getCurrentUsername()));
+
         List<Process> processes = processRepository.findByOperatorAndStatuses(
                 operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS));
         return processes.stream().map(this::toResponse).toList();
@@ -43,7 +47,9 @@ public class ProcessService {
     @Transactional
     public ProcessResponse assignProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
+
+        User operator = userRepository.findByUsername(securityFacade.getCurrentUsername())
+                .orElseThrow(() -> new UserNotFoundException(securityFacade.getCurrentUsername()));
 
         if (process.getStatus() != ProcessStatus.CREATED) {
             throw new InvalidRequestException("Process is already assigned or completed");
@@ -58,9 +64,11 @@ public class ProcessService {
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
 
-        if (process.getOperator() == null || !process.getOperator().getId().equals(operator.getId())) {
+        User operator = userRepository.findByUsername(securityFacade.getCurrentUsername())
+                .orElseThrow(() -> new UserNotFoundException(securityFacade.getCurrentUsername()));
+
+        if (process.getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("You can only complete your own processes");
         }
 
@@ -69,7 +77,6 @@ public class ProcessService {
         }
 
         process.setStatus(ProcessStatus.COMPLETED);
-        process = processRepository.save(process);
 
         workflowService.executeProcessCompletion(process);
 
@@ -81,14 +88,7 @@ public class ProcessService {
                 .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId)); // Замени на ProcessNotFoundException если есть
     }
 
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
-    }
-
-    private ProcessResponse toResponse(Process process) {
+    private ProcessResponse toResponse(Process process) { //todo: move this logic to mapper
         Stock stock = process.getStock();
         return new ProcessResponse(
                 process.getId(),

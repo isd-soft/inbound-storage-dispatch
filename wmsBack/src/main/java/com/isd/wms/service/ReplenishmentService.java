@@ -11,11 +11,9 @@ import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
-import lombok.NonNull;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,33 +32,32 @@ public class ReplenishmentService {
     private final LocationRepository locationRepository;
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
+    private final SecurityFacade securityFacade;
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
         log.info("Creating replenishment: productId={}, requestedQuantity={}, destinationLocationId={}",
                 request.productId(), request.requestedQuantity(), request.destinationLocationId());
 
-        validateReplenishmentRequest(request.productId(), request.requestedQuantity(), request.destinationLocationId());
-
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
-        User supervisor = getUser(getCurrentUsername());
+        User supervisor = getUser(securityFacade.getCurrentUsername());
 
-        Task task = Task.builder()
-                .supervisor(supervisor)
-                .taskType(TaskType.REPLENISHMENT)
-                .requestedQuantity(request.requestedQuantity())
-                .status(TaskStatus.CREATED)
-                .build();
+        Task task = new Task();
+        task.setSupervisor(supervisor);
+        task.setTaskType(TaskType.REPLENISHMENT);
+        task.setRequestedQuantity(request.requestedQuantity());
+        task.setStatus(TaskStatus.CREATED);
+
         task = taskRepository.save(task);
 
-        Replenishment replenishment = Replenishment.builder()
-                .product(product)
-                .task(task)
-                .requestedQuantity(request.requestedQuantity())
-                .status(ReplenishmentStatus.CREATED)
-                .destinationLocation(destinationLocation)
-                .build();
+        Replenishment replenishment = new Replenishment();
+        replenishment.setProduct(product);
+        replenishment.setTask(task);
+        replenishment.setRequestedQuantity(request.requestedQuantity());
+        replenishment.setStatus(ReplenishmentStatus.CREATED);
+        replenishment.setDestinationLocation(destinationLocation);
+
         replenishment = replenishmentRepository.save(replenishment);
 
         workflowService.generateProcessesForTask(task, product.getId(), request.requestedQuantity());
@@ -71,13 +68,6 @@ public class ReplenishmentService {
     @Transactional
     public ReplenishmentResponse updateReplenishment(Long id, ReplenishmentUpdateRequest request) {
         log.info("Updating replenishment: id={}, status={}", id, request.status());
-        validateUpdateReplenishmentRequest(
-                request.taskId(),
-                request.productId(),
-                request.requestedQuantity(),
-                request.status(),
-                request.destinationLocationId()
-        );
 
         Replenishment replenishment = getReplenishment(id);
         Product product = getProduct(request.productId());
@@ -133,11 +123,6 @@ public class ReplenishmentService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
     }
 
-    private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getName();
-    }
-
     private User getUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException(username));
@@ -146,25 +131,5 @@ public class ReplenishmentService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
                 .orElseThrow(() -> new LocationNotFoundException(locationId));
-    }
-
-    public void validateReplenishmentRequest(
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
-    }
-
-    private void validateUpdateReplenishmentRequest(
-            @NonNull Long taskId,
-            @NonNull Long productId,
-            @NonNull Integer requestedQuantity,
-            @NonNull ReplenishmentStatus status,
-            @NonNull Long destinationLocationId) {
-        if (requestedQuantity <= 0) {
-            throw new InvalidRequestException("Replenishment requested quantity cannot be nonpositive");
-        }
     }
 }

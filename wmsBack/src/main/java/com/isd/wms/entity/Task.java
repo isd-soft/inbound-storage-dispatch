@@ -12,8 +12,6 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Table(name = "tasks")
 public class Task extends BaseTimestampEntity {
     @Id

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.Hibernate;
+
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -48,6 +49,15 @@ public class Stock extends BaseTimestampEntity {
 
     @Version
     private Long version;
+
+    public void removeQuantity(int quantityToMove) {
+        this.quantity -= quantityToMove;
+        this.reservedQuantity -= quantityToMove;
+    }
+
+    public void addQuantity(int quantity) {
+        this.quantity += quantity;
+    }
 
     @Override
     public boolean equals(Object o) {

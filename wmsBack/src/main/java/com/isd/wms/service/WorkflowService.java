@@ -11,6 +11,7 @@ import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.service.process.ProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class WorkflowService {
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
+    private final List<ProcessCompletionStrategy> processCompletionStrategies;
 
     @Transactional
     public void generateProcessesForTask(Task task, Long productId, int requiredQuantity) {
@@ -99,36 +101,16 @@ public class WorkflowService {
         Stock sourceStock = process.getStock();
         int quantityToMove = process.getQuantity();
 
-        sourceStock.setQuantity(sourceStock.getQuantity() - quantityToMove);
-        sourceStock.setReservedQuantity(sourceStock.getReservedQuantity() - quantityToMove);
-        stockRepository.save(sourceStock);
+        sourceStock.removeQuantity(quantityToMove);
+        stockRepository.save(sourceStock); //todo: try without it
 
         Task task = process.getTask();
 
-        if (task.getTaskType() == TaskType.REPLENISHMENT) {
-            Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
-                    .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
-
-            Location destinationLocation = replenishment.getDestinationLocation();
-            Product product = sourceStock.getProduct();
-
-            Optional<Stock> destStockOpt = stockRepository.findByProductIdAndLocationId(product.getId(), destinationLocation.getId());
-
-            if (destStockOpt.isPresent()) {
-                Stock destStock = destStockOpt.get();
-                destStock.setQuantity(destStock.getQuantity() + quantityToMove);
-                stockRepository.save(destStock);
-            } else {
-                Stock newStock = Stock.builder()
-                        .product(product)
-                        .location(destinationLocation)
-                        .quantity(quantityToMove)
-                        .reservedQuantity(0)
-                        .manufactureDate(sourceStock.getManufactureDate())
-                        .build();
-                stockRepository.save(newStock);
-            }
-        }
+        processCompletionStrategies.stream()
+                .filter(strategy -> strategy.support(task.getTaskType()))
+                .findAny()
+                .ifPresentOrElse(strategy -> strategy.handle(process),
+                        () -> new RuntimeException("new exc"));
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()

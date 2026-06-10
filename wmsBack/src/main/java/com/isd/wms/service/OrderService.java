@@ -3,7 +3,6 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order.*;
 import com.isd.wms.entity.Order;
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
@@ -20,23 +19,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Service
 public class OrderService {
-    private ExtendedOrderMapper extendedOrderMapper;
-    private OrderMapper orderMapper;
-    private OrderRepository orderRepository;
+    private final ExtendedOrderMapper extendedOrderMapper;
+    private final OrderMapper orderMapper;
+    private final OrderRepository orderRepository;
 
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
-        validateOrderRequest(request.logicId());
-        Order order = Order.builder()
-                .logicId(request.logicId())
-                .build();
+        Order order = new Order();
+        order.setLogicId(request.logicId());
+
         return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
-        validateOrderRequest(id, request.logicId(), request.status());
-
         Order order = getOrder(id);
 
         order.setLogicId(request.logicId());
@@ -76,21 +72,9 @@ public class OrderService {
                 .toList());
     }
 
-    private void validateOrderRequest(@NonNull Long id, @NonNull String s, @NonNull OrderStatus status) {
-        if (s.isEmpty()) {
-            throw new InvalidRequestException("Order logic id cannot be empty");
-        }
-    }
-
-    private void validateOrderRequest(@NonNull String s) {
-        if (s.isEmpty()) {
-            throw new InvalidRequestException("Order logic id cannot be empty");
-        }
-    }
-
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
-        List<Order> orders = orderRepository.findAll();
-        return orders.stream()
+        return orderRepository.findAll()
+                .stream()
                 .map(extendedOrderMapper::toResponse)
                 .toList();
     }

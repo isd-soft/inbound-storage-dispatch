@@ -29,7 +29,7 @@ public class Process extends BaseTimestampEntity{
     private Task task;
 
     @Column(nullable = false)
-    private Integer quantity;
+    private Integer quantity = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stock_id", nullable = false)

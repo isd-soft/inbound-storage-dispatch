@@ -2,6 +2,7 @@ package com.isd.wms.controller;
 
 import com.isd.wms.dto.order.*;
 import com.isd.wms.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -46,14 +47,14 @@ public class OrderController {
     @RequestMapping("/")
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public OrderResponse createOrder(@RequestBody OrderCreateRequest request) {
+    public OrderResponse createOrder(@Valid @RequestBody OrderCreateRequest request) {
         return orderService.createOrder(request);
     }
 
     @RequestMapping("/{id}")
     @PutMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public OrderResponse updateOrder(@PathVariable Long id, @RequestBody OrderUpdateRequest request) {
+    public OrderResponse updateOrder(@PathVariable Long id, @Valid @RequestBody OrderUpdateRequest request) {
         return orderService.updateOrder(id, request);
     }
 
