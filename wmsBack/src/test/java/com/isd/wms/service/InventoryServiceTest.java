@@ -26,6 +26,8 @@ import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +64,7 @@ class InventoryServiceTest {
     private UserRepository UserRepository;
 
     private InventoryService inventoryService;
+    private Validator validator;
     private Product product;
     private Location location;
     private User user;
@@ -77,6 +80,7 @@ class InventoryServiceTest {
                 new StockMapper(),
                 new InventoryHistoryMapper()
         );
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
         product = product(1L, "Milk");
         location = location(2L, "A-01");
         user = user(3L, "supervisor");
@@ -87,7 +91,7 @@ class InventoryServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
-        when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
+        when(stockRepository.findByProductIdAndLocationId(1L, 2L))
                 .thenReturn(Optional.empty());
         when(stockRepository.save(any(Stock.class))).thenAnswer(invocation -> {
             Stock savedStock = invocation.getArgument(0);
@@ -96,7 +100,7 @@ class InventoryServiceTest {
         });
 
         StockResponse response = inventoryService.addStock(new AddStockRequest(
-                1L, " SKU-1 ",2L, 5,
+                1L, 2L, 5,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 3L
         ));
 
@@ -120,12 +124,12 @@ class InventoryServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
-        when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
+        when(stockRepository.findByProductIdAndLocationId(1L, 2L))
                 .thenReturn(Optional.of(stock));
         when(stockRepository.save(stock)).thenReturn(stock);
 
         StockResponse response = inventoryService.addStock(new AddStockRequest(
-                1L, "SKU-1",2L,  3, null, null, 3L
+                1L, 2L, 3, null, null, 3L
         ));
 
         assertThat(response.getQuantity()).isEqualTo(10);
@@ -133,10 +137,10 @@ class InventoryServiceTest {
     }
 
     @Test
-    void rejectsAddStockWithBlankSku() {
-        assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
-                1L, " ",2L,  5, null, null, 3L
-        ))).isInstanceOf(InvalidRequestException.class);
+    void rejectsAddStockWithInvalidQuantity() {
+        assertThat(validator.validate(new AddStockRequest(
+                1L, 2L, 0, null, null, 3L
+        ))).isNotEmpty();
     }
 
     @Test
@@ -144,7 +148,7 @@ class InventoryServiceTest {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
-                99L, "SKU-1",2L,  5, null, null, 3L
+                99L, 2L, 5, null, null, 3L
         ))).isInstanceOf(ProductNotFoundException.class);
     }
 
@@ -154,7 +158,7 @@ class InventoryServiceTest {
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
-                1L, "SKU-1",99L,  5, null, null, 3L
+                1L, 99L, 5, null, null, 3L
         ))).isInstanceOf(LocationNotFoundException.class);
     }
 
@@ -209,8 +213,8 @@ class InventoryServiceTest {
 
     @Test
     void rejectsNegativeAdjustQuantity() {
-        assertThatThrownBy(() -> inventoryService.adjustStock(new AdjustStockRequest(10L, -1, 3L)))
-                .isInstanceOf(InvalidRequestException.class);
+        assertThat(validator.validate(new AdjustStockRequest(10L, -1, 3L)))
+                .isNotEmpty();
     }
 
     @Test
@@ -247,8 +251,8 @@ class InventoryServiceTest {
 
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
         when(inventoryHistoryRepository
-                .findByProductIdAndSkuIgnoreCaseAndSourceLocationIdOrProductIdAndSkuIgnoreCaseAndDestinationLocationId(
-                        1L, "SKU-1", 2L, 1L, "SKU-1", 2L))
+                .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
+                        1L, 2L, 1L, 2L))
                 .thenReturn(List.of(history));
 
         List<InventoryHistoryResponse> responses = inventoryService.getHistoryForStock(10L);
@@ -265,7 +269,7 @@ class InventoryServiceTest {
     }
 
     private Product product(Long id, String name) {
-        Product result = new Product(name, null, category(100L, "Dairy"));
+        Product result = new Product(name, "SKU-1", null, category(100L, "Dairy"));
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }
@@ -292,7 +296,6 @@ class InventoryServiceTest {
         Stock result = new Stock();
         result.setProduct(product);
         result.setLocation(location);
-        result.setSku(sku);
         result.setQuantity(quantity);
         ReflectionTestUtils.setField(result, "id", id);
         return result;

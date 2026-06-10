@@ -12,13 +12,13 @@ VALUES
     (2, 'Office Supplies'),
     (3, 'Warehouse Equipment');
 
-INSERT INTO products (id, name, description, category_id)
+INSERT INTO products (id, name, SKU, description, category_id)
 VALUES
-    (1, 'Laptop Pro 15', 'High performance laptop for development', 1),
-    (2, 'Wireless Mouse', 'Ergonomic optical mouse', 1),
-    (3, 'A4 Paper Box', 'Box of 500 sheets A4 printer paper', 2),
-    (4, 'Scanner Symbol', 'Barcode scanner for terminal', 3),
-    (5, 'Work Gloves', 'Protective warehouse gloves', 3);
+    (1, 'Laptop Pro 15', 'LAP-PRO-001', 'High performance laptop for development', 1),
+    (2, 'Wireless Mouse', 'MOUSE-WLS-001', 'Ergonomic optical mouse', 1),
+    (3, 'A4 Paper Box', 'PAPER-A4-001', 'Box of 500 sheets A4 printer paper', 2),
+    (4, 'Scanner Symbol', 'SCN-SYM-001', 'Barcode scanner for terminal', 3),
+    (5, 'Work Gloves', 'GLOVE-W-01', 'Protective warehouse gloves', 3);
 
 INSERT INTO locations (id, location_code, zone, description, available)
 VALUES
@@ -29,12 +29,12 @@ VALUES
     (5, 'REPL-A-02', 'REPLENISHMENT', 'Bulk Pallet Storage A2', true),
     (6, 'DISP-01', 'DISPATCH', 'Dispatch Staging Area 1', true);
 
-INSERT INTO stocks (id, SKU, product_id, location_id, quantity, quantity_reserved)
+INSERT INTO stocks (id, product_id, location_id, quantity, quantity_reserved)
 VALUES
-    (1, 'LAP-PRO-001', 1, 4, 100, 0),
-    (2, 'LAP-PRO-001', 1, 1, 5, 0),
-    (3, 'PAPER-A4-001', 3, 5, 500, 0),
-    (4, 'GLOVE-W-01', 5, 3, 50, 0);
+    (1, 1, 4, 100, 0),
+    (2, 1, 1, 5, 0),
+    (3, 3, 5, 500, 0),
+    (4, 5, 3, 50, 0);
 
 INSERT INTO inventory_history (
     id,

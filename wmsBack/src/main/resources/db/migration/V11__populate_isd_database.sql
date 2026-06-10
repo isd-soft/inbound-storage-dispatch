@@ -11,14 +11,14 @@ VALUES
     (3, 'Household'),
     (4, 'Pharmacy');
 
-INSERT INTO products (id, name, description, category_id)
+INSERT INTO products (id, name, SKU, description, category_id)
 VALUES
-    (1, 'Wireless Scanner', 'Handheld barcode scanner for warehouse operations', 1),
-    (2, 'Thermal Label Roll', '100x150 mm thermal labels for shipping and inventory', 1),
-    (3, 'Bottled Water 0.5L', 'Packaged drinking water, 24 bottles per box', 2),
-    (4, 'Canned Beans', 'Long shelf-life canned beans, 400 g', 2),
-    (5, 'Paper Towels', 'Absorbent paper towels, 12 rolls per case', 3),
-    (6, 'Hand Sanitizer', 'Alcohol-based hand sanitizer, 500 ml bottle', 4);
+    (1, 'Wireless Scanner', 'SCN-WLS-001', 'Handheld barcode scanner for warehouse operations', 1),
+    (2, 'Thermal Label Roll', 'LBL-100X150', '100x150 mm thermal labels for shipping and inventory', 1),
+    (3, 'Bottled Water 0.5L', 'WTR-0500-24', 'Packaged drinking water, 24 bottles per box', 2),
+    (4, 'Canned Beans', 'BEANS-400G', 'Long shelf-life canned beans, 400 g', 2),
+    (5, 'Paper Towels', 'TOWELS-12R', 'Absorbent paper towels, 12 rolls per case', 3),
+    (6, 'Hand Sanitizer', 'SAN-500ML', 'Alcohol-based hand sanitizer, 500 ml bottle', 4);
 
 INSERT INTO locations (id, location_code, zone, description, available)
 VALUES
@@ -31,15 +31,15 @@ VALUES
     (7, 'QC-01', 'QC', 'Quality control hold location', false),
     (8, 'SHIP-01', 'SHIP', 'Outbound staging lane 01', true);
 
-INSERT INTO stocks (id, SKU, product_id, location_id, quantity, manufacture_date, expiration_date, version)
+INSERT INTO stocks (id, product_id, location_id, quantity, manufacture_date, expiration_date, version)
 VALUES
-    (1, 'SCN-WLS-001', 1, 3, 25, DATE '2026-01-15', NULL, 0),
-    (2, 'LBL-100X150', 2, 4, 180, DATE '2026-02-01', NULL, 0),
-    (3, 'WTR-0500-24', 3, 1, 320, DATE '2026-04-10', DATE '2027-04-10', 0),
-    (4, 'BEANS-400G', 4, 2, 210, DATE '2026-03-20', DATE '2028-03-20', 0),
-    (5, 'TOWELS-12R', 5, 5, 75, DATE '2026-02-25', NULL, 0),
-    (6, 'SAN-500ML', 6, 6, 140, DATE '2026-05-05', DATE '2028-05-05', 0),
-    (7, 'WTR-0500-24', 3, 5, 48, DATE '2026-04-10', DATE '2027-04-10', 0);
+    (1, 1, 3, 25, DATE '2026-01-15', NULL, 0),
+    (2, 2, 4, 180, DATE '2026-02-01', NULL, 0),
+    (3, 3, 1, 320, DATE '2026-04-10', DATE '2027-04-10', 0),
+    (4, 4, 2, 210, DATE '2026-03-20', DATE '2028-03-20', 0),
+    (5, 5, 5, 75, DATE '2026-02-25', NULL, 0),
+    (6, 6, 6, 140, DATE '2026-05-05', DATE '2028-05-05', 0),
+    (7, 3, 5, 48, DATE '2026-04-10', DATE '2027-04-10', 0);
 
 INSERT INTO inventory_history (
     id,

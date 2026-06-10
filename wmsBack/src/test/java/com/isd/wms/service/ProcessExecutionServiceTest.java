@@ -13,7 +13,9 @@ import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Role;
 import com.isd.wms.enums.TaskStatus;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
@@ -34,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -81,56 +84,18 @@ class ProcessExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        operator = new User();
-        operator.setId(1L);
-        operator.setUsername("operator");
+        operator = user(1L, "operator");
+        otherOperator = user(2L, "other");
 
-        otherOperator = new User();
-        otherOperator.setId(2L);
-        otherOperator.setUsername("other");
+        Product product = product(10L, "Coca-Cola", "SKU-001");
+        Location location = location(20L, "PICK-01");
 
-        Product product = new Product();
-        product.setId(10L);
-        product.setName("Coca-Cola");
-
-        Location location = new Location();
-        location.setId(20L);
-        location.setLocationCode("PICK-01");
-
-        stock = new Stock(
-                30L,
-                "SKU-001",
-                product,
-                location,
-                50,
-                10,
-                null,
-                null,
-                null
-        );
-
-        task = new Task();
-        task.setId(40L);
-        task.setStatus(TaskStatus.CREATED);
-
-        process = new Process();
-        process.setId(50L);
-        process.setOperator(operator);
-        process.setTask(task);
-        process.setStock(stock);
-        process.setQuantity(10);
-        process.setStatus(ProcessStatus.ASSIGNED);
-
-        order = new Order();
-        order.setId(60L);
-        order.setStatus(OrderStatus.IN_PROCESS);
-
-        orderLine = new OrderLine();
-        orderLine.setId(70L);
-        orderLine.setTask(task);
-        orderLine.setOrder(order);
-        orderLine.setStatus(OrderStatus.IN_PROCESS);
-        order.setOrderLines(List.of(orderLine));
+        stock = new Stock(30L, product, location, 50, 10, null, null, null);
+        task = task(40L, TaskStatus.CREATED);
+        process = process(50L, operator, task, stock, 10, ProcessStatus.ASSIGNED);
+        order = order(60L, OrderStatus.IN_PROCESS);
+        orderLine = orderLine(70L, order, task, product, OrderStatus.IN_PROCESS);
+        ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
 
         Authentication authentication = mock(Authentication.class);
         SecurityContext securityContext = mock(SecurityContext.class);
@@ -170,7 +135,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenProcessIsNotAssignedToCurrentOperator() {
-        process.setOperator(otherOperator);
+        ReflectionTestUtils.setField(process, "operator", otherOperator);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.startProcess(50L))
@@ -180,7 +145,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void scanCorrectSourceLocation() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
         when(processRepository.save(process)).thenReturn(process);
 
@@ -191,7 +156,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenSourceLocationBarcodeIsWrong() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.scanSourceLocation(50L, new BarcodeScanRequest("WRONG")))
@@ -201,10 +166,10 @@ class ProcessExecutionServiceTest {
 
     @Test
     void scanCorrectProductSkuBarcode() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setSourceLocationScanned(true);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
-        when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(10L, "SKU-001", 20L))
+        when(stockRepository.findByProductIdAndLocationId(10L, 20L))
                 .thenReturn(Optional.of(stock));
         when(processRepository.save(process)).thenReturn(process);
 
@@ -215,8 +180,8 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenProductBarcodeIsWrong() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setSourceLocationScanned(true);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.scanProduct(50L, new BarcodeScanRequest("WRONG")))
@@ -226,8 +191,8 @@ class ProcessExecutionServiceTest {
 
     @Test
     void confirmPickedQuantitySuccessfully() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setProductScanned(true);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "productScanned", true);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
         when(processRepository.save(process)).thenReturn(process);
 
@@ -238,8 +203,8 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenPickedQuantityIsGreaterThanRequiredQuantity() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setProductScanned(true);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "productScanned", true);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(11)))
@@ -249,9 +214,9 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenStockQuantityIsNotEnough() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setProductScanned(true);
-        stock.setQuantity(5);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "productScanned", true);
+        ReflectionTestUtils.setField(stock, "quantity", 5);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10)))
@@ -307,7 +272,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenTryingToCompleteProcessWithoutScans() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.completeProcess(50L))
@@ -318,7 +283,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenProcessIsAlreadyCompleted() {
-        process.setStatus(ProcessStatus.COMPLETED);
+        setProcessStatus(ProcessStatus.COMPLETED);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.completeProcess(50L))
@@ -328,7 +293,7 @@ class ProcessExecutionServiceTest {
 
     @Test
     void failWhenProcessIsCancelled() {
-        process.setStatus(ProcessStatus.CANCELED);
+        setProcessStatus(ProcessStatus.CANCELED);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
 
         assertThatThrownBy(() -> processExecutionService.completeProcess(50L))
@@ -337,9 +302,58 @@ class ProcessExecutionServiceTest {
     }
 
     private void prepareProcessForCompletion() {
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        process.setSourceLocationScanned(true);
-        process.setProductScanned(true);
-        process.setPickedQuantity(10);
+        setProcessStatus(ProcessStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
+        ReflectionTestUtils.setField(process, "productScanned", true);
+        ReflectionTestUtils.setField(process, "pickedQuantity", 10);
+    }
+
+    private User user(Long id, String username) {
+        User user = new User(username, username + "@example.com", "password", Role.ROLE_OPERATOR, false, null, null);
+        ReflectionTestUtils.setField(user, "id", id);
+        return user;
+    }
+
+    private Product product(Long id, String name, String sku) {
+        Product product = new Product(name, sku, null, null);
+        ReflectionTestUtils.setField(product, "id", id);
+        return product;
+    }
+
+    private Location location(Long id, String locationCode) {
+        Location location = new Location(locationCode, Zone.PICKING, null, true);
+        ReflectionTestUtils.setField(location, "id", id);
+        return location;
+    }
+
+    private Task task(Long id, TaskStatus status) {
+        Task task = new Task(null, null, null, status);
+        ReflectionTestUtils.setField(task, "id", id);
+        return task;
+    }
+
+    private Process process(Long id, User operator, Task task, Stock stock, Integer quantity, ProcessStatus status) {
+        Process process = new Process(task, stock, quantity, status);
+        ReflectionTestUtils.setField(process, "id", id);
+        ReflectionTestUtils.setField(process, "operator", operator);
+        return process;
+    }
+
+    private Order order(Long id, OrderStatus status) {
+        Order order = new Order("ORDER-" + id);
+        ReflectionTestUtils.setField(order, "id", id);
+        ReflectionTestUtils.setField(order, "status", status);
+        return order;
+    }
+
+    private OrderLine orderLine(Long id, Order order, Task task, Product product, OrderStatus status) {
+        OrderLine orderLine = new OrderLine(order, task, product, 10);
+        ReflectionTestUtils.setField(orderLine, "id", id);
+        ReflectionTestUtils.setField(orderLine, "status", status);
+        return orderLine;
+    }
+
+    private void setProcessStatus(ProcessStatus status) {
+        ReflectionTestUtils.setField(process, "status", status);
     }
 }
