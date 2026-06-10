@@ -17,4 +17,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> search(@Param("name") String name, @Param("categoryId") Long categoryId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    boolean existsBySkuIgnoreCase(String sku);
+
+    boolean existsBySkuIgnoreCaseAndIdNot(String sku, Long id);
 }

@@ -57,18 +57,15 @@ public class InventoryService {
 
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
-        log.info("Adding stock: productId={}, locationId={}, sku={}, quantity={}, userId={}",
-                request.getProductId(), request.getLocationId(), request.getSku(), request.getQuantity(), request.getUserId());
-        validateSku(request.getSku());
-        validatePositiveQuantity(request.getQuantity(), "Add stock quantity must be greater than 0");
+        log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
+                request.getProductId(), request.getLocationId(), request.getQuantity(), request.getUserId());
 
         Product product = getProduct(request.getProductId());
         Location location = getLocation(request.getLocationId());
         User user = getUser(request.getUserId());
-        String sku = request.getSku().trim();
 
-        Stock stock = stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(product.getId(), sku, location.getId())
-                .orElseGet(() -> new Stock(product, location, sku));
+        Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
+                .orElseGet(() -> new Stock(product, location));
 
         stock.setQuantity(stock.getQuantity() + request.getQuantity());
         stock.setManufactureDate(request.getManufactureDate());
@@ -86,7 +83,6 @@ public class InventoryService {
     public StockResponse removeStock(RemoveStockRequest request) {
         log.info("Removing stock: stockId={}, quantity={}, userId={}",
                 request.getStockId(), request.getQuantity(), request.getUserId());
-        validatePositiveQuantity(request.getQuantity(), "Remove stock quantity must be greater than 0");
 
         Stock stock = getStock(request.getStockId());
         User user = getUser(request.getUserId());
@@ -113,11 +109,6 @@ public class InventoryService {
     public StockResponse adjustStock(AdjustStockRequest request) {
         log.info("Adjusting stock: stockId={}, newQuantity={}, userId={}",
                 request.getStockId(), request.getNewQuantity(), request.getUserId());
-        if (request.getNewQuantity() == null || request.getNewQuantity() < 0) {
-            log.warn("Invalid adjust stock quantity: stockId={}, newQuantity={}, userId={}",
-                    request.getStockId(), request.getNewQuantity(), request.getUserId());
-            throw new InvalidRequestException("New quantity must be greater than or equal to 0");
-        }
 
         Stock stock = getStock(request.getStockId());
 
@@ -148,11 +139,11 @@ public class InventoryService {
 
     public List<InventoryHistoryResponse> getHistoryForStock(Long stockId) {
         Stock stock = getStock(stockId);
-        Long productId = stock.getProduct() == null ? null : stock.getProduct().getId();
+        Long productId = stock.getProduct().map(Product::getId).orElse(null);
         Long locationId = stock.getLocation() == null ? null : stock.getLocation().getId();
         return inventoryHistoryRepository
-                .findByProductIdAndSkuIgnoreCaseAndSourceLocationIdOrProductIdAndSkuIgnoreCaseAndDestinationLocationId(
-                        productId, stock.getSku(), locationId, productId, stock.getSku(), locationId)
+                .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
+                        productId, locationId, productId, locationId)
                 .stream()
                 .map(inventoryHistoryMapper::toResponse)
                 .toList();
@@ -173,9 +164,10 @@ public class InventoryService {
             InventoryOperationType operationType,
             User user
     ) {
+        Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
-                stock.getProduct(),
-                stock.getSku(),
+                product,
+                product == null ? null : product.getSku(),
                 alteredQuantity,
                 quantityAfterChange,
                 sourceLocation,
@@ -183,7 +175,7 @@ public class InventoryService {
                 operationType,
                 user
         );
-
+        history.setTimestamp(Instant.now());
         inventoryHistoryRepository.save(history);
     }
 
@@ -217,19 +209,5 @@ public class InventoryService {
                     log.warn("User not found: userId={}", userId);
                     return new UserNotFoundException(userId);
                 });
-    }
-
-    private void validateSku(String sku) {
-        if (sku == null || sku.isBlank()) {
-            log.warn("Invalid stock SKU: sku={}", sku);
-            throw new InvalidRequestException("SKU is required");
-        }
-    }
-
-    private void validatePositiveQuantity(Integer quantity, String message) {
-        if (quantity == null || quantity <= 0) {
-            log.warn("Invalid stock quantity: quantity={}", quantity);
-            throw new InvalidRequestException(message);
-        }
     }
 }
