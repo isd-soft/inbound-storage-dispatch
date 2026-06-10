@@ -38,10 +38,13 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
-        log.info("Creating product: name={}, categoryId={}", request.name(), request.categoryId());
-        validateProductRequest(request.name(), request.categoryId());
+        log.info("Creating product: name={}, sku={}, categoryId={}", request.name(), request.sku(), request.categoryId());
+        String sku = request.sku().trim();
+        if (productRepository.existsBySkuIgnoreCase(sku)) {
+            throw new InvalidRequestException("Product SKU already exists");
+        }
         Category category = getCategory(request.categoryId());
-        Product product = new Product(request.name().trim(), request.description(), category);
+        Product product = new Product(request.name().trim(), sku, request.description(), category);
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
         return productMapper.toResponse(savedProduct);
@@ -49,11 +52,15 @@ public class ProductService {
 
     @Transactional
     public ProductResponse updateProduct(Long productId, ProductUpdateRequest request) {
-        log.info("Updating product: productId={}, name={}, categoryId={}", productId, request.name(), request.categoryId());
-        validateProductRequest(request.name(), request.categoryId());
+        log.info("Updating product: productId={}, name={}, sku={}, categoryId={}", productId, request.name(), request.sku(), request.categoryId());
+        String sku = request.sku().trim();
         Product product = getProduct(productId);
+        if (productRepository.existsBySkuIgnoreCaseAndIdNot(sku, productId)) {
+            throw new InvalidRequestException("Product SKU already exists");
+        }
         Category category = getCategory(request.categoryId());
         product.setName(request.name().trim());
+        product.setSku(sku);
         product.setDescription(request.description());
         product.setCategory(category);
         Product savedProduct = productRepository.save(product);
@@ -115,14 +122,4 @@ public class ProductService {
                 });
     }
 
-    private void validateProductRequest(String name, Long categoryId) {
-        if (name == null || name.isBlank()) {
-            log.warn("Invalid product request: missing product name");
-            throw new InvalidRequestException("Product name is required");
-        }
-        if (categoryId == null) {
-            log.warn("Invalid product request: missing category");
-            throw new InvalidRequestException("Product category is required");
-        }
-    }
 }

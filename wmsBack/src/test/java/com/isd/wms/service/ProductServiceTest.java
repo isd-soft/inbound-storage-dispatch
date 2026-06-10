@@ -10,6 +10,8 @@ import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.mapper.ProductMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +38,13 @@ class ProductServiceTest {
 
     private ProductService productService;
     private Category category;
+    private Validator validator;
 
     @BeforeEach
     void setUp() {
         productService = new ProductService(productRepository, categoryRepository, new ProductMapper());
         category = category(1L, "Dairy");
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
     }
 
     @Test
@@ -49,29 +53,30 @@ class ProductServiceTest {
         when(productRepository.save(org.mockito.ArgumentMatchers.any(Product.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "Whole milk", 1L));
+        ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", "Whole milk", 1L));
 
         assertThat(response.name()).isEqualTo("Milk");
+        assertThat(response.sku()).isEqualTo("MILK-1");
         assertThat(response.categoryId()).isEqualTo(1L);
     }
 
     @Test
     void rejectsProductWithoutName() {
-        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest(" ", null, 1L)))
-                .isInstanceOf(InvalidRequestException.class);
+        assertThat(validator.validate(new ProductCreateRequest(" ", "MILK-1", null, 1L)))
+                .isNotEmpty();
     }
 
     @Test
     void rejectsProductWithoutCategory() {
-        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest("Milk", null, null)))
-                .isInstanceOf(InvalidRequestException.class);
+        assertThat(validator.validate(new ProductCreateRequest("Milk", "MILK-1", null, null)))
+                .isNotEmpty();
     }
 
     @Test
     void rejectsProductWithInvalidCategory() {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest("Milk", null, 99L)))
+        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", null, 99L)))
                 .isInstanceOf(CategoryNotFoundException.class);
     }
 
@@ -90,9 +95,10 @@ class ProductServiceTest {
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(drinks));
         when(productRepository.save(product)).thenReturn(product);
 
-        ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", null, 2L));
+        ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", "JUICE-1", null, 2L));
 
         assertThat(response.name()).isEqualTo("Juice");
+        assertThat(response.sku()).isEqualTo("JUICE-1");
         assertThat(response.categoryId()).isEqualTo(2L);
     }
 
@@ -139,7 +145,7 @@ class ProductServiceTest {
     }
 
     private Product product(Long id, String name, Category productCategory) {
-        Product result = new Product(name, null, productCategory);
+        Product result = new Product(name, "SKU-" + id, null, productCategory);
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }

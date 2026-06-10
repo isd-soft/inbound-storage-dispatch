@@ -5,31 +5,32 @@ import com.isd.wms.entity.InventoryHistory;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.User;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InventoryHistoryMapper {
 
     public InventoryHistoryResponse toResponse(InventoryHistory history) {
-        Product product = history.getProduct();
-        Location sourceLocation = history.getSourceLocation();
-        Location destinationLocation = history.getDestinationLocation();
-        User user = history.getUser();
-        return InventoryHistoryResponse.builder()
-                .id(history.getId())
-                .productId(product == null ? null : product.getId())
-                .productName(product == null ? null : product.getName())
-                .sku(history.getSku())
-                .alteredQuantity(history.getAlteredQuantity())
-                .quantityAfterChange(history.getQuantityAfterChange())
-                .sourceLocationId(sourceLocation == null ? null : sourceLocation.getId())
-                .sourceLocationCode(sourceLocation == null ? null : sourceLocation.getLocationCode())
-                .destinationLocationId(destinationLocation == null ? null : destinationLocation.getId())
-                .destinationLocationCode(destinationLocation == null ? null : destinationLocation.getLocationCode())
-                .operationType(history.getOperationType().name())
-                .timestamp(history.getTimestamp())
-                .userId(user == null ? null : user.getId())
-                .username(user == null ? null : user.getUsername())
-                .build();
+        Optional<Product> product = Optional.ofNullable(history.getProduct());
+        Optional<Location> sourceLocation = Optional.ofNullable(history.getSourceLocation());
+        Optional<Location> destinationLocation = Optional.ofNullable(history.getDestinationLocation());
+        Optional<User> user = Optional.ofNullable(history.getUser());
+        return new InventoryHistoryResponse(
+                history.getId(),
+                product.map(Product::getId).orElse(null),
+                product.map(Product::getName).orElse(null),
+                product.map(Product::getSku).orElse(history.getSku()),
+                history.getAlteredQuantity(),
+                history.getQuantityAfterChange(),
+                sourceLocation.map(Location::getId).orElse(null),
+                sourceLocation.map(Location::getLocationCode).orElse(null),
+                destinationLocation.map(Location::getId).orElse(null),
+                destinationLocation.map(Location::getLocationCode).orElse(null),
+                history.getOperationType().name(),
+                history.getTimestamp(),
+                user.map(User::getId).orElse(null),
+                user.map(User::getUsername).orElse(null)
+        );
     }
 }

@@ -24,12 +24,6 @@
       </div>
 
       <div v-if="mode === 'add'" class="flex flex-col gap-2">
-        <label for="sku" class="app-subtitle font-medium">SKU</label>
-        <InputText id="sku" v-model.trim="form.sku" placeholder="SKU" class="w-full" />
-        <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
-      </div>
-
-      <div v-if="mode === 'add'" class="flex flex-col gap-2">
         <label for="locationId" class="app-subtitle font-medium">Location</label>
         <Dropdown
           id="locationId"
@@ -104,7 +98,6 @@ const emit = defineEmits(['update:visible', 'submit'])
 const submitted = ref(false)
 const form = reactive({
   productId: null,
-  sku: '',
   locationId: null,
   quantity: null,
   newQuantity: null,
@@ -155,7 +148,6 @@ watch(
 const resetForm = () => {
   submitted.value = false
   form.productId = null
-  form.sku = ''
   form.locationId = null
   form.quantity = null
   form.newQuantity = null
@@ -170,7 +162,7 @@ const closeDialog = () => {
 const isFormValid = () => {
   if (!isQuantityValid.value) return false
   if (props.mode === 'add') {
-    return !!form.productId && !!form.sku && !!form.locationId
+    return !!form.productId && !!form.locationId
   }
   return !!props.selectedStock?.id
 }
@@ -182,7 +174,6 @@ const submitForm = () => {
   if (props.mode === 'add') {
     emit('submit', {
       productId: form.productId,
-      sku: form.sku,
       locationId: form.locationId,
       quantity: form.quantity,
       manufactureDate: form.manufactureDate || null,

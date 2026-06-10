@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.Hibernate;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Table(name = "stocks")
@@ -20,11 +21,9 @@ public class Stock extends BaseTimestampEntity {
     @SequenceGenerator(name = "stock_seq", sequenceName = "stocks_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(name = "SKU", nullable = false, length = 100)
-    private String sku;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
+    @Getter(AccessLevel.NONE)
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,12 +46,15 @@ public class Stock extends BaseTimestampEntity {
     @Version
     private Long version;
 
-    public Stock(Product product, Location location, String sku) {
+    public Stock(Product product, Location location) {
         this.product = product;
         this.location = location;
-        this.sku = sku;
         this.quantity = 0;
         this.reservedQuantity = 0;
+    }
+
+    public Optional<Product> getProduct() {
+        return Optional.ofNullable(product);
     }
 
     public void removeQuantity(int quantityToMove) {
