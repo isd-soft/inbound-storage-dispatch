@@ -47,6 +47,14 @@ public class Stock extends BaseTimestampEntity {
     @Version
     private Long version;
 
+    public Stock(Product product, Location location, String sku) {
+        this.product = product;
+        this.location = location;
+        this.sku = sku;
+        this.quantity = 0;
+        this.reservedQuantity = 0;
+    }
+
     public void removeQuantity(int quantityToMove) {
         this.quantity -= quantityToMove;
         this.reservedQuantity += quantityToMove;

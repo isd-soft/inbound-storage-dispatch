@@ -30,6 +30,7 @@ public class WorkflowService {
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
+    private final List<ProcessCompletionStrategy> processCompletionStrategies;
 
     @Transactional
     public void generateProcessesForTask(Task task, Long productId, int requiredQuantity) {
@@ -63,11 +64,7 @@ public class WorkflowService {
             int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
             int quantityToTake = Math.min(available, remainingQuantity);
 
-            Process process = new Process();
-            process.setTask(task);
-            process.setStock(bestStock);
-            process.setQuantity(quantityToTake);
-            process.setStatus(ProcessStatus.CREATED);
+            Process process = new Process(task, bestStock, quantityToTake, ProcessStatus.CREATED);
             processesToSave.add(process);
 
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);

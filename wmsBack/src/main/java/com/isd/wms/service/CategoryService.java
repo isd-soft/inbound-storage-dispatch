@@ -11,6 +11,7 @@ import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.mapper.CategoryMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CategoryService {
 
@@ -26,15 +28,6 @@ public class CategoryService {
     private final ProductRepository productRepository;
     private final CategoryMapper categoryMapper;
 
-    public CategoryService(
-            CategoryRepository categoryRepository,
-            ProductRepository productRepository,
-            CategoryMapper categoryMapper
-    ) {
-        this.categoryRepository = categoryRepository;
-        this.productRepository = productRepository;
-        this.categoryMapper = categoryMapper;
-    }
 
     @Transactional
     public CategoryResponse createCategory(CategoryCreateRequest request) {

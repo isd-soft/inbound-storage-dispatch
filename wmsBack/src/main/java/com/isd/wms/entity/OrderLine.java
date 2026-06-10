@@ -14,9 +14,9 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "order_lines")
 public class OrderLine extends BaseTimestampEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "line_gen")
     @SequenceGenerator(name = "line_gen", sequenceName = "order_lines_sequence", allocationSize = 1)

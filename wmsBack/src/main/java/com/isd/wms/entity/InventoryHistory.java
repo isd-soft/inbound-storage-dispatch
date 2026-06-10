@@ -29,7 +29,6 @@ import org.hibernate.Hibernate;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class InventoryHistory{
 
     @Id
@@ -74,6 +73,17 @@ public class InventoryHistory{
         if (timestamp == null) {
             timestamp = Instant.now();
         }
+    }
+
+    public InventoryHistory(Product product, String sku, Integer alteredQuantity, Integer quantityAfterChange, Location sourceLocation, Location destinationLocation, InventoryOperationType operationType, User user) {
+        this.product = product;
+        this.sku = sku;
+        this.alteredQuantity = alteredQuantity;
+        this.quantityAfterChange = quantityAfterChange;
+        this.sourceLocation = sourceLocation;
+        this.destinationLocation = destinationLocation;
+        this.operationType = operationType;
+        this.user = user;
     }
 
     @Override

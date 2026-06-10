@@ -68,15 +68,7 @@ public class InventoryService {
         String sku = request.getSku().trim();
 
         Stock stock = stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(product.getId(), sku, location.getId())
-                .orElseGet(() -> {
-                    Stock newStock = new Stock();
-                    newStock.setProduct(product);
-                    newStock.setLocation(location);
-                    newStock.setSku(sku);
-                    newStock.setQuantity(0);
-                    newStock.setReservedQuantity(0);
-                    return newStock;
-                });
+                .orElseGet(() -> new Stock(product, location, sku));
 
         stock.setQuantity(stock.getQuantity() + request.getQuantity());
         stock.setManufactureDate(request.getManufactureDate());
@@ -181,16 +173,16 @@ public class InventoryService {
             InventoryOperationType operationType,
             User user
     ) {
-        InventoryHistory history = new InventoryHistory();
-        history.setProduct(stock.getProduct());
-        history.setSku(stock.getSku());
-        history.setAlteredQuantity(alteredQuantity);
-        history.setQuantityAfterChange(quantityAfterChange);
-        history.setSourceLocation(sourceLocation);
-        history.setDestinationLocation(destinationLocation);
-        history.setOperationType(operationType);
-        history.setTimestamp(Instant.now());
-        history.setUser(user);
+        InventoryHistory history = new InventoryHistory(
+                stock.getProduct(),
+                stock.getSku(),
+                alteredQuantity,
+                quantityAfterChange,
+                sourceLocation,
+                destinationLocation,
+                operationType,
+                user
+        );
 
         inventoryHistoryRepository.save(history);
     }
