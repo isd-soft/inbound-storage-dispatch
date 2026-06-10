@@ -17,8 +17,6 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class User{
 
     @Id
@@ -47,6 +45,16 @@ public class User{
 
     @Column(name = "verification_token_expires_at")
     private Instant verificationTokenExpiresAt;
+
+    public User(String username, String email, String password, Role userRole, Boolean emailVerified, String verificationToken, Instant verificationTokenExpiresAt) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.userRole = userRole;
+        this.emailVerified = emailVerified;
+        this.verificationToken = verificationToken;
+        this.verificationTokenExpiresAt = verificationTokenExpiresAt;
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -34,6 +34,13 @@ public class Location{
     @Column(nullable = false)
     private Boolean available = true;
 
+    public Location(String locationCode, Zone zone, String description, Boolean available) {
+        this.locationCode = locationCode;
+        this.zone = zone;
+        this.description = description;
+        this.available = available;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -18,9 +18,9 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "tasks")
 public class Task extends BaseTimestampEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_gen")
     @SequenceGenerator(name = "task_gen", sequenceName = "tasks_sequence", allocationSize = 1)
@@ -46,6 +46,13 @@ public class Task extends BaseTimestampEntity {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Process> processes = new ArrayList<>();
+
+    public Task(User supervisor, TaskType taskType, Integer requestedQuantity, TaskStatus status) {
+        this.supervisor = supervisor;
+        this.taskType = taskType;
+        this.requestedQuantity = requestedQuantity;
+        this.status = status;
+    }
 
     public Task(User supervisor, TaskType taskType, Integer requestedQuantity) {
         this.supervisor = supervisor;

@@ -11,9 +11,9 @@ import java.util.Optional;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "processes")
 public class Process extends BaseTimestampEntity{
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "process_gen")
     @SequenceGenerator(name = "process_gen", sequenceName = "processes_sequence", allocationSize = 1)
@@ -28,7 +28,7 @@ public class Process extends BaseTimestampEntity{
     private Task task;
 
     @Column(nullable = false)
-    private Integer quantity;
+    private Integer quantity = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stock_id", nullable = false)
@@ -46,6 +46,13 @@ public class Process extends BaseTimestampEntity{
 
     @Column(name = "picked_quantity")
     private Integer pickedQuantity;
+
+    public Process(Task task, Stock stock, Integer quantity, ProcessStatus status) {
+        this.task = task;
+        this.stock = stock;
+        this.quantity = quantity;
+        this.status = status;
+    }
 
     public Optional<User> getOperator() {
         return Optional.ofNullable(operator);

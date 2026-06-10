@@ -12,17 +12,13 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "orders")
 public class Order extends BaseTimestampEntity{
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_gen")
     @SequenceGenerator(name = "order_gen", sequenceName = "orders_sequence", allocationSize = 1)
     private Long id;
-
-    public Order(String logicId) {
-        this.logicId = logicId;
-    }
 
     @Column(name = "logic_id", nullable = false, unique = true)
     private String logicId;
@@ -37,6 +33,15 @@ public class Order extends BaseTimestampEntity{
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLine> orderLines = new ArrayList<>();
+
+    public Order(String logicId, Location destinationLocation) {
+        this.logicId = logicId;
+        this.destinationLocation = destinationLocation;
+    }
+
+    public Order(String logicId) {
+        this.logicId = logicId;
+    }
 
     @Override
     public boolean equals(Object o) {
