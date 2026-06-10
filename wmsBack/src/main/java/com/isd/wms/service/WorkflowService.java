@@ -33,8 +33,7 @@ public class WorkflowService {
     private final List<ProcessCompletionStrategy> processCompletionStrategies;
 
     @Transactional
-    public void generateProcessesForTask(Task task, Long productId, int requiredQuantity) {
-        int remainingQuantity = requiredQuantity;
+    public void generateProcessesForTask(Task task, Long productId, int remainingQuantity) {
 
         List<Stock> availableStocks = new ArrayList<>(stockRepository.findAvailableStocksByProductId(productId));
         List<Process> processesToSave = new ArrayList<>();
