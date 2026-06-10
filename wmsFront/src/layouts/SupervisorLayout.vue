@@ -43,6 +43,7 @@ const menuItems = computed(() => {
     { to: '/supervisor', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
     { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },
     { to: '/supervisor/tasks', label: 'Tasks', icon: 'pi pi-check-square' },
+    { to: '/supervisor/replenishments', label: 'Replenishments', icon: 'pi pi-sync' },
     { to: '/supervisor/products', label: 'Products', icon: 'pi pi-tags' },
     { to: '/supervisor/locations', label: 'Locations', icon: 'pi pi-map-marker' },
     { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
