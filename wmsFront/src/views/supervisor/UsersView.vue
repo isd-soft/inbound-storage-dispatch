@@ -1,11 +1,11 @@
 <template>
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-gray-100">System Users</h2>
+      <h2 class="app-title text-2xl font-bold">System Users</h2>
       <Button label="Add User" icon="pi pi-user-plus" severity="success" />
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card">
       <template #content>
         <DataTable :value="mockUsers" stripedRows class="p-datatable-sm">
           <Column field="id" header="ID"></Column>

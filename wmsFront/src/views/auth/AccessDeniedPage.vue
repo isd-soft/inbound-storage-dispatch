@@ -1,14 +1,17 @@
 <template>
-  <div class="min-h-screen bg-gray-900 flex items-center justify-center p-6">
-    <Card class="w-full max-w-md bg-gray-800 border-none shadow-lg text-center">
+  <div class="app-shell flex items-center justify-center p-6">
+    <div class="absolute right-6 top-6">
+      <ThemeToggle />
+    </div>
+    <Card class="app-card w-full max-w-md text-center">
       <template #title>
-        <div class="flex flex-col items-center gap-3 text-gray-100">
-          <i class="pi pi-lock text-4xl text-red-400"></i>
+        <div class="app-title flex flex-col items-center gap-3">
+          <i class="pi pi-lock text-4xl app-danger"></i>
           <span>Access Denied</span>
         </div>
       </template>
       <template #content>
-        <p class="text-gray-400 mb-6">Your current role does not allow access to this page.</p>
+        <p class="app-subtitle mb-6">Your current role does not allow access to this page.</p>
         <Button label="Return to Dashboard" icon="pi pi-arrow-left" @click="goToDashboard" />
       </template>
     </Card>
@@ -20,6 +23,7 @@ import { useRouter } from 'vue-router'
 
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 import { useAuthStore } from '@/stores/auth'
 

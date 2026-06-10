@@ -61,6 +61,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Access denied", Map.of());
     }
 
+    @ExceptionHandler(UserNotVerifiedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserNotVerified(UserNotVerifiedException exception) {
+        return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage(), Map.of());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), Map.of());
+    }
+
     private ResponseEntity<ApiErrorResponse> buildResponse(
             HttpStatus status,
             String message,
