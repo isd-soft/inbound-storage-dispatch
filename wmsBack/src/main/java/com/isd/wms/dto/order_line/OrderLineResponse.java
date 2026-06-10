@@ -11,7 +11,6 @@ public record OrderLineResponse(
         Long productId,
         Integer requestedQuantity,
         OrderStatus status,
-        Long destinationLocationId,
         Timestamp createdAt,
         Timestamp updatedAt
 ) {

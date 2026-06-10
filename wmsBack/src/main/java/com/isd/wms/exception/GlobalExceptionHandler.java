@@ -16,13 +16,16 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({
-            ProductNotFoundException.class,
             CategoryNotFoundException.class,
             LocationNotFoundException.class,
-            StockNotFoundException.class,
-            UserNotFoundException.class,
+            OrderLineNotFoundException.class,
+            OrderNotFoundException.class,
+            ProcessesNotFoundException.class,
+            ProductNotFoundException.class,
             ReplenishmentNotFoundException.class,
-            OrderNotFoundException.class
+            StockNotFoundException.class,
+            TaskNotFoundException.class,
+            UserNotFoundException.class
     })
     public ResponseEntity<ApiErrorResponse> handleNotFound(RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), Map.of());

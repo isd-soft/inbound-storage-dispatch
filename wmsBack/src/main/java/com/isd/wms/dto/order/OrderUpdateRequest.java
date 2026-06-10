@@ -5,7 +5,7 @@ import lombok.NonNull;
 
 public record OrderUpdateRequest(
         @NonNull String logicId,
-        @NonNull OrderStatus status,
-        @NonNull Long destinationLocationId
+        @NonNull Long destinationLocationId,
+        @NonNull OrderStatus status
 ) {
 }
