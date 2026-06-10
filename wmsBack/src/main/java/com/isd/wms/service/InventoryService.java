@@ -68,19 +68,12 @@ public class InventoryService {
         String sku = request.getSku().trim();
 
         Stock stock = stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(product.getId(), sku, location.getId())
-                .orElseGet(() -> Stock.builder()
-                        .product(product)
-                        .location(location)
-                        .sku(sku)
-                        .quantity(0)
-                        .reservedQuantity(0)
-                        .manufactureDate(request.getManufactureDate())
-                        .expirationDate(request.getExpirationDate())
-                        .build());
+                .orElseGet(() -> new Stock(product, location, sku));
 
         stock.setQuantity(stock.getQuantity() + request.getQuantity());
         stock.setManufactureDate(request.getManufactureDate());
         stock.setExpirationDate(request.getExpirationDate());
+
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, request.getQuantity(), savedStock.getQuantity(), null, location,
@@ -180,17 +173,17 @@ public class InventoryService {
             InventoryOperationType operationType,
             User user
     ) {
-        InventoryHistory history = InventoryHistory.builder()
-                .product(stock.getProduct())
-                .sku(stock.getSku())
-                .alteredQuantity(alteredQuantity)
-                .quantityAfterChange(quantityAfterChange)
-                .sourceLocation(sourceLocation)
-                .destinationLocation(destinationLocation)
-                .operationType(operationType)
-                .timestamp(Instant.now())
-                .user(user)
-                .build();
+        InventoryHistory history = new InventoryHistory(
+                stock.getProduct(),
+                stock.getSku(),
+                alteredQuantity,
+                quantityAfterChange,
+                sourceLocation,
+                destinationLocation,
+                operationType,
+                user
+        );
+
         inventoryHistoryRepository.save(history);
     }
 
