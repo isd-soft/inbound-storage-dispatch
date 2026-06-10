@@ -28,13 +28,15 @@ import java.util.List;
 public class ReplenishmentService {
 
     private final ReplenishmentRepository replenishmentRepository;
-    private final TaskRepository taskRepository;
+    private final StockRepository stockRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
+
+    private static final List<ReplenishmentStatus> TERMINAL_STATUSES = List.of(
+            ReplenishmentStatus.COMPLETED);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
@@ -43,6 +45,9 @@ public class ReplenishmentService {
 
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
+
+        validateDestinationStockIsZero(product, destinationLocation);
+        validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), null);
 
         Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());
 
@@ -60,7 +65,17 @@ public class ReplenishmentService {
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        if (!request.productId().equals(replenishment.getProduct().getId()) || !request.requestedQuantity().equals(replenishment.getRequestedQuantity())) {
+        boolean isProductChanged = !request.productId().equals(replenishment.getProduct().getId());
+        boolean isLocationChanged = !request.destinationLocationId().equals(replenishment.getDestinationLocation().getId());
+        boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
+
+        if (isProductChanged || isLocationChanged) {
+            validateDestinationStockIsZero(product, destinationLocation);
+            validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), id);
+        }
+
+        if (isProductChanged || isQuantityChanged) {
+            replenishment.getTask().setRequestedQuantity(request.requestedQuantity());
             workflowService.updateTask(replenishment.getTask(), request.productId(), request.requestedQuantity());
         }
 
@@ -70,6 +85,42 @@ public class ReplenishmentService {
         replenishment.setDestinationLocation(destinationLocation);
 
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
+    }
+
+    private void validateNoActiveReplenishment(Long productId, Long locationId, Long excludeReplenishmentId) {
+        boolean hasDuplicate;
+
+        if (excludeReplenishmentId == null) {
+            hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(
+                    productId, locationId, TERMINAL_STATUSES
+            );
+        } else {
+            hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
+                    productId, locationId, TERMINAL_STATUSES, excludeReplenishmentId
+            );
+        }
+
+        if (hasDuplicate) {
+            log.warn("Replenishment rejected: An active replenishment task already exists for productId={} and locationId={}",
+                    productId, locationId);
+            throw new InvalidRequestException("An active replenishment task for this product and destination location already exists.");
+        }
+    }
+
+
+
+    private void validateDestinationStockIsZero(Product product, Location location) {
+        stockRepository.findByProductAndLocation(product, location)
+                .ifPresent(stock -> {
+                    if (stock.getQuantity() > 0) {
+                        log.warn("Replenishment rejected: location {} already contains {} pcs of product ID {}",
+                                location.getLocationCode(), stock.getQuantity(), product.getId());
+                        throw new InvalidRequestException(
+                                String.format("Replenishment is allowed only when current stock is zero. Location %s currently has %d pcs.",
+                                        location.getLocationCode(), stock.getQuantity())
+                        );
+                    }
+                });
     }
 
     @Transactional
@@ -110,15 +161,6 @@ public class ReplenishmentService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
     }
 
-    private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getName();
-    }
-
-    private User getUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
-    }
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
