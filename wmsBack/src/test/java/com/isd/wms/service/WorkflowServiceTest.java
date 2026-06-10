@@ -41,7 +41,7 @@ class WorkflowServiceTest {
 
     @BeforeEach
     void setUp() {
-        task = Task.builder().id(1L).build();
+        task = new Task();
     }
 
     @Test
