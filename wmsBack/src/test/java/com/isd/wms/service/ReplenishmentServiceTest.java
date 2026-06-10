@@ -4,21 +4,13 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.Task;
-import com.isd.wms.entity.User;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.ReplenishmentStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.TaskRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,7 +107,6 @@ class ReplenishmentServiceTest {
 
     @Test
     void updateReplenishment_validRequest_returnsUpdatedResponse() {
-        // ДОБАВЛЕНЫ: taskId и productId в конструктор
         ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, ReplenishmentStatus.COMPLETED, 3L);
 
         when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));

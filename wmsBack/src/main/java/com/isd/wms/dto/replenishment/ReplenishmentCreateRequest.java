@@ -1,10 +1,11 @@
 package com.isd.wms.dto.replenishment;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import lombok.NonNull;
 
 public record ReplenishmentCreateRequest(
-        @NotNull(message = "Product ID is mandatory") Long productId,
-        @Positive(message = "Requested quantity must be positive") Integer requestedQuantity,
-        @NotNull(message = "Destination location ID is mandatory") Long destinationLocationId
-) {}
+        @NonNull Long productId,
+        @NonNull @Min(0) Integer requestedQuantity,
+        @NonNull Long destinationLocationId
+) {
+}

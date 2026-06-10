@@ -3,15 +3,22 @@ package com.isd.wms.entity;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
+
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "tasks")
 public class Task extends BaseTimestampEntity {
     @Id
@@ -35,7 +42,16 @@ public class Task extends BaseTimestampEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TaskStatus status;
+    private TaskStatus status = TaskStatus.CREATED;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Process> processes = new ArrayList<>();
+
+    public Task(User supervisor, TaskType taskType, Integer requestedQuantity) {
+        this.supervisor = supervisor;
+        this.taskType = taskType;
+        this.requestedQuantity = requestedQuantity;
+    }
 
     @Override
     public boolean equals(Object o) {

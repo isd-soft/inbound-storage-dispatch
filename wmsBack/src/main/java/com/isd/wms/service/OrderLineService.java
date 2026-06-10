@@ -3,14 +3,20 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
-import com.isd.wms.entity.*;
-import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.TaskStatus;
+import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
+import com.isd.wms.entity.Product;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.*;
+import com.isd.wms.exception.OrderLineNotFoundException;
+import com.isd.wms.exception.OrderNotFoundException;
+import com.isd.wms.exception.ProductNotFoundException;
+import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.mapper.OrderLineMapper;
-import com.isd.wms.repository.*;
-import com.isd.wms.service.validation.SecurityFacade;
+import com.isd.wms.repository.OrderLineRepository;
+import com.isd.wms.repository.OrderRepository;
+import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.repository.TaskRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,73 +26,51 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
+@Transactional(readOnly = true)
 public class OrderLineService {
-    private final LocationRepository locationRepository;
     private final OrderRepository orderRepository;
     private final OrderLineRepository orderLineRepository;
     private final OrderLineMapper orderLineMapper;
     private final ProductRepository productRepository;
     private final TaskRepository taskRepository;
-    private final UserRepository userRepository;
-    private final WorkflowService workflowService;
-    private final SecurityFacade securityFacade;
+    private final TaskService taskService;
 
     @Transactional
-    public OrderLineResponse createOrderLine(OrderLineCreateRequest request) {
-        Order order = getOrder(request.orderId());
-        User supervisor = getUser(securityFacade.getCurrentUsername());
-
-        Task task = new Task();
-        task.setSupervisor(supervisor);
-        task.setTaskType(TaskType.REPLENISHMENT);
-        task.setRequestedQuantity(request.requestedQuantity());
-        task.setStatus(TaskStatus.CREATED);
-
-        task = taskRepository.save(task);
-
-        workflowService.generateProcessesForTask(task, request.productId(), request.requestedQuantity());
-
+    public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
-        Location destinationLocation = getLocation(request.destinationLocationId());
 
-        OrderLine orderLine = new OrderLine();
-        orderLine.setOrder(order);
-        orderLine.setTask(task);
-        orderLine.setProduct(product);
-        orderLine.setRequestedQuantity(request.requestedQuantity());
-        orderLine.setDestinationLocation(destinationLocation);
-        orderLine.setStatus(OrderStatus.CREATED);
+        Task task = taskService.createTask(TaskType.PICKING_ORDER, request.requestedQuantity(), request.productId());
 
-        return orderLineMapper.toResponse(orderLineRepository.save(orderLine));
+        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity());
+
+        orderLineRepository.save(orderLine);
     }
 
     @Transactional
     public OrderLineResponse updateOrderLine(Long id, OrderLineUpdateRequest request) {
-
         OrderLine orderLine = getOrderLine(id);
-        Order order = getOrder(request.orderId());
-        Product product = getProduct(request.productId());
-        Task task = getTask(request.taskId());
-        Location location = getLocation(request.destinationLocationId());
 
-        orderLine.setOrder(order);
-        orderLine.setTask(task);
-        orderLine.setProduct(product);
-        orderLine.setRequestedQuantity(request.requestedQuantity());
-        orderLine.setStatus(request.status());
-        orderLine.setDestinationLocation(location);
+        updateOrderLineFields(orderLine, request);
 
         return orderLineMapper.toResponse(orderLineRepository.save(orderLine));
+    }
+
+    private void updateOrderLineFields(OrderLine orderLine, OrderLineUpdateRequest request) {
+        orderLine.setOrder(getOrder(request.orderId()));
+        orderLine.setTask(getTask(request.taskId()));
+        orderLine.setProduct(getProduct(request.productId()));
+        orderLine.setRequestedQuantity(request.requestedQuantity());
+        orderLine.setStatus(request.status());
+    }
+
+    public void deleteOrderLine(Long orderLineId) {
+        orderLineRepository.deleteById(orderLineId);
     }
 
     public List<OrderLineResponse> getAll() {
         return orderLineRepository.findAll().stream()
                 .map(orderLineMapper::toResponse)
                 .toList();
-    }
-
-    public List<OrderLine> getAllOrderLinesByOrderId(Long orderId) {
-        return orderLineRepository.findAllByOrderId(orderId);
     }
 
     private Order getOrder(@NonNull Long orderId) {
@@ -106,16 +90,6 @@ public class OrderLineService {
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
-    }
-
-    private User getUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
-    }
-
-    private Location getLocation(Long locationId) {
-        return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
     private Task getTask(Long taskId) {

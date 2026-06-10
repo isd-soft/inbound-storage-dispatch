@@ -28,19 +28,19 @@ public class ReplenishmentController {
     }
 
     @GetMapping
-    public List<ReplenishmentResponse> getAllReplenishments() {
-        return replenishmentService.getAllReplenishments();
+    public ResponseEntity<List<ReplenishmentResponse>> getAllReplenishments() {
+        return ResponseEntity.ok(replenishmentService.getAllReplenishments());
     }
 
     @GetMapping("/{id}")
-    public ReplenishmentResponse getReplenishmentById(@PathVariable Long id) {
-        return replenishmentService.getReplenishmentById(id);
+    public ResponseEntity<ReplenishmentResponse> getReplenishmentById(@PathVariable Long id) {
+        return ResponseEntity.ok(replenishmentService.getReplenishmentById(id));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ReplenishmentResponse updateReplenishment(@PathVariable Long id, @Valid @RequestBody ReplenishmentUpdateRequest request) {
-        return replenishmentService.updateReplenishment(id, request);
+    public ResponseEntity<ReplenishmentResponse> updateReplenishment(@PathVariable Long id, @Valid @RequestBody ReplenishmentUpdateRequest request) {
+        return ResponseEntity.ok(replenishmentService.updateReplenishment(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -50,8 +50,8 @@ public class ReplenishmentController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/search")
-    public List<ReplenishmentResponse> searchReplenishments(@RequestBody ReplenishmentSearchRequest request) {
-        return replenishmentService.searchReplenishments(request);
+    @PostMapping("/filter")
+    public ResponseEntity<List<ReplenishmentResponse>> searchReplenishments(@ModelAttribute ReplenishmentSearchRequest request) {
+        return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
     }
 }

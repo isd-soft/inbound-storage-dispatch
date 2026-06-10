@@ -15,7 +15,6 @@ public class OrderLineMapper {
                 orderLine.getProduct().getId(),
                 orderLine.getRequestedQuantity(),
                 orderLine.getStatus(),
-                orderLine.getDestinationLocation().getId(),
                 orderLine.getCreatedAt(),
                 orderLine.getUpdatedAt()
         );

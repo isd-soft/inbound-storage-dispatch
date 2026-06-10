@@ -12,6 +12,7 @@ import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.service.process.ProcessCompletionStrategy;
+import com.isd.wms.service.process.ReplenishmentProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,21 +45,17 @@ public class WorkflowService {
             return Integer.compare(diff1, diff2);
         });
 
+        assignProcesses(task, productId, remainingQuantity, availableStocks, processesToSave);
+
+        processRepository.saveAll(processesToSave);
+        stockRepository.saveAll(availableStocks);
+    }
+
+    private static void assignProcesses(Task task, Long productId, int remainingQuantity, List<Stock> availableStocks, List<Process> processesToSave) {
         while (remainingQuantity > 0) {
             Stock bestStock = null;
 
-            for (Stock stock : availableStocks) {
-                int available = stock.getQuantity() - stock.getReservedQuantity();
-
-                if (available <= 0) continue;
-
-                if (available >= remainingQuantity) {
-                    bestStock = stock;
-                    break;
-                }
-
-                bestStock = stock;
-            }
+            bestStock = searchForStock(availableStocks, remainingQuantity, bestStock);
 
             if (bestStock == null) {
                 throw new InvalidRequestException("Insufficient stock for Product ID: " + productId);
@@ -79,15 +76,22 @@ public class WorkflowService {
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
             remainingQuantity -= quantityToTake;
         }
+    }
 
-        if (remainingQuantity > 0) {
-            throw new InvalidRequestException(
-                    "Insufficient unreserved stock for Product ID: " + productId
-            );
+    private static Stock searchForStock(List<Stock> availableStocks, int remainingQuantity, Stock bestStock) {
+        for (Stock stock : availableStocks) {
+            int available = stock.getQuantity() - stock.getReservedQuantity();
+
+            if (available <= 0) continue;
+
+            if (available >= remainingQuantity) {
+                bestStock = stock;
+                break;
+            }
+
+            bestStock = stock;
         }
-
-        processRepository.saveAll(processesToSave);
-        stockRepository.saveAll(availableStocks);
+        return bestStock;
     }
 
     @Transactional

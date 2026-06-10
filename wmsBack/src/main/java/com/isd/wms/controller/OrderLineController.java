@@ -8,37 +8,41 @@ import com.isd.wms.service.OrderLineService;
 import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/order-lines")
+@RequestMapping("/api/v1/order-lines")
 @RequiredArgsConstructor
 public class OrderLineController {
     private final OrderLineService orderLineService;
 
-    @RequestMapping("/")
     @GetMapping
-    public List<OrderLineResponse> getOrderLines() {
-        return orderLineService.getAll();
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<List<OrderLineResponse>> getAllOrderLines() {
+        return ResponseEntity.ok(orderLineService.getAll());
     }
 
-    @RequestMapping("/{id}")
-    @GetMapping
-    public OrderLineResponse getOrderLine(@NonNull Long orderLineId) {
-        return orderLineService.getOrderLineById(orderLineId);
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<OrderLineResponse> getOrderLineById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderLineService.getOrderLineById(id));
     }
 
-    @RequestMapping("/")
-    @PostMapping
-    public OrderLineResponse createOrderLine(@Valid @NonNull OrderLineCreateRequest request) {
-        return orderLineService.createOrderLine(request);
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @Valid @NonNull OrderLineUpdateRequest request) {
+        return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
     }
 
-    @RequestMapping("/{id}")
-    @PutMapping
-    public OrderLineResponse updateOrderLine(@NonNull Long orderLineId, @Valid @NonNull OrderLineUpdateRequest request) {
-        return orderLineService.updateOrderLine(orderLineId, request);
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> deleteOrderLine(@PathVariable Long id) {
+        orderLineService.deleteOrderLine(id);
+        return ResponseEntity.noContent().build();
     }
 }
