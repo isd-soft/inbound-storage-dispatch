@@ -46,7 +46,11 @@ class WorkflowServiceTest {
 
     @Test
     void generateProcessesForTask_success_createsOneProcess() {
-        Stock stock = Stock.builder().id(10L).quantity(100).reservedQuantity(0).build();
+        Stock stock = new Stock();
+        stock.setId(10L);
+        stock.setQuantity(100);
+        stock.setReservedQuantity(0);
+
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 
@@ -58,8 +62,16 @@ class WorkflowServiceTest {
 
     @Test
     void generateProcessesForTask_splitProcesses_createsTwoProcesses() {
-        Stock stock1 = Stock.builder().id(10L).quantity(50).reservedQuantity(0).build();
-        Stock stock2 = Stock.builder().id(11L).quantity(50).reservedQuantity(0).build();
+        Stock stock1 = new Stock();
+        stock1.setId(10L);
+        stock1.setQuantity(50);
+        stock1.setReservedQuantity(0);
+
+        Stock stock2 = new Stock();
+        stock2.setId(11L);
+        stock2.setQuantity(50);
+        stock2.setReservedQuantity(0);
+
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock1, stock2)));
 
@@ -79,7 +91,11 @@ class WorkflowServiceTest {
 
     @Test
     void generateProcessesForTask_insufficientStock_throwsException() {
-        Stock stock = Stock.builder().id(10L).quantity(10).reservedQuantity(0).build();
+        Stock stock = new Stock();
+        stock.setId(10L);
+        stock.setQuantity(10);
+        stock.setReservedQuantity(0);
+
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 

@@ -64,14 +64,13 @@ public class WorkflowService {
             int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
             int quantityToTake = Math.min(available, remainingQuantity);
 
-            processesToSave.add(
-                    Process.builder()
-                            .task(task)
-                            .stock(bestStock)
-                            .quantity(quantityToTake)
-                            .status(ProcessStatus.CREATED)
-                            .build()
-            );
+            Process process = new Process();
+            process.setTask(task);
+            process.setStock(bestStock);
+            process.setQuantity(quantityToTake);
+            process.setStatus(ProcessStatus.CREATED);
+
+            processesToSave.add(process);
 
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
             remainingQuantity -= quantityToTake;

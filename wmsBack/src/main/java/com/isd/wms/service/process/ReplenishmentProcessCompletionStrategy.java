@@ -33,14 +33,14 @@ public class ReplenishmentProcessCompletionStrategy implements ProcessCompletion
     }
 
     private void createStock(Stock sourceStock, Location destinationLocation, int quantityToMove) {
-        Stock newStock = Stock.builder()
-                .product(sourceStock.getProduct())
-                .location(destinationLocation)
-                .quantity(quantityToMove)
-                .reservedQuantity(0)
-                .expirationDate(sourceStock.getExpirationDate())
-                .manufactureDate(sourceStock.getManufactureDate())
-                .build();
+        Stock newStock = new Stock();
+        newStock.setProduct(sourceStock.getProduct());
+        newStock.setLocation(destinationLocation);
+        newStock.setQuantity(quantityToMove);
+        newStock.setReservedQuantity(0);
+        newStock.setExpirationDate(sourceStock.getExpirationDate());
+        newStock.setManufactureDate(sourceStock.getManufactureDate());
+
         stockRepository.save(newStock);
     }
 

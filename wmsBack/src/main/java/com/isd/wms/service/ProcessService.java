@@ -24,7 +24,6 @@ import java.util.List;
 public class ProcessService {
 
     private final ProcessRepository processRepository;
-    private final UserRepository userRepository;
     private final WorkflowService workflowService;
     private final SecurityFacade securityFacade;
 
@@ -34,7 +33,7 @@ public class ProcessService {
     }
 
     public List<ProcessResponse> getMyProcesses() {
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
         List<Process> processes = processRepository.findByOperatorAndStatuses(
                 operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS));
@@ -44,7 +43,7 @@ public class ProcessService {
     @Transactional
     public ProcessResponse assignProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
         if (process.getStatus() != ProcessStatus.CREATED) {
             throw new InvalidRequestException("Process is already assigned or completed");
@@ -59,7 +58,7 @@ public class ProcessService {
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
         if (process.getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("You can only complete your own processes");
@@ -82,11 +81,6 @@ public class ProcessService {
                 .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
     }
 
-    private User getCurrentUser() {
-        String username = securityFacade.getCurrentUsername();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
-    }
 
     private ProcessResponse toResponse(Process process) {
         Stock stock = process.getStock();

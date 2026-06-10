@@ -30,7 +30,6 @@ import org.hibernate.Hibernate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class InventoryHistory{
 
     @Id

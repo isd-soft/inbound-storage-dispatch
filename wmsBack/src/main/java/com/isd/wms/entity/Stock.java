@@ -13,7 +13,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Stock extends BaseTimestampEntity {
 
     @Id
@@ -37,7 +36,6 @@ public class Stock extends BaseTimestampEntity {
     private Integer quantity;
 
     @Column(name = "quantity_reserved", nullable = false)
-    @Builder.Default
     private Integer reservedQuantity = 0;
 
     @Column(name = "manufacture_date")
@@ -51,7 +49,7 @@ public class Stock extends BaseTimestampEntity {
 
     public void removeQuantity(int quantityToMove) {
         this.quantity -= quantityToMove;
-        this.reservedQuantity -= quantityToMove;
+        this.reservedQuantity += quantityToMove;
     }
 
     public void addQuantity(int quantity) {

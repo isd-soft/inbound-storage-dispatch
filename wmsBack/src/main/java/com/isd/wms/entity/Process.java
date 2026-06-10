@@ -12,7 +12,6 @@ import java.util.Optional;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "processes")
 public class Process extends BaseTimestampEntity{
     @Id
