@@ -11,6 +11,7 @@ public class OrderMapper {
         return new OrderResponse(
                 order.getId(),
                 order.getLogicId(),
+                order.getDestinationLocation().getId(),
                 order.getStatus(),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
