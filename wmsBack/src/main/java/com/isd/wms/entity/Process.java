@@ -5,13 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "processes")
 public class Process extends BaseTimestampEntity{
     @Id
@@ -37,6 +37,19 @@ public class Process extends BaseTimestampEntity{
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProcessStatus status;
+
+    @Column(name = "source_location_scanned", nullable = false)
+    private boolean sourceLocationScanned = false;
+
+    @Column(name = "product_scanned", nullable = false)
+    private boolean productScanned = false;
+
+    @Column(name = "picked_quantity")
+    private Integer pickedQuantity;
+
+    public Optional<User> getOperator() {
+        return Optional.ofNullable(operator);
+    }
 
     @Override
     public boolean equals(Object o) {

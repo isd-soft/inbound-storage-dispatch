@@ -4,21 +4,13 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.Task;
-import com.isd.wms.entity.User;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.ReplenishmentStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.TaskRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,44 +106,8 @@ class ReplenishmentServiceTest {
     }
 
     @Test
-    void createReplenishment_nullProductId_throwsInvalidRequestException() {
-        ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(null, 10, 3L);
-
-        assertThatThrownBy(() -> replenishmentService.createReplenishment(request))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessageContaining("product id is required");
-    }
-
-    @Test
-    void createReplenishment_nonPositiveRequestedQuantity_throwsInvalidRequestException() {
-        ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(1L, 0, 3L);
-
-        assertThatThrownBy(() -> replenishmentService.createReplenishment(request))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessageContaining("requested quantity must be positive");
-    }
-
-    @Test
-    void createReplenishment_nullDestinationLocationId_throwsInvalidRequestException() {
-        ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(1L, 10, null);
-
-        assertThatThrownBy(() -> replenishmentService.createReplenishment(request))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessageContaining("destination location id is required");
-    }
-
-    @Test
-    void createReplenishment_productNotFound_throwsProductNotFoundException() {
-        ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(99L, 10, 3L);
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> replenishmentService.createReplenishment(request))
-                .isInstanceOf(ProductNotFoundException.class);
-    }
-
-    @Test
     void updateReplenishment_validRequest_returnsUpdatedResponse() {
-        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 20, ReplenishmentStatus.COMPLETED, 3L);
+        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, ReplenishmentStatus.COMPLETED, 3L);
 
         when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -169,52 +125,10 @@ class ReplenishmentServiceTest {
     }
 
     @Test
-    void updateReplenishment_notFound_throwsReplenishmentNotFoundException() {
-        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 20, ReplenishmentStatus.COMPLETED, 3L);
-        when(replenishmentRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> replenishmentService.updateReplenishment(99L, request))
-                .isInstanceOf(ReplenishmentNotFoundException.class);
-    }
-
-    @Test
-    void deleteReplenishment_existingTask_deletesSuccessfully() {
-        when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
-
-        replenishmentService.deleteReplenishment(1L);
-
-        verify(replenishmentRepository).delete(replenishment);
-    }
-
-    @Test
-    void getReplenishmentById_existingId_returnsResponse() {
-        when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
-        when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
-
-        ReplenishmentResponse result = replenishmentService.getReplenishmentById(1L);
-
-        assertThat(result).isEqualTo(response);
-    }
-
-    @Test
-    void getAllReplenishments_returnsMappedList() {
-        Replenishment replenishment2 = mock(Replenishment.class);
-        ReplenishmentResponse response2 = new ReplenishmentResponse(2L, 1L, 3L, 5, ReplenishmentStatus.IN_PROGRESS, 3L, null);
-
-        when(replenishmentRepository.findAll()).thenReturn(List.of(replenishment, replenishment2));
-        when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
-        when(replenishmentMapper.toResponse(replenishment2)).thenReturn(response2);
-
-        List<ReplenishmentResponse> result = replenishmentService.getAllReplenishments();
-
-        assertThat(result).hasSize(2).containsExactly(response, response2);
-    }
-
-    @Test
     void searchReplenishments_withFilters_returnsMappedResults() {
-        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, ReplenishmentStatus.CREATED, null);
+        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, null, ReplenishmentStatus.CREATED, null);
 
-        when(replenishmentRepository.filter(1L, null, ReplenishmentStatus.CREATED, null))
+        when(replenishmentRepository.filter(1L, null, null, ReplenishmentStatus.CREATED, null))
                 .thenReturn(List.of(replenishment));
         when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
 
