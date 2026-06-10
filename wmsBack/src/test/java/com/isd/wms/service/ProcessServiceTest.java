@@ -103,7 +103,7 @@ class ProcessServiceTest {
         ProcessResponse result = processService.assignProcess(50L);
 
         assertEquals(ProcessStatus.ASSIGNED, process.getStatus());
-        assertEquals(operator, process.getOperator());
+        assertEquals(operator, process.getOperator().orElseThrow());
         assertEquals(ProcessStatus.ASSIGNED, result.status());
         verify(processRepository).save(process);
     }

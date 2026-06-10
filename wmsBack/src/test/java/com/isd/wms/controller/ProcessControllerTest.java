@@ -2,6 +2,7 @@ package com.isd.wms.controller;
 
 import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -136,8 +137,13 @@ class ProcessControllerTest {
         }
 
         @Bean
-        public ProcessController processController(ProcessService processService) {
-            return new ProcessController(processService);
+        public ProcessExecutionService processExecutionService() {
+            return mock(ProcessExecutionService.class);
+        }
+
+        @Bean
+        public ProcessController processController(ProcessService processService, ProcessExecutionService processExecutionService) {
+            return new ProcessController(processService, processExecutionService);
         }
 
         @Bean

@@ -1,8 +1,6 @@
 package com.isd.wms.dto.order;
 
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.ReplenishmentStatus;
-import lombok.NonNull;
 
 import java.sql.Timestamp;
 
