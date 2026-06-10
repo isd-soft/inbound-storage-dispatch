@@ -2,6 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.ProcessStatus;
@@ -82,11 +83,13 @@ public class ProcessService {
 
     private ProcessResponse toResponse(Process process) {
         Stock stock = process.getStock();
+        Product product = stock.getProduct()
+                .orElseThrow(() -> new IllegalStateException("Stock product is required"));
         return new ProcessResponse(
                 process.getId(),
                 process.getTask().getId(),
-                stock.getProduct().getId(),
-                stock.getProduct().getName(),
+                product.getId(),
+                product.getName(),
                 stock.getLocation().getLocationCode(),
                 process.getQuantity(),
                 process.getStatus()

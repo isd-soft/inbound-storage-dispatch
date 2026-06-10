@@ -1,6 +1,8 @@
 package com.isd.wms.dto.process;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record BarcodeScanRequest(
-        String barcode
+        @NotBlank String barcode
 ) {
 }
