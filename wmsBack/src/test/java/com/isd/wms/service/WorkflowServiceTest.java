@@ -42,6 +42,7 @@ class WorkflowServiceTest {
     @BeforeEach
     void setUp() {
         task = new Task();
+        task.setId(1L);
     }
 
     @Test

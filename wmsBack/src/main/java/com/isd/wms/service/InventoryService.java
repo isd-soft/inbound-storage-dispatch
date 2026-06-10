@@ -166,6 +166,12 @@ public class InventoryService {
                 .toList();
     }
 
+    @Transactional
+    public void recordPickingHistory(Stock stock, Integer pickedQuantity, User user) {
+        createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
+                InventoryOperationType.PICKING, user);
+    }
+
     private void createHistory(
             Stock stock,
             Integer alteredQuantity,
