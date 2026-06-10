@@ -60,7 +60,7 @@ public class ProcessService {
         Process process = getProcessById(processId);
         User operator = getCurrentUser();
 
-        if (process.getOperator().filter(e -> e.equals(operator)).isPresent()) {
+        if (process.getOperator().filter(e -> e.equals(operator)).isEmpty()) {
             throw new InvalidRequestException("You can only complete your own processes");
         }
 

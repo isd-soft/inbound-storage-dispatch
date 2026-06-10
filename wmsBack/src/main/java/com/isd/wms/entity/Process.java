@@ -12,7 +12,6 @@ import java.util.Optional;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Table(name = "processes")
 public class Process extends BaseTimestampEntity{
     @Id
@@ -39,8 +38,17 @@ public class Process extends BaseTimestampEntity{
     @Column(nullable = false)
     private ProcessStatus status;
 
+    @Column(name = "source_location_scanned", nullable = false)
+    private boolean sourceLocationScanned = false;
+
+    @Column(name = "product_scanned", nullable = false)
+    private boolean productScanned = false;
+
+    @Column(name = "picked_quantity")
+    private Integer pickedQuantity;
+
     public Optional<User> getOperator() {
-        return Optional.of(operator);
+        return Optional.ofNullable(operator);
     }
 
     @Override
