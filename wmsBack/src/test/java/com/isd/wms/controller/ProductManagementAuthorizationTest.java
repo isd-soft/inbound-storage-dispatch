@@ -1,6 +1,5 @@
 package com.isd.wms.controller;
 
-import com.isd.wms.security.SecurityConfig;
 import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.exception.GlobalExceptionHandler;
 import com.isd.wms.service.CategoryService;
@@ -12,7 +11,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
@@ -129,7 +132,9 @@ class ProductManagementAuthorizationTest {
 
     @Configuration
     @EnableWebMvc
-    @Import({SecurityConfig.class, GlobalExceptionHandler.class})
+    @EnableWebSecurity
+    @EnableMethodSecurity
+    @Import({GlobalExceptionHandler.class})
     static class TestConfig {
 
         @Bean
@@ -150,6 +155,13 @@ class ProductManagementAuthorizationTest {
         @Bean
         CategoryService categoryService() {
             return mock(CategoryService.class);
+        }
+
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+            http.csrf(csrf -> csrf.disable())
+                    .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
+            return http.build();
         }
     }
 }

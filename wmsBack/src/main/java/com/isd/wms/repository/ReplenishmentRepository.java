@@ -9,11 +9,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReplenishmentRepository extends JpaRepository<Replenishment, Long> {
 
     List<Replenishment> findByStatus(ReplenishmentStatus status);
+
+    Optional<Replenishment> findByTaskId(Long taskId);
 
     @Query("""
             SELECT r FROM Replenishment r

@@ -6,6 +6,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.exception.GlobalExceptionHandler;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.service.ReplenishmentService;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -135,7 +137,7 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void updateReplenishment_validRequest_returnsOk() throws Exception {
-        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 15, ReplenishmentStatus.COMPLETED, 3L);
+        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 15L,24, ReplenishmentStatus.COMPLETED, 3L);
         ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 15, ReplenishmentStatus.COMPLETED, 3L, null);
 
         when(replenishmentService.updateReplenishment(eq(1L), any(ReplenishmentUpdateRequest.class)))
@@ -163,7 +165,7 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser
     void searchReplenishments_returnsMatchingList() throws Exception {
-        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, ReplenishmentStatus.CREATED, null);
+        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null,12, ReplenishmentStatus.CREATED, null);
         ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, null);
 
         when(replenishmentService.searchReplenishments(any(ReplenishmentSearchRequest.class)))
@@ -181,6 +183,7 @@ class ReplenishmentControllerTest {
     @EnableWebMvc
     @EnableWebSecurity
     @EnableMethodSecurity
+    @Import(GlobalExceptionHandler.class)
     static class TestConfig {
 
         @Bean

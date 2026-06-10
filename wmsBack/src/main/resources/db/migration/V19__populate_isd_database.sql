@@ -64,13 +64,13 @@ INSERT INTO replenishments (id, task_id, product_id, requested_quantity, status,
 VALUES
     (1, 1, 3, 20, 'CREATED', 2);
 
-INSERT INTO orders (id, logic_id, status)
+INSERT INTO orders (id, logic_id, status, destination_location_id)
 VALUES
-    (1, 'ORD-2026-0001', 'CREATED');
+    (1, 'ORD-2026-0001', 'CREATED', 6);
 
-INSERT INTO order_lines (id, order_id, task_id, product_id, requested_quantity, status, destination_location_id)
+INSERT INTO order_lines (id, order_id, task_id, product_id, requested_quantity, status)
 VALUES
-    (1, 1, 2, 1, 2, 'CREATED', 6);
+    (1, 1, 2, 1, 2, 'CREATED');
 
 
 SELECT setval('users_sequence', (SELECT MAX(id) FROM users));
