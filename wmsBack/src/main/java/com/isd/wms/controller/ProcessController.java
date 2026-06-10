@@ -6,6 +6,7 @@ import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -56,21 +57,21 @@ public class ProcessController {
         return processExecutionService.startProcess(id);
     }
 
-    @PostMapping("/{id}/scan-location")
+    @PostMapping("/{id}/location")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse scanSourceLocation(@PathVariable Long id, @RequestBody BarcodeScanRequest request) {
+    public ProcessExecutionResponse scanSourceLocation(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
         return processExecutionService.scanSourceLocation(id, request);
     }
 
-    @PostMapping("/{id}/scan-product")
+    @PostMapping("/{id}/product")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse scanProduct(@PathVariable Long id, @RequestBody BarcodeScanRequest request) {
+    public ProcessExecutionResponse scanProduct(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
         return processExecutionService.scanProduct(id, request);
     }
 
     @PostMapping("/{id}/confirm-quantity")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse confirmPickedQuantity(@PathVariable Long id, @RequestBody ConfirmPickedQuantityRequest request) {
+    public ProcessExecutionResponse confirmPickedQuantity(@PathVariable Long id, @Valid @RequestBody ConfirmPickedQuantityRequest request) {
         return processExecutionService.confirmPickedQuantity(id, request);
     }
 

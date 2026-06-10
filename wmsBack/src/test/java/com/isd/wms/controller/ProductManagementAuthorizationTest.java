@@ -62,12 +62,12 @@ class ProductManagementAuthorizationTest {
     @WithMockUser(roles = "SUPERVISOR")
     void supervisorCanCreateProduct() throws Exception {
         when(productService.createProduct(any()))
-                .thenReturn(new ProductResponse(1L, "Milk", null, 1L, null, null));
+                .thenReturn(new ProductResponse(1L, "Milk", "MILK-1", null, 1L, null, null));
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Milk","categoryId":1}
+                                {"name":"Milk","sku":"MILK-1","categoryId":1}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Milk"));
@@ -79,7 +79,7 @@ class ProductManagementAuthorizationTest {
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Milk","categoryId":1}
+                                {"name":"Milk","sku":"MILK-1","categoryId":1}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -88,12 +88,12 @@ class ProductManagementAuthorizationTest {
     @WithMockUser(roles = "SUPERVISOR")
     void supervisorCanUpdateProduct() throws Exception {
         when(productService.updateProduct(eq(1L), any()))
-                .thenReturn(new ProductResponse(1L, "Updated Milk", null, 1L, null, null));
+                .thenReturn(new ProductResponse(1L, "Updated Milk", "MILK-2", null, 1L, null, null));
 
         mockMvc.perform(put("/api/products/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Updated Milk","categoryId":1}
+                                {"name":"Updated Milk","sku":"MILK-2","categoryId":1}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated Milk"));

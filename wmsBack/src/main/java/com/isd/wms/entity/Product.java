@@ -23,6 +23,9 @@ public class Product extends BaseTimestampEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(name = "SKU", nullable = false, length = 100, unique = true)
+    private String sku;
+
     @Column(length = 255)
     private String description;
 
@@ -30,8 +33,9 @@ public class Product extends BaseTimestampEntity {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    public Product(String name, String description, Category category) {
+    public Product(String name, String sku, String description, Category category) {
         this.name = name;
+        this.sku = sku;
         this.description = description;
         this.category = category;
     }

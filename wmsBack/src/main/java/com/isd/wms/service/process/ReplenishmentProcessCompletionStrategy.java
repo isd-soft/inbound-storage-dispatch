@@ -2,6 +2,7 @@ package com.isd.wms.service.process;
 
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.enums.TaskType;
@@ -26,18 +27,17 @@ public class ReplenishmentProcessCompletionStrategy implements ProcessCompletion
         Stock sourceStock = process.getStock();
 
         Integer quantityToMove = process.getQuantity();
+        Product product = sourceStock.getProduct()
+                .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
-        stockRepository.findByProductAndLocation(sourceStock.getProduct(), destinationLocation)
+        stockRepository.findByProductAndLocation(product, destinationLocation)
                 .ifPresentOrElse(existingStock -> existingStock.addQuantity(quantityToMove), //todo: check if we need it
-                        () ->  createStock(sourceStock, destinationLocation, quantityToMove));
+                        () ->  createStock(sourceStock, product, destinationLocation, quantityToMove));
     }
 
-    private void createStock(Stock sourceStock, Location destinationLocation, int quantityToMove) {
-        Stock newStock = new Stock();
-        newStock.setProduct(sourceStock.getProduct());
-        newStock.setLocation(destinationLocation);
+    private void createStock(Stock sourceStock, Product product, Location destinationLocation, int quantityToMove) {
+        Stock newStock = new Stock(product, destinationLocation);
         newStock.setQuantity(quantityToMove);
-        newStock.setReservedQuantity(0);
         newStock.setExpirationDate(sourceStock.getExpirationDate());
         newStock.setManufactureDate(sourceStock.getManufactureDate());
 

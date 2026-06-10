@@ -6,6 +6,7 @@ import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
@@ -74,7 +75,7 @@ public class ProcessExecutionService {
     @Transactional
     public ProcessExecutionResponse scanSourceLocation(Long processId, BarcodeScanRequest request) {
         Process process = getAssignedProcessInProgress(processId);
-        String barcode = validateBarcode(request);
+        String barcode = request.barcode().trim();
         String expectedBarcode = process.getStock().getLocation().getLocationCode();
 
         if (!expectedBarcode.equals(barcode)) {
@@ -94,16 +95,18 @@ public class ProcessExecutionService {
             throw new InvalidRequestException("Source location must be scanned first");
         }
 
-        String barcode = validateBarcode(request);
+        String barcode = request.barcode().trim();
         Stock expectedStock = process.getStock();
-        if (!expectedStock.getSku().equalsIgnoreCase(barcode)) {
+        Product expectedProduct = expectedStock.getProduct()
+                .filter(product -> product.getSku() != null && product.getSku().equalsIgnoreCase(barcode))
+                .orElse(null);
+        if (expectedProduct == null) {
             log.warn("Wrong barcode scanned for process {}", processId);
             throw new InvalidRequestException("Wrong product/SKU barcode");
         }
 
-        stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(
-                        expectedStock.getProduct().getId(),
-                        expectedStock.getSku(),
+        stockRepository.findByProductIdAndLocationId(
+                        expectedProduct.getId(),
                         expectedStock.getLocation().getId())
                 .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
 
@@ -119,8 +122,8 @@ public class ProcessExecutionService {
             throw new InvalidRequestException("Product barcode must be scanned first");
         }
 
-        Integer pickedQuantity = request == null ? null : request.pickedQuantity();
-        validatePickedQuantity(process, pickedQuantity);
+        Integer pickedQuantity = request.pickedQuantity();
+        validatePickedQuantityForProcess(process, pickedQuantity);
 
         process.setPickedQuantity(pickedQuantity);
         log.info("Picked quantity {} confirmed for process {}", pickedQuantity, processId);
@@ -142,7 +145,7 @@ public class ProcessExecutionService {
             throw new InvalidRequestException("Picked quantity must be confirmed before completion");
         }
 
-        validatePickedQuantity(process, process.getPickedQuantity());
+        validatePickedQuantityForProcess(process, process.getPickedQuantity());
 
         Stock sourceStock = process.getStock();
         int pickedQuantity = process.getPickedQuantity();
@@ -222,18 +225,7 @@ public class ProcessExecutionService {
                 .orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    private String validateBarcode(BarcodeScanRequest request) {
-        String barcode = request == null ? null : request.barcode();
-        if (barcode == null || barcode.isBlank()) {
-            throw new InvalidRequestException("Barcode is required");
-        }
-        return barcode.trim();
-    }
-
-    private void validatePickedQuantity(Process process, Integer pickedQuantity) {
-        if (pickedQuantity == null || pickedQuantity <= 0) {
-            throw new InvalidRequestException("Picked quantity must be greater than zero");
-        }
+    private void validatePickedQuantityForProcess(Process process, Integer pickedQuantity) {
         if (pickedQuantity > process.getQuantity()) {
             throw new InvalidRequestException("Picked quantity cannot exceed required quantity");
         }
