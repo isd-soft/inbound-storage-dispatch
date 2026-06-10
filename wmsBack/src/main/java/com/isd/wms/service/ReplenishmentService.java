@@ -49,8 +49,6 @@ public class ReplenishmentService {
         Replenishment replenishment = new Replenishment(task, product, request.requestedQuantity(), destinationLocation);
         replenishment = replenishmentRepository.save(replenishment);
 
-        workflowService.generateProcessesForTask(task, product.getId(), request.requestedQuantity());
-
         return replenishmentMapper.toResponse(replenishment);
     }
 
