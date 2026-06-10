@@ -43,15 +43,15 @@ public class UserService {
 
         String verificationToken = UUID.randomUUID().toString();
 
-        User newUser = new User();
-        newUser.setUsername(request.username());
-        newUser.setEmail(request.email());
-        newUser.setPassword(passwordEncoder.encode(request.password()));
-        newUser.setUserRole(Role.valueOf(formattedRole));
-        newUser.setEmailVerified(false);
-        newUser.setVerificationToken(verificationToken);
-        newUser.setVerificationTokenExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
-
+        User newUser = new User(
+                request.username(),
+                request.email(),
+                passwordEncoder.encode(request.password()),
+                Role.valueOf(formattedRole),
+                false,
+                verificationToken,
+                Instant.now().plus(24, ChronoUnit.HOURS)
+        );
         userRepository.save(newUser);
 
         emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);

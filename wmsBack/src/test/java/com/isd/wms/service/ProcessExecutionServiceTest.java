@@ -97,14 +97,17 @@ class ProcessExecutionServiceTest {
         location.setId(20L);
         location.setLocationCode("PICK-01");
 
-        stock = Stock.builder()
-                .id(30L)
-                .product(product)
-                .location(location)
-                .sku("SKU-001")
-                .quantity(50)
-                .reservedQuantity(10)
-                .build();
+        stock = new Stock(
+                30L,
+                "SKU-001",
+                product,
+                location,
+                50,
+                10,
+                null,
+                null,
+                null
+        );
 
         task = new Task();
         task.setId(40L);
