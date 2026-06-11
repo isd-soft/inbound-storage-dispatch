@@ -2,24 +2,24 @@ import apiClient from './index'
 
 export const orderApi = {
   getAll() {
-    return apiClient.get('/v1/orders')
-  },
-  getExtended() {
     return apiClient.get('/v1/orders/extended')
   },
-  getById(orderId) {
-    return apiClient.get(`/v1/orders/${orderId}`)
+  getById(id) {
+    return apiClient.get(`/v1/orders/extended/${id}`)
   },
   create(payload) {
     return apiClient.post('/v1/orders', payload)
   },
-  update(orderId, payload) {
-    return apiClient.put(`/v1/orders/${orderId}`, payload)
+  update(id, payload) {
+    return apiClient.put(`/v1/orders/${id}`, payload)
   },
-  delete(orderId) {
-    return apiClient.delete(`/v1/orders/${orderId}`)
+  delete(id) {
+    return apiClient.delete(`/v1/orders/${id}`)
   },
-  getOrderLines() {
-    return apiClient.get('/v1/order-lines')
-  }
+  getProducts() {
+    return apiClient.get('/products/quantities')
+  },
+  getLocationsForDispatch() {
+    return apiClient.get('/locations/dispatches')
+  },
 }

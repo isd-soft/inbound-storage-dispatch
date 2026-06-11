@@ -13,6 +13,7 @@ import HistoryView from '../views/supervisor/HistoryView.vue'
 import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
 import DevDashboard from '../views/dev/DevDashboard.vue'
+import OrderForm from '@/views/supervisor/OrderForm.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
 
 const DEV = 'ROLE_DEV'
@@ -25,19 +26,19 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login'
+      redirect: '/login',
     },
     {
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { guestOnly: true }
+      meta: { guestOnly: true },
     },
     {
       path: '/access-denied',
       name: 'access-denied',
       component: AccessDeniedPage,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
     },
     {
       path: '/supervisor',
@@ -60,15 +61,15 @@ const router = createRouter({
       path: '/operator',
       name: 'operator',
       component: OperatorConsole,
-      meta: { requiresAuth: true, roles: [OPERATOR, DEV] }
+      meta: { requiresAuth: true, roles: [OPERATOR, DEV] },
     },
     {
       path: '/dev',
       name: 'dev',
       component: DevDashboard,
-      meta: { requiresAuth: true, roles: [DEV] }
-    }
-  ]
+      meta: { requiresAuth: true, roles: [DEV] },
+    },
+  ],
 })
 
 router.beforeEach((to, from, next) => {

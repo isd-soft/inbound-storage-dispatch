@@ -25,7 +25,14 @@
 
       <div class="p-4 border-t border-white/10 flex flex-col gap-3">
         <ThemeToggle show-label class="w-full justify-center" />
-        <Button icon="pi pi-sign-out" label="Logout" severity="danger" text class="w-full justify-start" @click="handleLogout" />
+        <Button
+          icon="pi pi-sign-out"
+          label="Logout"
+          severity="danger"
+          text
+          class="w-full justify-start"
+          @click="handleLogout"
+        />
       </div>
     </aside>
 
@@ -107,7 +114,8 @@ const menuItems = computed(() => {
     { to: '/supervisor/products', label: 'Products', icon: 'pi pi-tags' },
     { to: '/supervisor/locations', label: 'Locations', icon: 'pi pi-map-marker' },
     { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
-    { to: '/supervisor/users', label: 'Users', icon: 'pi pi-users' }
+    { to: '/supervisor/users', label: 'Users', icon: 'pi pi-users' },
+    { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },
   ]
 
   if (isDev) {

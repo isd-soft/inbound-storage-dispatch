@@ -1,4 +1,5 @@
 package com.isd.wms.mapper;
+
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.entity.Location;
 import org.springframework.stereotype.Component;
