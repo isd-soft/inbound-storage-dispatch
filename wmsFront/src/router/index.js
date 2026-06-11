@@ -13,6 +13,7 @@ import HistoryView from '../views/supervisor/HistoryView.vue'
 import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
 import DevDashboard from '../views/dev/DevDashboard.vue'
+import VerifyEmailView from '../views/auth/VerifyEmailView.vue'
 import OrderForm from '@/views/supervisor/OrderForm.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
 
@@ -62,6 +63,12 @@ const router = createRouter({
       name: 'operator',
       component: OperatorConsole,
       meta: { requiresAuth: true, roles: [OPERATOR, DEV] },
+    },
+    {
+      path: '/verify',
+      name: 'verify',
+      component: VerifyEmailView,
+      meta: { guestOnly: true },
     },
     {
       path: '/dev',

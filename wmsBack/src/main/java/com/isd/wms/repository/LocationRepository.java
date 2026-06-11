@@ -17,4 +17,12 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     List<Location> findAllByIsActiveTrue();
 
     Optional<Location> findByLocationCodeAndIsActiveTrue(String code);
+
+    @Query("""
+            SELECT l.id AS id, l.locationCode AS locationCode FROM Location l
+            WHERE l.available = true
+              AND l.isActive = true
+              AND l.zone = com.isd.wms.enums.Zone.DISPATCH
+            """)
+    List<ShortLocationProjection> getLocationDispatch();
 }

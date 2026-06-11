@@ -78,7 +78,7 @@ public class LocationService {
         }
 
         Location location = getLocation(locationId);
-        location.setIsActive(false); // Деактивируем
+        location.setIsActive(false);
 
         locationRepository.save(location);
 
@@ -101,6 +101,6 @@ public class LocationService {
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
+            .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 }
