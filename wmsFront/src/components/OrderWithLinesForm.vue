@@ -50,6 +50,7 @@
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Choose product"
+                @change="line.quantity = 1"
                 fluid
                 :class="{ 'p-invalid': submitted && !line.product }"
               />
@@ -61,6 +62,7 @@
                 :id="`qty-${line.id}`"
                 v-model="line.quantity"
                 :min="1"
+                :max="getMaxAllowedForLine(line)"
                 showButtons
                 buttonLayout="horizontal"
                 fluid
@@ -85,7 +87,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { Form } from '@primevue/forms'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
@@ -132,7 +134,7 @@ const loadOrderCreateData = async () => {
     ])
     products.value = productsResponse.data
     print(products)
-    locations.value = locationsResponse.data.filter((location) => location.available === true)
+    locations.value = locationsResponse.data
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -166,9 +168,36 @@ const removeLine = (index) => {
   formData.lines.splice(index, 1)
 }
 
+const getTotalRequestedQuantity = (productId, excludeLineId = null) => {
+  return formData.lines
+    .filter((l) => l.product === productId && l.id !== excludeLineId)
+    .reduce((sum, l) => sum + (l.quantity || 0), 0)
+}
+
+const getMaxAllowedForLine = (line) => {
+  const product = products.value.find((p) => p.id === line.product)
+  if (!product) return 1
+
+  const alreadyUsed = getTotalRequestedQuantity(line.product, line.id)
+  return product.quantity - alreadyUsed
+}
+
+watch(
+  () => formData.lines,
+  (lines) => {
+    lines.forEach((line) => {
+      const max = getMaxAllowedForLine(line)
+      if (line.quantity > max) {
+        line.quantity = max
+      }
+    })
+  },
+  { deep: true },
+)
+
 const submitted = ref(false)
 
-const onSubmit = async (event) => {
+const onSubmit = async () => {
   submitted.value = true
 
   const isTopValid = !!formData.logicId && !!formData.location
@@ -190,11 +219,12 @@ const onSubmit = async (event) => {
   const payload = {
     order: {
       logicId: formData.logicId,
-      location: formData.location,
+      destinationLocationId: formData.location,
     },
     lines: formData.lines.map((line) => ({
+      orderId: null,
       productId: line.product,
-      quantity: line.quantity,
+      requestedQuantity: line.quantity,
     })),
   }
 
@@ -204,12 +234,12 @@ const onSubmit = async (event) => {
 
     toast.add({
       severity: 'success',
-      summary: `Order Submitted with id ${order.data.order.id}`,
+      summary: `Order Submitted with id ${order.data.id}`,
       detail: `${formData.lines.length} line(s) added.`,
       life: 5000,
     })
 
-    router.push({ name: 'supervisor' })
+    router.push({ name: 'products' })
   } catch (error) {
     toast.add({
       severity: 'error',

@@ -44,7 +44,7 @@ public class OrderService {
 
     @Transactional
     public Order addOrder(OrderCreateRequest request) {
-        Order order = new Order(request.logicId());
+        Order order = new Order(request.logicId(), getLocation(request.destinationLocationId()));
         return orderRepository.save(order);
     }
 

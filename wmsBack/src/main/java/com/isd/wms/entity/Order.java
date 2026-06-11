@@ -38,6 +38,11 @@ public class Order extends BaseTimestampEntity{
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLine> orderLines = new ArrayList<>();
 
+    public Order(String logicId, Location destinationLocation) {
+        this.logicId = logicId;
+        this.destinationLocation = destinationLocation;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

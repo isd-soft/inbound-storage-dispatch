@@ -5,3 +5,4 @@ public interface ProductWithQuantityProjection {
     String getName();
     Integer getQuantity();
 }
+
