@@ -3,6 +3,7 @@ package com.isd.wms.dto.order_line;
 import com.isd.wms.enums.OrderStatus;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 public record OrderLineResponse(
         Long orderLineId,
@@ -11,7 +12,7 @@ public record OrderLineResponse(
         Long productId,
         Integer requestedQuantity,
         OrderStatus status,
-        Timestamp createdAt,
-        Timestamp updatedAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 }

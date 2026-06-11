@@ -1,6 +1,8 @@
 package com.isd.wms.dto.inventory;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +24,7 @@ public class InventoryHistoryResponse {
     private Long destinationLocationId;
     private String destinationLocationCode;
     private String operationType;
-    private Instant timestamp;
+    private LocalDateTime timestamp;
     private Long userId;
     private String username;
 }

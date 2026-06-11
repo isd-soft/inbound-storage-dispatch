@@ -1,22 +1,17 @@
 package com.isd.wms.service;
 
 import com.isd.wms.dto.user.UserCreateRequest;
-import com.isd.wms.dto.user.UserResponse;
 import com.isd.wms.enums.Role;
 import com.isd.wms.entity.User;
-import com.isd.wms.mapper.UserMapper;
 import com.isd.wms.repository.UserRepository;
-import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -52,13 +47,13 @@ public class UserService {
         String verificationToken = UUID.randomUUID().toString();
 
         User newUser = new User(
-            request.username(),
-            request.email(),
-            passwordEncoder.encode(request.password()),
-            Role.valueOf(formattedRole),
-            false,
-            verificationToken,
-            Instant.now().plus(24, ChronoUnit.HOURS)
+                request.username(),
+                request.email(),
+                passwordEncoder.encode(request.password()),
+                Role.valueOf(formattedRole),
+                false,
+                verificationToken,
+                LocalDateTime.now().plusHours(24)
         );
         userRepository.save(newUser);
 
@@ -80,7 +75,7 @@ public class UserService {
                 return new RuntimeException("Invalid verification token");
             });
 
-        if (user.getVerificationTokenExpiresAt().isBefore(Instant.now())) {
+        if (user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Verification token has expired. Please ask your supervisor to resend the invitation.");
         }
 
