@@ -4,6 +4,6 @@ import java.util.List;
 
 public record OperatorProcessesResponse(
     Integer processesLeft,
-    List<ProcessResponse> processes
+    List<ProcessOperatorResponse> processes
 ) {
 }

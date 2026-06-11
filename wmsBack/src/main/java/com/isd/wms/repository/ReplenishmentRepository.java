@@ -1,8 +1,7 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.User;
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface ReplenishmentRepository extends JpaRepository<Replenishment, Long> {
 
-    List<Replenishment> findByStatus(ReplenishmentStatus status);
+    List<Replenishment> findByStatus(Status status);
 
     Optional<Replenishment> findByTaskId(Long taskId);
 
@@ -31,13 +30,13 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
             @Param("taskId") Long taskId,
             @Param("productId") Long productId,
             @Param("requestedQuantity") Integer requestedQuantity,
-            @Param("status") ReplenishmentStatus status,
+            @Param("status") Status status,
             @Param("destinationLocationId") Long destinationLocationId
     );
     boolean existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-            Long productId, Long destinationLocationId, Collection<ReplenishmentStatus> statuses
+            Long productId, Long destinationLocationId, Collection<Status> statuses
     );
     boolean existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
-            Long productId, Long destinationLocationId, Collection<ReplenishmentStatus> statuses, Long id
+            Long productId, Long destinationLocationId, Collection<Status> statuses, Long id
     );
 }

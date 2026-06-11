@@ -5,9 +5,8 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.GlobalExceptionHandler;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.service.ReplenishmentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +62,7 @@ class ReplenishmentControllerTest {
     @WithMockUser(roles = "SUPERVISOR")
     void createReplenishment_withSupervisorRole_returnsCreated() throws Exception {
         ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(1L, 10, 3L);
-        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, null);
+        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, null);
 
         when(replenishmentService.createReplenishment(any(ReplenishmentCreateRequest.class)))
                 .thenReturn(response);
@@ -100,8 +99,8 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser
     void getAllReplenishments_returnsOkWithList() throws Exception {
-        ReplenishmentResponse r1 = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, null);
-        ReplenishmentResponse r2 = new ReplenishmentResponse(2L, 2L, 3L, 5, ReplenishmentStatus.IN_PROGRESS, 4L, null);
+        ReplenishmentResponse r1 = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, null);
+        ReplenishmentResponse r2 = new ReplenishmentResponse(2L, 2L, 3L, 5, Status.IN_PROGRESS, 4L, null);
 
         when(replenishmentService.getAllReplenishments()).thenReturn(List.of(r1, r2));
 
@@ -115,7 +114,7 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser
     void getReplenishmentById_existingId_returnsOk() throws Exception {
-        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, null);
+        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, null);
 
         when(replenishmentService.getReplenishmentById(1L)).thenReturn(response);
 
@@ -137,8 +136,8 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void updateReplenishment_validRequest_returnsOk() throws Exception {
-        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 15L,24, ReplenishmentStatus.COMPLETED, 3L);
-        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 15, ReplenishmentStatus.COMPLETED, 3L, null);
+        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 15L,24, Status.COMPLETED, 3L);
+        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 15, Status.COMPLETED, 3L, null);
 
         when(replenishmentService.updateReplenishment(eq(1L), any(ReplenishmentUpdateRequest.class)))
                 .thenReturn(response);
@@ -165,8 +164,8 @@ class ReplenishmentControllerTest {
     @Test
     @WithMockUser
     void searchReplenishments_returnsMatchingList() throws Exception {
-        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null,12, ReplenishmentStatus.CREATED, null);
-        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, null);
+        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null,12, Status.CREATED, null);
+        ReplenishmentResponse response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, null);
 
         when(replenishmentService.searchReplenishments(any(ReplenishmentSearchRequest.class)))
                 .thenReturn(List.of(response));

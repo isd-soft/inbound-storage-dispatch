@@ -3,7 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
-import com.isd.wms.dto.process.ProcessResponse;
+import com.isd.wms.dto.process.ProcessOperatorResponse;
 import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
 import jakarta.validation.Valid;
@@ -14,40 +14,34 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/processes")
+@RequestMapping("/api/v1/processes")
 @RequiredArgsConstructor
 public class ProcessController {
 
     private final ProcessService processService;
     private final ProcessExecutionService processExecutionService;
 
-    @GetMapping("/available")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'SUPERVISOR', 'DEV')")
-    public List<ProcessResponse> getAvailableProcesses() {
-        return processService.getAvailableProcesses();
+    @GetMapping("/operators")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public List<ProcessOperatorResponse> getAllProcesses() {
+        return processService.getProcessesOperator();
     }
 
-    @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public List<ProcessResponse> getMyProcesses() {
-        return processService.getMyProcesses();
-    }
+//    @GetMapping("/my")
+//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+//    public List<ProcessOperatorResponse> getMyProcesses() {
+//        return processService.getMyProcesses();
+//    }
 
-    @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public List<ProcessExecutionResponse> getAssignedProcesses() {
-        return processExecutionService.getAssignedProcesses();
-    }
-
-    @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessResponse assignProcess(@PathVariable Long id) {
-        return processService.assignProcess(id);
-    }
+//    @GetMapping
+//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+//    public List<ProcessExecutionResponse> getAssignedProcesses() {
+//        return processExecutionService.getAssignedProcesses();
+//    }
 
     @PatchMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessResponse completeProcess(@PathVariable Long id) {
+    public ProcessOperatorResponse completeProcess(@PathVariable Long id) {
         return processService.completeProcess(id);
     }
 

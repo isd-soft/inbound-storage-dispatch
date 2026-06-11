@@ -1,6 +1,6 @@
 package com.isd.wms.dto.order_line;
 
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import jakarta.validation.constraints.Min;
 import lombok.NonNull;
 
@@ -11,6 +11,6 @@ public record OrderLineUpdateRequest(
         @NonNull
         @Min(0)
         Integer requestedQuantity,
-        @NonNull OrderStatus status
+        @NonNull Status status
 ) {
 }

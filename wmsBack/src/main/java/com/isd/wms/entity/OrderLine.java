@@ -1,8 +1,7 @@
 package com.isd.wms.entity;
 
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,7 +38,7 @@ public class OrderLine extends BaseTimestampEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status = OrderStatus.CREATED;
+    private Status status = Status.CREATED;
 
     public OrderLine(Order order, Task task, Product product, Integer requestedQuantity) {
         this.order = order;

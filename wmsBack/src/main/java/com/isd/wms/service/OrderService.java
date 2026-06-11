@@ -2,12 +2,11 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
@@ -20,11 +19,11 @@ import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.UserRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -57,7 +56,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
-        if (!request.status().equals(OrderStatus.CREATED)) {
+        if (!request.status().equals(Status.CREATED)) {
             throw new InvalidRequestException("Order status must be CREATED");
         }
         Order order = getOrder(id);
@@ -100,6 +99,14 @@ public class OrderService {
 
     private List<Process> getProcessesAllByOrder(Order order) {
         return processRepository.findAllByOrder(order);
+    }
+
+    public Order getOldestOrder(User operator) {
+        return orderRepository
+            .findOldestOrderByOperator(operator, PageRequest.of(0, 1))
+            .stream()
+            .findFirst()
+            .orElseThrow(() -> new OrderNotFoundException(operator.getId()));
     }
 
     private User getUser(Long operatorId) {

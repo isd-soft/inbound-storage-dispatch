@@ -1,12 +1,12 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.process.ProcessResponse;
+import com.isd.wms.dto.process.ProcessOperatorResponse;
+import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.mapper.ProcessMapper;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
@@ -25,37 +25,24 @@ public class ProcessService {
     private final ProcessRepository processRepository;
     private final WorkflowService workflowService;
     private final SecurityFacade securityFacade;
+    private final ProcessMapper processMapper;
+    private final OrderService orderService;
 
-    public List<ProcessResponse> getAvailableProcesses() {
-        List<Process> processes = processRepository.findByStatus(ProcessStatus.CREATED);
-        return processes.stream().map(this::toResponse).toList();
+    public List<ProcessOperatorResponse> getAvailableProcesses() {
+        List<Process> processes = processRepository.findByStatus(Status.CREATED);
+        return processes.stream().map(processMapper::toResponse).toList();
     }
 
-    public List<ProcessResponse> getMyProcesses() {
+    public List<ProcessOperatorResponse> getMyProcesses() {
         User operator = securityFacade.getCurrentUser();
 
         List<Process> processes = processRepository.findByOperatorAndStatuses(
-                operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS));
-        return processes.stream().map(this::toResponse).toList();
+                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS));
+        return processes.stream().map(processMapper::toResponse).toList();
     }
 
     @Transactional
-    public ProcessResponse assignProcess(Long processId) {
-        Process process = getProcessById(processId);
-        User operator = securityFacade.getCurrentUser();
-
-        if (process.getStatus() != ProcessStatus.CREATED) {
-            throw new InvalidRequestException("Process is already assigned or completed");
-        }
-
-        process.setOperator(operator);
-        process.setStatus(ProcessStatus.ASSIGNED);
-
-        return toResponse(processRepository.save(process));
-    }
-
-    @Transactional
-    public ProcessResponse completeProcess(Long processId) {
+    public ProcessOperatorResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
         User operator = securityFacade.getCurrentUser();
 
@@ -63,16 +50,16 @@ public class ProcessService {
             throw new InvalidRequestException("You can only complete your own processes");
         }
 
-        if (process.getStatus() == ProcessStatus.COMPLETED || process.getStatus() == ProcessStatus.CANCELED) {
+        if (process.getStatus() == Status.COMPLETED || process.getStatus() == Status.CANCELED) {
             throw new InvalidRequestException("Process is already completed or canceled");
         }
 
-        process.setStatus(ProcessStatus.COMPLETED);
+        process.setStatus(Status.COMPLETED);
         process = processRepository.save(process);
 
         workflowService.executeProcessCompletion(process);
 
-        return toResponse(process);
+        return processMapper.toResponse(process);
     }
 
     private Process getProcessById(Long processId) {
@@ -80,19 +67,10 @@ public class ProcessService {
                 .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
     }
 
-
-    private ProcessResponse toResponse(Process process) {
-        Stock stock = process.getStock();
-        Product product = stock.getProduct()
-                .orElseThrow(() -> new IllegalStateException("Stock product is required"));
-        return new ProcessResponse(
-                process.getId(),
-                process.getTask().getId(),
-                product.getId(),
-                product.getName(),
-                stock.getLocation().getLocationCode(),
-                process.getQuantity(),
-                process.getStatus()
-        );
+    public List<ProcessOperatorResponse> getProcessesOperator() {
+        User operator = securityFacade.getCurrentUser();
+        Order oldestOrder = orderService.getOldestOrder(operator);
+        return processRepository.findOldestProcessesByOrder(oldestOrder, operator)
+            .stream().map(processMapper::toResponse).toList();
     }
 }

@@ -1,6 +1,6 @@
 package com.isd.wms.entity;
 
-import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -36,7 +36,7 @@ public class Process extends BaseTimestampEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProcessStatus status;
+    private Status status;
 
     @Column(name = "source_location_scanned", nullable = false)
     private boolean sourceLocationScanned = false;
@@ -47,7 +47,7 @@ public class Process extends BaseTimestampEntity{
     @Column(name = "picked_quantity")
     private Integer pickedQuantity;
 
-    public Process(Task task, Stock stock, Integer quantity, ProcessStatus status) {
+    public Process(Task task, Stock stock, Integer quantity, Status status) {
         this.task = task;
         this.stock = stock;
         this.quantity = quantity;

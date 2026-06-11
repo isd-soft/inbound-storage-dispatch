@@ -2,17 +2,14 @@ package com.isd.wms.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.isd.wms.dto.order_line.OrderLineResponse;
-import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.GlobalExceptionHandler;
 import com.isd.wms.exception.OrderLineNotFoundException;
 import com.isd.wms.service.OrderLineService;
-import com.isd.wms.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -63,7 +60,7 @@ class OrderLineControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getAllOrderLines_returns200AndList() throws Exception {
-        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, OrderStatus.CREATED, null, null);
+        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, Status.CREATED, null, null);
         when(orderLineService.getAll()).thenReturn(List.of(response));
 
         mockMvc.perform(get(BASE_URL).contentType(MediaType.APPLICATION_JSON))
@@ -84,7 +81,7 @@ class OrderLineControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getOrderLineById_existingId_returns200() throws Exception {
-        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, OrderStatus.CREATED, null, null);
+        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, Status.CREATED, null, null);
         when(orderLineService.getOrderLineById(1L)).thenReturn(response);
 
         mockMvc.perform(get(BASE_URL + "/1").contentType(MediaType.APPLICATION_JSON))

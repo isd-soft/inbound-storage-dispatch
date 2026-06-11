@@ -4,7 +4,7 @@ import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
 import com.isd.wms.entity.*;
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.OrderLineNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
@@ -66,7 +66,7 @@ class OrderLineServiceTest {
         Order order = orderWithId(1L);
         Product product = productWithId(1L);
         Task task = taskWithId(1L);
-        OrderLineCreateRequest request = new OrderLineCreateRequest(1L, 1L, 1L, 10);
+        OrderLineCreateRequest request = new OrderLineCreateRequest(1L, 1L, 10);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(taskService.createTask(TaskType.PICKING_ORDER, 10, 1L)).thenReturn(task);
@@ -80,7 +80,7 @@ class OrderLineServiceTest {
     @Test
     void addOrderLine_productNotFound_throwsProductNotFoundException() {
         Order order = orderWithId(1L);
-        OrderLineCreateRequest request = new OrderLineCreateRequest(1L, 99L, 1L, 10);
+        OrderLineCreateRequest request = new OrderLineCreateRequest(1L, 99L, 10);
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderLineService.addOrderLine(order, request))
@@ -91,13 +91,13 @@ class OrderLineServiceTest {
 
     @Test
     void updateOrderLine_validRequest_returnsUpdatedResponse() {
-        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 1L, 20, OrderStatus.IN_PROCESS);
+        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 1L, 20, Status.IN_PROGRESS);
         Order order = orderWithId(1L);
         Product product = productWithId(1L);
         Task task = taskWithId(1L);
         OrderLine orderLine = new OrderLine(order, task, product, 10);
         orderLine.setId(1L);
-        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 20, OrderStatus.IN_PROCESS, null, null);
+        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 20, Status.IN_PROGRESS, null, null);
 
         when(orderLineRepository.findById(1L)).thenReturn(Optional.of(orderLine));
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
@@ -109,12 +109,12 @@ class OrderLineServiceTest {
         OrderLineResponse result = orderLineService.updateOrderLine(1L, request);
 
         assertThat(result.requestedQuantity()).isEqualTo(20);
-        assertThat(result.status()).isEqualTo(OrderStatus.IN_PROCESS);
+        assertThat(result.status()).isEqualTo(Status.IN_PROGRESS);
     }
 
     @Test
     void updateOrderLine_orderLineNotFound_throwsOrderLineNotFoundException() {
-        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 1L, 20, OrderStatus.IN_PROCESS);
+        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 1L, 20, Status.IN_PROGRESS);
         when(orderLineRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderLineService.updateOrderLine(99L, request))
@@ -123,7 +123,7 @@ class OrderLineServiceTest {
 
     @Test
     void updateOrderLine_orderNotFound_throwsOrderNotFoundException() {
-        OrderLineUpdateRequest request = new OrderLineUpdateRequest(99L, 1L, 1L, 20, OrderStatus.IN_PROCESS);
+        OrderLineUpdateRequest request = new OrderLineUpdateRequest(99L, 1L, 1L, 20, Status.IN_PROGRESS);
         OrderLine orderLine = new OrderLine();
         orderLine.setId(1L);
         when(orderLineRepository.findById(1L)).thenReturn(Optional.of(orderLine));
@@ -135,7 +135,7 @@ class OrderLineServiceTest {
 
     @Test
     void updateOrderLine_taskNotFound_throwsTaskNotFoundException() {
-        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 99L, 1L, 20, OrderStatus.IN_PROCESS);
+        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 99L, 1L, 20, Status.IN_PROGRESS);
         OrderLine orderLine = new OrderLine();
         orderLine.setId(1L);
         when(orderLineRepository.findById(1L)).thenReturn(Optional.of(orderLine));
@@ -148,7 +148,7 @@ class OrderLineServiceTest {
 
     @Test
     void updateOrderLine_productNotFound_throwsProductNotFoundException() {
-        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 99L, 20, OrderStatus.IN_PROCESS);
+        OrderLineUpdateRequest request = new OrderLineUpdateRequest(1L, 1L, 99L, 20, Status.IN_PROGRESS);
         OrderLine orderLine = new OrderLine();
         orderLine.setId(1L);
         when(orderLineRepository.findById(1L)).thenReturn(Optional.of(orderLine));
@@ -176,7 +176,7 @@ class OrderLineServiceTest {
         Task task = taskWithId(1L);
         OrderLine orderLine = new OrderLine(order, task, product, 10);
         orderLine.setId(1L);
-        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, OrderStatus.CREATED, null, null);
+        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, Status.CREATED, null, null);
         when(orderLineRepository.findAll()).thenReturn(List.of(orderLine));
         when(orderLineMapper.toResponse(orderLine)).thenReturn(response);
 
@@ -197,7 +197,7 @@ class OrderLineServiceTest {
         Task task = taskWithId(1L);
         OrderLine orderLine = new OrderLine(order, task, product, 10);
         orderLine.setId(1L);
-        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, OrderStatus.CREATED, null, null);
+        OrderLineResponse response = new OrderLineResponse(1L, 1L, 1L, 1L, 10, Status.CREATED, null, null);
         when(orderLineRepository.findById(1L)).thenReturn(Optional.of(orderLine));
         when(orderLineMapper.toResponse(orderLine)).thenReturn(response);
 

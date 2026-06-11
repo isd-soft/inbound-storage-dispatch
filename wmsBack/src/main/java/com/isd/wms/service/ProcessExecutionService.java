@@ -4,14 +4,12 @@ import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.StockNotFoundException;
@@ -47,7 +45,7 @@ public class ProcessExecutionService {
     public List<ProcessExecutionResponse> getAssignedProcesses() {
         User operator = getCurrentUser();
         return processRepository.findByOperatorAndStatuses(
-                        operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS))
+                        operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -58,17 +56,17 @@ public class ProcessExecutionService {
         log.info("Starting process {}", processId);
         Process process = getAssignedProcess(processId);
 
-        if (process.getStatus() == ProcessStatus.COMPLETED) {
+        if (process.getStatus() == Status.COMPLETED) {
             throw new InvalidRequestException("Process is already completed");
         }
-        if (process.getStatus() == ProcessStatus.CANCELED) {
+        if (process.getStatus() == Status.CANCELED) {
             throw new InvalidRequestException("Process is cancelled");
         }
-        if (process.getStatus() != ProcessStatus.ASSIGNED && process.getStatus() != ProcessStatus.CREATED) {
+        if (process.getStatus() != Status.ASSIGNED && process.getStatus() != Status.CREATED) {
             throw new InvalidRequestException("Process cannot be started from status " + process.getStatus());
         }
 
-        process.setStatus(ProcessStatus.IN_PROGRESS);
+        process.setStatus(Status.IN_PROGRESS);
         return toResponse(processRepository.save(process));
     }
 
@@ -153,7 +151,7 @@ public class ProcessExecutionService {
         sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - process.getQuantity()));
         stockRepository.save(sourceStock);
 
-        process.setStatus(ProcessStatus.COMPLETED);
+        process.setStatus(Status.COMPLETED);
         Process savedProcess = processRepository.save(process);
 
         inventoryService.recordPickingHistory(sourceStock, pickedQuantity, operator);
@@ -167,7 +165,7 @@ public class ProcessExecutionService {
         Task task = process.getTask();
         List<Process> taskProcesses = processRepository.findAllByTaskId(task.getId());
         boolean taskCompleted = taskProcesses.stream()
-                .allMatch(taskProcess -> taskProcess.getStatus() == ProcessStatus.COMPLETED
+                .allMatch(taskProcess -> taskProcess.getStatus() == Status.COMPLETED
                         || taskProcess.getId().equals(process.getId()));
 
         if (!taskCompleted) {
@@ -178,7 +176,7 @@ public class ProcessExecutionService {
         taskRepository.save(task);
 
         orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
-            orderLine.setStatus(OrderStatus.COMPLETED);
+            orderLine.setStatus(Status.COMPLETED);
             orderLineRepository.save(orderLine);
             updateOrderStatus(orderLine.getOrder());
         });
@@ -186,23 +184,23 @@ public class ProcessExecutionService {
 
     private void updateOrderStatus(Order order) {
         boolean orderCompleted = order.getOrderLines().stream()
-                .allMatch(orderLine -> orderLine.getStatus() == OrderStatus.COMPLETED);
+                .allMatch(orderLine -> orderLine.getStatus() == Status.COMPLETED);
 
         if (orderCompleted) {
-            order.setStatus(OrderStatus.COMPLETED);
+            order.setStatus(Status.COMPLETED);
             orderRepository.save(order);
         }
     }
 
     private Process getAssignedProcessInProgress(Long processId) {
         Process process = getAssignedProcess(processId);
-        if (process.getStatus() == ProcessStatus.COMPLETED) {
+        if (process.getStatus() == Status.COMPLETED) {
             throw new InvalidRequestException("Process is already completed");
         }
-        if (process.getStatus() == ProcessStatus.CANCELED) {
+        if (process.getStatus() == Status.CANCELED) {
             throw new InvalidRequestException("Process is cancelled");
         }
-        if (process.getStatus() != ProcessStatus.IN_PROGRESS) {
+        if (process.getStatus() != Status.IN_PROGRESS) {
             throw new InvalidRequestException("Process is not in progress");
         }
         return process;

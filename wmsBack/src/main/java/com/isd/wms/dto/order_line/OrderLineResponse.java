@@ -1,6 +1,6 @@
 package com.isd.wms.dto.order_line;
 
-import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 
 import java.sql.Timestamp;
 
@@ -10,7 +10,7 @@ public record OrderLineResponse(
         Long taskId,
         Long productId,
         Integer requestedQuantity,
-        OrderStatus status,
+        Status status,
         Timestamp createdAt,
         Timestamp updatedAt
 ) {
