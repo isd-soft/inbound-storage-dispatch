@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,8 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("logicId") String logicId,
             @Param("destinationId") Long destinationId,
             @Param("status") OrderStatus status,
-            @Param("createdAt") Timestamp createdAt,
-            @Param("updatedAt") Timestamp updatedAt
+            @Param("createdAt") LocalDateTime createdAt,
+            @Param("updatedAt") LocalDateTime updatedAt
     );
 
 }

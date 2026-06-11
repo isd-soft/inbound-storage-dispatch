@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.time.Instant;
 import org.hibernate.Hibernate;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
@@ -44,9 +45,12 @@ public class User{
     private String verificationToken;
 
     @Column(name = "verification_token_expires_at")
-    private Instant verificationTokenExpiresAt;
+    private LocalDateTime verificationTokenExpiresAt;
 
-    public User(String username, String email, String password, Role userRole, Boolean emailVerified, String verificationToken, Instant verificationTokenExpiresAt) {
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    public User(String username, String email, String password, Role userRole, Boolean emailVerified, String verificationToken, LocalDateTime verificationTokenExpiresAt) {
         this.username = username;
         this.email = email;
         this.password = password;

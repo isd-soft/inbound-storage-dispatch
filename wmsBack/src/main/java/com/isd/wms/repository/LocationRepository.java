@@ -7,12 +7,14 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface LocationRepository extends JpaRepository<Location, Long> {
-    boolean existsByLocationCodeIgnoreCase(String locationCode);
+import java.util.List;
+import java.util.Optional;
 
-    @Query("""
-            SELECT l.id AS id, l.locationCode AS locationCode FROM Location l
-            WHERE l.available = true AND l.zone = Zone.DISPATCH
-            """)
-    List<ShortLocationProjection> getLocationDispatch();
+public interface LocationRepository extends JpaRepository<Location, Long> {
+
+    boolean existsByLocationCodeIgnoreCase (String locationCode);
+
+    List<Location> findAllByIsActiveTrue();
+
+    Optional<Location> findByLocationCodeAndIsActiveTrue(String code);
 }

@@ -17,4 +17,6 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     List<Stock> findAvailableStocksByProductId(@Param("productId") Long productId);
 
     Optional<Stock> findByProductIdAndLocationId(Long productId, Long locationId);
+
+    boolean existsByLocationIdAndQuantityGreaterThan(Long LocationCode, Integer quantity);
 }

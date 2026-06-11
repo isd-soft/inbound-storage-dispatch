@@ -34,6 +34,9 @@ public class Location{
     @Column(nullable = false)
     private Boolean available = true;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     public Location(String locationCode, Zone zone, String description, Boolean available) {
         this.locationCode = locationCode;
         this.zone = zone;
