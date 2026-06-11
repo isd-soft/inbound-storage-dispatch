@@ -5,14 +5,19 @@ import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
+import com.isd.wms.entity.Process;
+import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
+import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.OrderRepository;
+import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.UserRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +36,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
+    private final UserRepository userRepository;
+    private final ProcessRepository processRepository;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -79,6 +86,25 @@ public class OrderService {
     public Order getOrder(@NonNull Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+
+    @Transactional
+    public void assignOrder(Long orderId, Long operatorId) {
+        Order order = getOrder(orderId);
+        User operator = getUser(operatorId);
+
+        List<Process> processes = getProcessesAllByOrder(order);
+
+        processes.forEach((p)-> p.setOperator(operator));
+    }
+
+    private List<Process> getProcessesAllByOrder(Order order) {
+        return processRepository.findAllByOrder(order);
+    }
+
+    private User getUser(Long operatorId) {
+        return userRepository.findById(operatorId)
+            .orElseThrow(() -> new UserNotFoundException(operatorId));
     }
 
     private Location getLocation(Long locationId) {
