@@ -44,4 +44,5 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
         @Param("order") Order order,
         @Param("operator") User operator
     );
+
 }

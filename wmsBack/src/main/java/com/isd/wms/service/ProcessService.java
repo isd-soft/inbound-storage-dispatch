@@ -1,6 +1,7 @@
 package com.isd.wms.service;
 
 import com.isd.wms.dto.process.ProcessOperatorResponse;
+import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.User;
@@ -28,21 +29,21 @@ public class ProcessService {
     private final ProcessMapper processMapper;
     private final OrderService orderService;
 
-    public List<ProcessOperatorResponse> getAvailableProcesses() {
-        List<Process> processes = processRepository.findByStatus(Status.CREATED);
-        return processes.stream().map(processMapper::toResponse).toList();
-    }
+//    public List<ProcessOperatorResponse> getAvailableProcesses() {
+//        List<Process> processes = processRepository.findByStatus(Status.CREATED);
+//        return processes.stream().map(processMapper::toResponse).toList();
+//    }
 
-    public List<ProcessOperatorResponse> getMyProcesses() {
-        User operator = securityFacade.getCurrentUser();
-
-        List<Process> processes = processRepository.findByOperatorAndStatuses(
-                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS));
-        return processes.stream().map(processMapper::toResponse).toList();
-    }
+//    public List<ProcessOperatorResponse> getMyProcesses() {
+//        User operator = securityFacade.getCurrentUser();
+//
+//        List<Process> processes = processRepository.findByOperatorAndStatuses(
+//                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS));
+//        return processes.stream().map(processMapper::toResponse).toList();
+//    }
 
     @Transactional
-    public ProcessOperatorResponse completeProcess(Long processId) {
+    public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
         User operator = securityFacade.getCurrentUser();
 
@@ -70,7 +71,10 @@ public class ProcessService {
     public List<ProcessOperatorResponse> getProcessesOperator() {
         User operator = securityFacade.getCurrentUser();
         Order oldestOrder = orderService.getOldestOrder(operator);
-        return processRepository.findOldestProcessesByOrder(oldestOrder, operator)
-            .stream().map(processMapper::toResponse).toList();
+        List<Process> processes = processRepository.findOldestProcessesByOrder(oldestOrder, operator);
+        Integer length = processes.size();
+        return processes
+            .stream()
+            .map((p) -> processMapper.toOperatorResponse(p,length)).toList();
     }
 }

@@ -2,8 +2,7 @@ package com.isd.wms.dto.process;
 
 import com.isd.wms.enums.Status;
 
-public record ProcessOperatorResponse (
-        Integer left,
+public record ProcessResponse(
         Long id,
         String productName,
         String Sku,

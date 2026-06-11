@@ -1,9 +1,6 @@
 package com.isd.wms.controller;
 
-import com.isd.wms.dto.process.BarcodeScanRequest;
-import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
-import com.isd.wms.dto.process.ProcessExecutionResponse;
-import com.isd.wms.dto.process.ProcessOperatorResponse;
+import com.isd.wms.dto.process.*;
 import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
 import jakarta.validation.Valid;
@@ -41,7 +38,7 @@ public class ProcessController {
 
     @PatchMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessOperatorResponse completeProcess(@PathVariable Long id) {
+    public ProcessResponse completeProcess(@PathVariable Long id) {
         return processService.completeProcess(id);
     }
 
