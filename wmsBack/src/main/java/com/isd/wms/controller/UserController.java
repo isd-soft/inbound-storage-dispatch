@@ -1,12 +1,14 @@
 package com.isd.wms.controller;
 
 import com.isd.wms.dto.user.UserCreateRequest;
+import com.isd.wms.dto.user.UserResponse;
 import com.isd.wms.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,6 +22,11 @@ public class UserController {
         this.userService = userService;
     }
 
+
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserCreateRequest request) {
         log.info("New user registration attempt. Username: {}", request.username());
