@@ -17,12 +17,12 @@
 
         <div class="field">
           <label for="location" class="block mb-1 font-medium">Location</label>
-          <Dropdown
+          <Select
             id="location"
             v-model="formData.location"
             :options="locations"
-            optionLabel="name"
-            optionValue="code"
+            optionLabel="locationCode"
+            optionValue="id"
             placeholder="Select a location"
             fluid
             :class="{ 'p-invalid': submitted && !formData.location }"
@@ -43,7 +43,7 @@
           <div class="flex flex-wrap gap-3 align-items-end">
             <div class="flex-1 min-w-12rem">
               <label :for="`product-${line.id}`" class="block mb-1">Product</label>
-              <Dropdown
+              <Select
                 :id="`product-${line.id}`"
                 v-model="line.product"
                 :options="products"
@@ -85,10 +85,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { Form } from '@primevue/forms'
 import InputText from 'primevue/inputtext'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
@@ -103,8 +103,6 @@ const authStore = useAuthStore()
 const products = ref([])
 const locations = ref([])
 const loading = ref(false)
-const actionLoading = ref(false)
-const canManageStock = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
 
 const getErrorMessage = (error) => {
   return (
@@ -130,14 +128,15 @@ const loadOrderCreateData = async () => {
   try {
     const [productsResponse, locationsResponse] = await Promise.all([
       orderApi.getProducts(),
-      orderApi.getLocations(),
+      orderApi.getLocationsForDispatch(),
     ])
     products.value = productsResponse.data
-    locations.value = locationsResponse.data.filter((location) => location.available !== false)
+    print(products)
+    locations.value = locationsResponse.data.filter((location) => location.available === true)
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Inventory load failed',
+      summary: 'Order data load failed',
       detail: getErrorMessage(error),
       life: 4000,
     })
@@ -169,7 +168,7 @@ const removeLine = (index) => {
 
 const submitted = ref(false)
 
-const onSubmit = (event) => {
+const onSubmit = async (event) => {
   submitted.value = true
 
   const isTopValid = !!formData.logicId && !!formData.location
@@ -182,34 +181,49 @@ const onSubmit = (event) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please fill all fields and at least one valid line.',
+      detail: 'Please fill in all fields.',
       life: 4000,
     })
     return
   }
 
   const payload = {
-    logicId: formData.logicId,
-    location: formData.location,
+    order: {
+      logicId: formData.logicId,
+      location: formData.location,
+    },
     lines: formData.lines.map((line) => ({
       productId: line.product,
-      productName: products.value.find((p) => p.id === line.product)?.name,
       quantity: line.quantity,
     })),
   }
 
   console.log('Submitting:', payload)
+  try {
+    const order = await orderApi.create(payload)
 
-  toast.add({
-    severity: 'success',
-    summary: 'Order Submitted',
-    detail: `${formData.lines.length} line(s) added.`,
-    life: 5000,
-  })
-  router.push({ name: 'history', query: { stockId: stock.id } })
+    toast.add({
+      severity: 'success',
+      summary: `Order Submitted with id ${order.data.order.id}`,
+      detail: `${formData.lines.length} line(s) added.`,
+      life: 5000,
+    })
+
+    router.push({ name: 'supervisor' })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Order creation failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
+  }
 }
 
-onMounted(loadOrderCreateData)
+// onMounted(loadOrderCreateData)
+onMounted(async () => {
+  await loadOrderCreateData()
+})
 addLine()
 </script>
 

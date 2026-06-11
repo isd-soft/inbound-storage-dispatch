@@ -1,5 +1,6 @@
 package com.isd.wms.repository;
 
+import com.isd.wms.dto.product.ProductWithQuantityProjection;
 import com.isd.wms.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,4 +18,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> search(@Param("name") String name, @Param("categoryId") Long categoryId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    @Query("""
+            SELECT p.id AS id, p.name AS name, SUM(s.quantity) AS quantity FROM Product p
+            JOIN Stock s ON p = s.product
+            GROUP BY p.id, p.name, s.quantity
+            HAVING SUM(s.quantity) > 0
+            """)
+    List<ProductWithQuantityProjection> getProductsWithQuantities();
 }

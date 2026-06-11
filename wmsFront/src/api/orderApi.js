@@ -17,9 +17,9 @@ export const orderApi = {
     return apiClient.delete(`/orders/${id}`)
   },
   getProducts() {
-    return apiClient.get('/products')
+    return apiClient.get('/products/quantities')
   },
-  getLocations() {
-    return apiClient.get('/locations')
+  getLocationsForDispatch() {
+    return apiClient.get('/locations/dispatches')
   },
 }
