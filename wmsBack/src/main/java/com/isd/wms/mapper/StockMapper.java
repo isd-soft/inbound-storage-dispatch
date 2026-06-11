@@ -21,6 +21,8 @@ public class StockMapper {
                 location.map(Location::getId).orElse(null),
                 location.map(Location::getLocationCode).orElse(null),
                 stock.getQuantity(),
+                stock.getReservedQuantity(),
+                stock.getQuantity() - stock.getReservedQuantity(),
                 stock.getManufactureDate(),
                 stock.getExpirationDate()
         );

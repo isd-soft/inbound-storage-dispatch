@@ -18,6 +18,8 @@ public class StockResponse {
     private Long locationId;
     private String locationCode;
     private Integer quantity;
+    private Integer reservedQuantity;
+    private Integer availableQuantity;
     private LocalDate manufactureDate;
     private LocalDate expirationDate;
 }
