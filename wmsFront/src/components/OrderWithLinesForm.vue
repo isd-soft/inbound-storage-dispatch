@@ -133,7 +133,6 @@ const loadOrderCreateData = async () => {
       orderApi.getLocationsForDispatch(),
     ])
     products.value = productsResponse.data
-    print(products)
     locations.value = locationsResponse.data
   } catch (error) {
     toast.add({
