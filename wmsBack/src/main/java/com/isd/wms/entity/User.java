@@ -47,6 +47,9 @@ public class User{
     @Column(name = "verification_token_expires_at")
     private LocalDateTime verificationTokenExpiresAt;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     public User(String username, String email, String password, Role userRole, Boolean emailVerified, String verificationToken, LocalDateTime verificationTokenExpiresAt) {
         this.username = username;
         this.email = email;

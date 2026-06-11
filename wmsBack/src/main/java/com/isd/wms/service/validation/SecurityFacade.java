@@ -1,6 +1,7 @@
 package com.isd.wms.service.validation;
 
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.Role;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +31,12 @@ public class SecurityFacade {
                 .orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    public boolean hasRole(String roleName) {
+    public boolean hasRole(Role roleName) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return false;
         }
         return auth.getAuthorities().stream()
-            .anyMatch(a -> Objects.equals(a.getAuthority(), roleName));
+            .anyMatch(a -> Objects.equals(a.getAuthority(), roleName.name()));
     }
 }

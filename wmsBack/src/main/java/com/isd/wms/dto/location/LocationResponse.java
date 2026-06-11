@@ -7,5 +7,6 @@ public record LocationResponse(
         String locationCode,
         Zone zone,
         String description,
-        Boolean available
+        Boolean available,
+        Boolean isActive
 ) {}

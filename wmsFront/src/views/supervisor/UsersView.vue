@@ -26,30 +26,49 @@
           </Column>
           <Column header="Actions">
             <template #body="{ data }">
-              <Button icon="pi pi-pencil" outlined rounded size="small" class="mr-2" severity="warning" />
-              <Button icon="pi pi-ban" outlined rounded severity="danger" size="small" @click="banUser(data)" />
+              <Button
+                v-if="isDev"
+                icon="pi pi-pencil"
+                outlined
+                rounded
+                size="small"
+                class="mr-2"
+                severity="warning"
+                @click="openEditDialog(data)"
+              />
+              <Button
+                v-if="canDelete(data)"
+                icon="pi pi-trash"
+                outlined
+                rounded
+                severity="danger"
+                size="small"
+                @click="deleteUser(data)"
+              />
             </template>
           </Column>
         </DataTable>
       </template>
     </Card>
 
-    <Dialog v-model:visible="dialogVisible" header="Register New User" :modal="true" class="p-fluid w-full max-w-md">
+    <Dialog v-model:visible="dialogVisible" :header="dialogMode === 'add' ? 'Register New User' : 'Edit User'" :modal="true" class="p-fluid w-full max-w-md">
 
       <div class="field mb-4">
         <label for="username" class="block text-sm font-medium mb-1">Username *</label>
         <InputText id="username" v-model="formData.username" required autofocus />
       </div>
 
-      <div class="field mb-4">
-        <label for="email" class="block text-sm font-medium mb-1">Email *</label>
-        <InputText id="email" type="email" v-model="formData.email" required />
-      </div>
+      <template v-if="dialogMode === 'add'">
+        <div class="field mb-4">
+          <label for="email" class="block text-sm font-medium mb-1">Email *</label>
+          <InputText id="email" type="email" v-model="formData.email" required />
+        </div>
 
-      <div class="field mb-4">
-        <label for="password" class="block text-sm font-medium mb-1">Password *</label>
-        <Password id="password" v-model="formData.password" :feedback="false" toggleMask required />
-      </div>
+        <div class="field mb-4">
+          <label for="password" class="block text-sm font-medium mb-1">Password *</label>
+          <Password id="password" v-model="formData.password" :feedback="false" toggleMask required />
+        </div>
+      </template>
 
       <div class="field mb-4">
         <label for="role" class="block text-sm font-medium mb-1">Role *</label>
@@ -58,7 +77,14 @@
 
       <template #footer>
         <Button label="Cancel" icon="pi pi-times" text @click="dialogVisible = false" />
-        <Button label="Register" icon="pi pi-check" severity="success" :loading="actionLoading" @click="registerUser" :disabled="!isFormValid" />
+        <Button
+          :label="dialogMode === 'add' ? 'Register' : 'Save Changes'"
+          icon="pi pi-check"
+          severity="success"
+          :loading="actionLoading"
+          @click="submitAction"
+          :disabled="!isFormValid"
+        />
       </template>
     </Dialog>
   </div>
@@ -89,31 +115,48 @@ const users = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
+const dialogMode = ref('add')
 
-const roles = computed(() => {
-  return authStore.role === 'ROLE_DEV'
-    ? ['ROLE_SUPERVISOR', 'ROLE_OPERATOR', 'ROLE_DEV']
-    : ['ROLE_SUPERVISOR', 'ROLE_OPERATOR']
-})
+const isDev = computed(() => authStore.role === 'ROLE_DEV')
 
 const formData = ref({
+  id: null,
   username: '',
   email: '',
   password: '',
-  userRole: null
+  userRole: null,
+  originalRole: null
+})
+
+const roles = computed(() => {
+  if (dialogMode.value === 'edit' && formData.value.originalRole === 'ROLE_DEV') {
+    return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR', 'ROLE_DEV']
+  }
+  return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR']
 })
 
 const isFormValid = computed(() => {
-  return formData.value.username.trim() &&
-    formData.value.email.trim() &&
-    formData.value.password.trim() &&
-    formData.value.userRole
+  if (dialogMode.value === 'add') {
+    return formData.value.username.trim() &&
+      formData.value.email.trim() &&
+      formData.value.password.trim() &&
+      formData.value.userRole
+  } else {
+    return formData.value.username.trim() && formData.value.userRole
+  }
 })
 
 const getRoleSeverity = (role) => {
   if (role === 'ROLE_SUPERVISOR') return 'warning'
   if (role === 'ROLE_DEV') return 'danger'
   return 'success'
+}
+
+const canDelete = (user) => {
+  if (user.username === authStore.username) return false
+  if (authStore.role === 'ROLE_DEV') return true
+  if (authStore.role === 'ROLE_SUPERVISOR' && user.userRole === 'ROLE_OPERATOR') return true
+  return false
 }
 
 const loadUsers = async () => {
@@ -129,27 +172,95 @@ const loadUsers = async () => {
 }
 
 const openCreateDialog = () => {
-  formData.value = { username: '', email: '', password: '', userRole: null }
+  dialogMode.value = 'add'
+  formData.value = { id: null, username: '', email: '', password: '', userRole: null, originalRole: null }
   dialogVisible.value = true
+}
+
+const openEditDialog = (user) => {
+  dialogMode.value = 'edit'
+  formData.value = {
+    id: user.id,
+    username: user.username,
+    email: '',
+    password: '',
+    userRole: user.userRole,
+    originalRole: user.userRole
+  }
+  dialogVisible.value = true
+}
+
+const submitAction = async () => {
+  if (dialogMode.value === 'add') {
+    await registerUser()
+  } else {
+    await updateUser()
+  }
+}
+
+const handleBackendError = (error) => {
+  if (error.response?.status === 400 && typeof error.response.data === 'object' && !error.response.data.error) {
+    for (const [field, msg] of Object.entries(error.response.data)) {
+      toast.add({ severity: 'error', summary: `Invalid ${field}`, detail: msg, life: 6000 })
+    }
+  } else {
+    const errorMsg = error.response?.data?.error || 'Operation failed'
+    toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: 5000 })
+  }
 }
 
 const registerUser = async () => {
   actionLoading.value = true
   try {
-    await userApi.register(formData.value)
+    const payload = {
+      username: formData.value.username,
+      email: formData.value.email,
+      password: formData.value.password,
+      userRole: formData.value.userRole
+    }
+    await userApi.register(payload)
     toast.add({ severity: 'success', summary: 'Success', detail: 'User registered successfully', life: 3000 })
     dialogVisible.value = false
     await loadUsers()
   } catch (error) {
-    const errorMsg = error.response?.data?.error || 'Registration failed'
-    toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: 5000 })
+    handleBackendError(error)
   } finally {
     actionLoading.value = false
   }
 }
 
-const banUser = (user) => {
-  toast.add({ severity: 'info', summary: 'WIP', detail: `Ban functionality for ${user.username} is not implemented yet.`, life: 3000 })
+const updateUser = async () => {
+  actionLoading.value = true
+  try {
+    const payload = {
+      username: formData.value.username,
+      userRole: formData.value.userRole
+    }
+    await userApi.update(formData.value.id, payload)
+    toast.add({ severity: 'success', summary: 'Success', detail: 'User updated successfully', life: 3000 })
+    dialogVisible.value = false
+    await loadUsers()
+  } catch (error) {
+    handleBackendError(error)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const deleteUser = async (user) => {
+  const confirmed = confirm(`Are you sure you want to permanently delete user '${user.username}'?`)
+  if (!confirmed) return
+
+  loading.value = true
+  try {
+    await userApi.delete(user.id)
+    toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted successfully', life: 3000 })
+    await loadUsers()
+  } catch (error) {
+    handleBackendError(error)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
