@@ -5,13 +5,10 @@ import lombok.NonNull;
 
 public record OrderLineCreateRequest(
         Long orderId,
-        @NonNull Long taskId,
         @NonNull Long productId,
-        @NonNull
-        @Min(0)
-        Integer requestedQuantity
+        @NonNull @Min(0) Integer requestedQuantity
 ) {
         public OrderLineCreateRequest(OrderLineCreateRequest request, Long orderId) {
-            this(orderId, request.taskId(), request.productId(), request.requestedQuantity());
+            this(orderId, request.productId(), request.requestedQuantity());
         }
 }

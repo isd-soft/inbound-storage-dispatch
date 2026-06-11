@@ -3,6 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
+import com.isd.wms.dto.location.ShortLocationProjection;
 import com.isd.wms.service.LocationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,11 @@ public class LocationController {
     @GetMapping
     public List<LocationResponse> getAllLocations() {
         return locationService.getAllLocations();
+    }
+
+    @GetMapping("/dispatches")
+    public List<ShortLocationProjection> getLocationsDispatch() {
+        return locationService.getShortLocationsDispatch();
     }
 
     @GetMapping("/{id}")

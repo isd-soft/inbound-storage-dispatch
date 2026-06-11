@@ -1,4 +1,5 @@
 package com.isd.wms.mapper;
+
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.entity.Location;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,8 @@ public class LocationMapper {
                 location.getLocationCode(),
                 location.getZone(),
                 location.getDescription(),
-                location.getAvailable()
+                location.getAvailable(),
+                location.getIsActive()
         );
     }
 }

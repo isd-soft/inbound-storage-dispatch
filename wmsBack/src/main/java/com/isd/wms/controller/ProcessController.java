@@ -39,12 +39,6 @@ public class ProcessController {
         return processExecutionService.getAssignedProcesses();
     }
 
-    @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessResponse assignProcess(@PathVariable Long id) {
-        return processService.assignProcess(id);
-    }
-
     @PatchMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ProcessResponse completeProcess(@PathVariable Long id) {
