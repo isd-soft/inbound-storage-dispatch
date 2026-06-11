@@ -1,6 +1,7 @@
 package com.isd.wms.dto.product;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 public record ProductResponse(
         Long id,
@@ -8,7 +9,7 @@ public record ProductResponse(
         String sku,
         String description,
         Long categoryId,
-        Timestamp createdAt,
-        Timestamp updatedAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 }

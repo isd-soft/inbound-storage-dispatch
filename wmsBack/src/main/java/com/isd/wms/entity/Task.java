@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -38,7 +39,7 @@ public class Task extends BaseTimestampEntity {
     private Integer requestedQuantity;
 
     @Column(name = "completed_at")
-    private Timestamp completedAt;
+    private LocalDateTime completedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

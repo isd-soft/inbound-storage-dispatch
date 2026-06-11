@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -45,7 +46,7 @@ public class UserService {
                 Role.valueOf(formattedRole),
                 false,
                 verificationToken,
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDateTime.now().plusHours(24)
         );
         userRepository.save(newUser);
 
@@ -59,7 +60,7 @@ public class UserService {
         User user = userRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
 
-        if (user.getVerificationTokenExpiresAt().isBefore(Instant.now())) {
+        if (user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Verification token has expired. Please ask your supervisor to resend the invitation.");
         }
 
