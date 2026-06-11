@@ -1,57 +1,155 @@
 <template>
   <div class="p-6">
-    <div class="flex items-center gap-3 mb-6">
-      <h2 class="app-title text-2xl font-bold">Warehouse Operations</h2>
+    <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
+      <div>
+        <h2 class="app-title text-2xl font-bold">Dashboard</h2>
+        <p class="app-subtitle text-sm mt-1">Warehouse activity overview</p>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <span v-if="lastUpdatedLabel" class="app-muted text-xs">Last updated: {{ lastUpdatedLabel }}</span>
+        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadDashboard" />
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <Card class="app-card">
-        <template #title><span class="app-subtitle">Total Products</span></template>
-        <template #content><span class="app-title text-4xl font-bold">142</span></template>
-      </Card>
+    <Message v-if="errorMessage" severity="error" class="mb-6" :closable="false">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <span>{{ errorMessage }}</span>
+        <Button label="Retry" icon="pi pi-refresh" size="small" severity="danger" outlined :loading="loading" @click="loadDashboard" />
+      </div>
+    </Message>
 
-      <Card class="app-card">
-        <template #title><span class="app-subtitle">Open Replenishments</span></template>
-        <template #content><span class="app-brand text-4xl font-bold">8</span></template>
-      </Card>
-
-      <Card class="app-card">
-        <template #title><span class="app-subtitle">Low Stock Alerts</span></template>
-        <template #content><span class="app-danger text-4xl font-bold">3</span></template>
-      </Card>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <DashboardMetricCard
+        v-for="card in kpiCards"
+        :key="card.key"
+        :title="card.title"
+        :value="card.value"
+        :icon="card.icon"
+        :icon-tone="card.iconTone"
+        :description="card.description"
+        :loading="loading"
+        :warning="card.warning"
+      />
     </div>
 
-    <Card class="app-card">
-      <template #title><span class="app-subtitle">Low Stock Inventory</span></template>
+    <Card class="app-card border-none shadow-lg mt-6">
+      <template #title>
+        <div class="flex items-center justify-between gap-3">
+          <span class="app-subtitle">Low Stock Alerts</span>
+          <Tag :severity="summary.lowStockAlerts > 0 ? 'warning' : 'success'" :value="lowStockStatusLabel" />
+        </div>
+      </template>
       <template #content>
-        <DataTable :value="inventory" class="p-datatable-sm">
-          <Column field="sku" header="SKU"></Column>
-          <Column field="name" header="Product Name"></Column>
-          <Column field="quantity" header="Quantity">
-            <template #body="slotProps">
-              <span class="app-danger font-bold">{{ slotProps.data.quantity }}</span>
-            </template>
-          </Column>
-          <Column header="Action">
-            <template #body>
-              <Button label="Create Task" icon="pi pi-plus" size="small" severity="success" outlined />
-            </template>
-          </Column>
-        </DataTable>
+        <Message v-if="!loading && !errorMessage && isEmptySummary" severity="info" :closable="false">
+          No dashboard activity is available yet. Metrics will appear after warehouse data is recorded.
+        </Message>
+        <p v-else class="app-muted text-sm">
+          Products or stock records below the configured minimum threshold are counted here. Detailed alert rows can be connected when the backend exposes them.
+        </p>
       </template>
     </Card>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
+import { computed, onMounted, ref } from 'vue'
 
-const inventory = ref([
-  { sku: 'SCN-WLS-001', name: 'Wireless Scanner', quantity: 2 },
-  { sku: 'TOWELS-12R', name: 'Paper Towels', quantity: 5 }
-])
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+
+import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard.vue'
+import { dashboardService } from '@/services/dashboardService'
+
+const emptySummary = {
+  totalInventory: 0,
+  openTasks: 0,
+  completedTasks: 0,
+  lowStockAlerts: 0,
+  lastUpdated: null
+}
+
+const summary = ref({ ...emptySummary })
+const loading = ref(false)
+const errorMessage = ref('')
+
+const kpiDefinitions = [
+  {
+    key: 'totalInventory',
+    title: 'Total Inventory',
+    description: 'Total stock quantity available in the warehouse.',
+    icon: 'pi pi-box',
+    iconTone: 'dashboard-metric-card__icon--primary'
+  },
+  {
+    key: 'openTasks',
+    title: 'Open Tasks',
+    description: 'Created, assigned, or in-progress warehouse tasks.',
+    icon: 'pi pi-list',
+    iconTone: 'dashboard-metric-card__icon--warning'
+  },
+  {
+    key: 'completedTasks',
+    title: 'Completed Tasks',
+    description: 'Warehouse tasks completed successfully.',
+    icon: 'pi pi-check-circle',
+    iconTone: 'dashboard-metric-card__icon--success'
+  },
+  {
+    key: 'lowStockAlerts',
+    title: 'Low Stock Alerts',
+    description: 'Stock records below the configured minimum threshold.',
+    icon: 'pi pi-exclamation-triangle',
+    iconTone: 'dashboard-metric-card__icon--danger',
+    warning: true
+  }
+]
+
+const kpiCards = computed(() =>
+  kpiDefinitions.map((definition) => ({
+    ...definition,
+    value: summary.value[definition.key] ?? 0
+  }))
+)
+
+const isEmptySummary = computed(() =>
+  !summary.value.totalInventory &&
+  !summary.value.openTasks &&
+  !summary.value.completedTasks &&
+  !summary.value.lowStockAlerts
+)
+
+const lowStockStatusLabel = computed(() => {
+  const alerts = summary.value.lowStockAlerts || 0
+  return alerts > 0 ? `${alerts} alert${alerts === 1 ? '' : 's'}` : 'No alerts'
+})
+
+const lastUpdatedLabel = computed(() => {
+  if (!summary.value.lastUpdated) return ''
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(summary.value.lastUpdated))
+})
+
+const getErrorMessage = (error) => {
+  return error.response?.data?.message || error.response?.data?.error || 'Unable to load dashboard data. Please try again.'
+}
+
+const loadDashboard = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    summary.value = await dashboardService.getDashboardSummary()
+  } catch (error) {
+    summary.value = { ...emptySummary }
+    errorMessage.value = getErrorMessage(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDashboard)
 </script>

@@ -33,12 +33,12 @@ public class LocationService {
             throw new DuplicateLocationCodeException(code);
         }
 
-        Location location = new Location();
-        location.setLocationCode(code);
-        location.setZone(request.zone());
-        location.setDescription(request.description());
-        location.setAvailable(true);
-
+        Location location = new Location(
+                code,
+                request.zone(),
+                request.description(),
+                true
+        );
         return locationMapper.toResponse(locationRepository.save(location));
     }
 

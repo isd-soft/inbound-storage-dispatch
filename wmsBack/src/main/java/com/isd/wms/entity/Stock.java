@@ -6,14 +6,13 @@ import lombok.*;
 import org.hibernate.Hibernate;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Table(name = "stocks")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Stock extends BaseTimestampEntity {
 
     @Id
@@ -21,11 +20,9 @@ public class Stock extends BaseTimestampEntity {
     @SequenceGenerator(name = "stock_seq", sequenceName = "stocks_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(name = "SKU", nullable = false, length = 100)
-    private String sku;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
+    @Getter(AccessLevel.NONE)
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,7 +34,6 @@ public class Stock extends BaseTimestampEntity {
     private Integer quantity;
 
     @Column(name = "quantity_reserved", nullable = false)
-    @Builder.Default
     private Integer reservedQuantity = 0;
 
     @Column(name = "manufacture_date")
@@ -49,9 +45,24 @@ public class Stock extends BaseTimestampEntity {
     @Version
     private Long version;
 
+    public Stock(Product product, Location location) {
+        this.product = product;
+        this.location = location;
+        this.quantity = 0;
+        this.reservedQuantity = 0;
+    }
+
+    public Optional<Product> getProduct() {
+        return Optional.ofNullable(product);
+    }
+
     public void removeQuantity(int quantityToMove) {
         this.quantity -= quantityToMove;
         this.reservedQuantity += quantityToMove;
+    }
+
+    public void addQuantity(int quantity) {
+        this.quantity += quantity;
     }
 
     @Override
@@ -66,5 +77,4 @@ public class Stock extends BaseTimestampEntity {
     public int hashCode() {
         return getClass().hashCode();
     }
-
 }

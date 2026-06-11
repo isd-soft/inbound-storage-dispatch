@@ -2,17 +2,15 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.ProcessStatus;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.ProcessRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +23,8 @@ import java.util.List;
 public class ProcessService {
 
     private final ProcessRepository processRepository;
-    private final UserRepository userRepository;
     private final WorkflowService workflowService;
+    private final SecurityFacade securityFacade;
 
     public List<ProcessResponse> getAvailableProcesses() {
         List<Process> processes = processRepository.findByStatus(ProcessStatus.CREATED);
@@ -34,7 +32,8 @@ public class ProcessService {
     }
 
     public List<ProcessResponse> getMyProcesses() {
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
+
         List<Process> processes = processRepository.findByOperatorAndStatuses(
                 operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS));
         return processes.stream().map(this::toResponse).toList();
@@ -43,7 +42,7 @@ public class ProcessService {
     @Transactional
     public ProcessResponse assignProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
         if (process.getStatus() != ProcessStatus.CREATED) {
             throw new InvalidRequestException("Process is already assigned or completed");
@@ -58,9 +57,9 @@ public class ProcessService {
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
-        if (process.getOperator().filter(e -> e.equals(operator)).isPresent()) {
+        if (process.getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("You can only complete your own processes");
         }
 
@@ -78,23 +77,19 @@ public class ProcessService {
 
     private Process getProcessById(Long processId) {
         return processRepository.findById(processId)
-                .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId)); // Замени на ProcessNotFoundException если есть
+                .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
     }
 
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
-    }
 
     private ProcessResponse toResponse(Process process) {
         Stock stock = process.getStock();
+        Product product = stock.getProduct()
+                .orElseThrow(() -> new IllegalStateException("Stock product is required"));
         return new ProcessResponse(
                 process.getId(),
                 process.getTask().getId(),
-                stock.getProduct().getId(),
-                stock.getProduct().getName(),
+                product.getId(),
+                product.getName(),
                 stock.getLocation().getLocationCode(),
                 process.getQuantity(),
                 process.getStatus()

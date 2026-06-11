@@ -11,6 +11,8 @@ import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.service.process.ProcessCompletionStrategy;
+import com.isd.wms.service.process.ReplenishmentProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,10 +30,10 @@ public class WorkflowService {
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
+    private final List<ProcessCompletionStrategy> processCompletionStrategies;
 
     @Transactional
-    public void generateProcessesForTask(Task task, Long productId, int requiredQuantity) {
-        int remainingQuantity = requiredQuantity;
+    public void generateProcessesForTask(Task task, Long productId, int remainingQuantity) {
 
         List<Stock> availableStocks = new ArrayList<>(stockRepository.findAvailableStocksByProductId(productId));
         List<Process> processesToSave = new ArrayList<>();
@@ -61,14 +63,8 @@ public class WorkflowService {
             int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
             int quantityToTake = Math.min(available, remainingQuantity);
 
-            processesToSave.add(
-                    Process.builder()
-                            .task(task)
-                            .stock(bestStock)
-                            .quantity(quantityToTake)
-                            .status(ProcessStatus.CREATED)
-                            .build()
-            );
+            Process process = new Process(task, bestStock, quantityToTake, ProcessStatus.CREATED);
+            processesToSave.add(process);
 
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
             remainingQuantity -= quantityToTake;
@@ -107,30 +103,11 @@ public class WorkflowService {
 
         Task task = process.getTask();
 
-        if (task.getTaskType() == TaskType.REPLENISHMENT) {
-            Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
-                    .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
-
-            Location destinationLocation = replenishment.getDestinationLocation();
-            Product product = sourceStock.getProduct();
-
-            Optional<Stock> destStockOpt = stockRepository.findByProductIdAndLocationId(product.getId(), destinationLocation.getId());
-
-            if (destStockOpt.isPresent()) {
-                Stock destStock = destStockOpt.get();
-                destStock.setQuantity(destStock.getQuantity() + quantityToMove);
-                stockRepository.save(destStock);
-            } else {
-                Stock newStock = Stock.builder()
-                        .product(product)
-                        .location(destinationLocation)
-                        .quantity(quantityToMove)
-                        .reservedQuantity(0)
-                        .manufactureDate(sourceStock.getManufactureDate())
-                        .build();
-                stockRepository.save(newStock);
-            }
-        }
+        processCompletionStrategies.stream()
+                .filter(strategy -> strategy.support(task.getTaskType()))
+                .findAny()
+                .ifPresentOrElse(strategy -> strategy.handle(process),
+                        () -> new RuntimeException("new exc"));
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()

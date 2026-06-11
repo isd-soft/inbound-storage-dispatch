@@ -14,6 +14,7 @@ import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
 import DevDashboard from '../views/dev/DevDashboard.vue'
 import OrderForm from '@/views/supervisor/OrderForm.vue'
+import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
 
 const DEV = 'ROLE_DEV'
 const SUPERVISOR = 'ROLE_SUPERVISOR'
@@ -44,47 +45,17 @@ const router = createRouter({
       component: SupervisorLayout,
       meta: { requiresAuth: true, roles: SUPERVISOR_OR_DEV },
       children: [
-        {
-          path: '',
-          name: 'supervisor-dashboard',
-          component: SuperDashboard,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
-        {
-          path: 'inventory',
-          alias: '/inventory',
-          name: 'inventory',
-          component: InventoryView,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
+        { path: '', alias: '/dashboard', name: 'supervisor-dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'inventory', alias: '/inventory', name: 'inventory', component: InventoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'tasks', name: 'tasks', component: TasksView, meta: { roles: SUPERVISOR_OR_DEV } },
-        {
-          path: 'products',
-          name: 'products',
-          component: ProductsView,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
-        {
-          path: 'locations',
-          name: 'locations',
-          component: LocationsView,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
-        {
-          path: 'history',
-          alias: '/inventory/history',
-          name: 'history',
-          component: HistoryView,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
+        { path: 'replenishments', name: 'replenishments', component: ReplenishmentsView, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'products', name: 'products', component: ProductsView, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'locations', name: 'locations', component: LocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
-        {
-          path: 'order-form',
-          name: 'order-form',
-          component: OrderForm,
-          meta: { roles: SUPERVISOR_OR_DEV },
-        },
-      ],
+        { path: 'operator', name: 'supervisor-operator', component: OperatorConsole, meta: { roles: [DEV] } },
+        { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
+      ]
     },
     {
       path: '/operator',

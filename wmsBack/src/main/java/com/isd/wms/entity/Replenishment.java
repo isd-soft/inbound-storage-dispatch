@@ -11,9 +11,9 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "replenishments")
 public class Replenishment extends BaseTimestampEntity{
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "replenishment_seq")
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)
@@ -37,6 +37,14 @@ public class Replenishment extends BaseTimestampEntity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
+
+    public Replenishment(Product product, Task task, Integer requestedQuantity, ReplenishmentStatus status, Location destinationLocation) {
+        this.product = product;
+        this.task = task;
+        this.requestedQuantity = requestedQuantity;
+        this.status = status;
+        this.destinationLocation = destinationLocation;
+    }
 
     public Replenishment(Task task, Product product, Integer requestedQuantity, Location destinationLocation) {
         this.task = task;

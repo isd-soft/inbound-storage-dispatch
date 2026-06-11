@@ -12,17 +12,13 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "orders")
 public class Order extends BaseTimestampEntity{
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_gen")
     @SequenceGenerator(name = "order_gen", sequenceName = "orders_sequence", allocationSize = 1)
     private Long id;
-
-    public Order(String logicId) {
-        this.logicId = logicId;
-    }
 
     @Column(name = "logic_id", nullable = false, unique = true)
     private String logicId;

@@ -26,6 +26,8 @@ import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +64,7 @@ class InventoryServiceTest {
     private UserRepository UserRepository;
 
     private InventoryService inventoryService;
+    private Validator validator;
     private Product product;
     private Location location;
     private User user;
@@ -77,6 +80,7 @@ class InventoryServiceTest {
                 new StockMapper(),
                 new InventoryHistoryMapper()
         );
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
         product = product(1L, "Milk");
         location = location(2L, "A-01");
         user = user(3L, "supervisor");
@@ -87,7 +91,7 @@ class InventoryServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
-        when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
+        when(stockRepository.findByProductIdAndLocationId(1L, 2L))
                 .thenReturn(Optional.empty());
         when(stockRepository.save(any(Stock.class))).thenAnswer(invocation -> {
             Stock savedStock = invocation.getArgument(0);
@@ -95,15 +99,10 @@ class InventoryServiceTest {
             return savedStock;
         });
 
-        StockResponse response = inventoryService.addStock(AddStockRequest.builder()
-                .productId(1L)
-                .locationId(2L)
-                .sku(" SKU-1 ")
-                .quantity(5)
-                .manufactureDate(LocalDate.of(2026, 1, 1))
-                .expirationDate(LocalDate.of(2026, 12, 31))
-                .userId(3L)
-                .build());
+        StockResponse response = inventoryService.addStock(new AddStockRequest(
+                1L, 2L, 5,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 3L
+        ));
 
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getQuantity()).isEqualTo(5);
@@ -125,46 +124,32 @@ class InventoryServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(2L)).thenReturn(Optional.of(location));
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
-        when(stockRepository.findByProductIdAndSkuIgnoreCaseAndLocationId(1L, "SKU-1", 2L))
+        when(stockRepository.findByProductIdAndLocationId(1L, 2L))
                 .thenReturn(Optional.of(stock));
         when(stockRepository.save(stock)).thenReturn(stock);
 
-        StockResponse response = inventoryService.addStock(AddStockRequest.builder()
-                .productId(1L)
-                .locationId(2L)
-                .sku("SKU-1")
-                .quantity(3)
-                .userId(3L)
-                .build());
+        StockResponse response = inventoryService.addStock(new AddStockRequest(
+                1L, 2L, 3, null, null, 3L
+        ));
 
         assertThat(response.getQuantity()).isEqualTo(10);
         verify(inventoryHistoryRepository).save(any(InventoryHistory.class));
     }
 
     @Test
-    void rejectsAddStockWithBlankSku() {
-        assertThatThrownBy(() -> inventoryService.addStock(AddStockRequest.builder()
-                .productId(1L)
-                .locationId(2L)
-                .sku(" ")
-                .quantity(5)
-                .userId(3L)
-                .build()))
-                .isInstanceOf(InvalidRequestException.class);
+    void rejectsAddStockWithInvalidQuantity() {
+        assertThat(validator.validate(new AddStockRequest(
+                1L, 2L, 0, null, null, 3L
+        ))).isNotEmpty();
     }
 
     @Test
     void rejectsAddStockWithMissingProduct() {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> inventoryService.addStock(AddStockRequest.builder()
-                .productId(99L)
-                .locationId(2L)
-                .sku("SKU-1")
-                .quantity(5)
-                .userId(3L)
-                .build()))
-                .isInstanceOf(ProductNotFoundException.class);
+        assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
+                99L, 2L, 5, null, null, 3L
+        ))).isInstanceOf(ProductNotFoundException.class);
     }
 
     @Test
@@ -172,14 +157,9 @@ class InventoryServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> inventoryService.addStock(AddStockRequest.builder()
-                .productId(1L)
-                .locationId(99L)
-                .sku("SKU-1")
-                .quantity(5)
-                .userId(3L)
-                .build()))
-                .isInstanceOf(LocationNotFoundException.class);
+        assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
+                1L, 99L, 5, null, null, 3L
+        ))).isInstanceOf(LocationNotFoundException.class);
     }
 
     @Test
@@ -189,11 +169,7 @@ class InventoryServiceTest {
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.save(stock)).thenReturn(stock);
 
-        StockResponse response = inventoryService.removeStock(RemoveStockRequest.builder()
-                .stockId(10L)
-                .quantity(3)
-                .userId(3L)
-                .build());
+        StockResponse response = inventoryService.removeStock(new RemoveStockRequest(10L, 3, 3L));
 
         assertThat(response.getQuantity()).isEqualTo(5);
 
@@ -212,11 +188,7 @@ class InventoryServiceTest {
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
 
-        assertThatThrownBy(() -> inventoryService.removeStock(RemoveStockRequest.builder()
-                .stockId(10L)
-                .quantity(3)
-                .userId(3L)
-                .build()))
+        assertThatThrownBy(() -> inventoryService.removeStock(new RemoveStockRequest(10L, 3, 3L)))
                 .isInstanceOf(InsufficientStockException.class);
     }
 
@@ -227,11 +199,7 @@ class InventoryServiceTest {
         when(UserRepository.findById(3L)).thenReturn(Optional.of(user));
         when(stockRepository.save(stock)).thenReturn(stock);
 
-        StockResponse response = inventoryService.adjustStock(AdjustStockRequest.builder()
-                .stockId(10L)
-                .newQuantity(12)
-                .userId(3L)
-                .build());
+        StockResponse response = inventoryService.adjustStock(new AdjustStockRequest(10L, 12, 3L));
 
         assertThat(response.getQuantity()).isEqualTo(12);
 
@@ -245,12 +213,8 @@ class InventoryServiceTest {
 
     @Test
     void rejectsNegativeAdjustQuantity() {
-        assertThatThrownBy(() -> inventoryService.adjustStock(AdjustStockRequest.builder()
-                .stockId(10L)
-                .newQuantity(-1)
-                .userId(3L)
-                .build()))
-                .isInstanceOf(InvalidRequestException.class);
+        assertThat(validator.validate(new AdjustStockRequest(10L, -1, 3L)))
+                .isNotEmpty();
     }
 
     @Test
@@ -259,11 +223,7 @@ class InventoryServiceTest {
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
         when(UserRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> inventoryService.removeStock(RemoveStockRequest.builder()
-                .stockId(10L)
-                .quantity(1)
-                .userId(99L)
-                .build()))
+        assertThatThrownBy(() -> inventoryService.removeStock(new RemoveStockRequest(10L, 1, 99L)))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
@@ -278,20 +238,21 @@ class InventoryServiceTest {
     @Test
     void returnsHistoryForStockByProductSkuAndLocation() {
         Stock stock = stock(10L, product, location, "SKU-1", 8);
-        InventoryHistory history = InventoryHistory.builder()
-                .product(product)
-                .sku("SKU-1")
-                .alteredQuantity(8)
-                .quantityAfterChange(8)
-                .destinationLocation(location)
-                .operationType(InventoryOperationType.ADD_STOCK)
-                .user(user)
-                .build();
+
+        InventoryHistory history = new InventoryHistory();
+        history.setProduct(product);
+        history.setSku("SKU-1");
+        history.setAlteredQuantity(8);
+        history.setQuantityAfterChange(8);
+        history.setDestinationLocation(location);
+        history.setOperationType(InventoryOperationType.ADD_STOCK);
+        history.setUser(user);
         ReflectionTestUtils.setField(history, "id", 20L);
+
         when(stockRepository.findById(10L)).thenReturn(Optional.of(stock));
         when(inventoryHistoryRepository
-                .findByProductIdAndSkuIgnoreCaseAndSourceLocationIdOrProductIdAndSkuIgnoreCaseAndDestinationLocationId(
-                        1L, "SKU-1", 2L, 1L, "SKU-1", 2L))
+                .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
+                        1L, 2L, 1L, 2L))
                 .thenReturn(List.of(history));
 
         List<InventoryHistoryResponse> responses = inventoryService.getHistoryForStock(10L);
@@ -308,7 +269,7 @@ class InventoryServiceTest {
     }
 
     private Product product(Long id, String name) {
-        Product result = new Product(name, null, category(100L, "Dairy"));
+        Product result = new Product(name, "SKU-1", null, category(100L, "Dairy"));
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }
@@ -322,23 +283,20 @@ class InventoryServiceTest {
     }
 
     private User user(Long id, String username) {
-        User result = User.builder()
-                .username(username)
-                .email(username + "@example.com")
-                .password("password")
-                .userRole(Role.ROLE_SUPERVISOR)
-                .build();
+        User result = new User();
+        result.setUsername(username);
+        result.setEmail(username + "@example.com");
+        result.setPassword("password");
+        result.setUserRole(Role.ROLE_SUPERVISOR);
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }
 
     private Stock stock(Long id, Product product, Location location, String sku, Integer quantity) {
-        Stock result = Stock.builder()
-                .product(product)
-                .location(location)
-                .sku(sku)
-                .quantity(quantity)
-                .build();
+        Stock result = new Stock();
+        result.setProduct(product);
+        result.setLocation(location);
+        result.setQuantity(quantity);
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,5 +33,11 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
             @Param("requestedQuantity") Integer requestedQuantity,
             @Param("status") ReplenishmentStatus status,
             @Param("destinationLocationId") Long destinationLocationId
+    );
+    boolean existsByProductIdAndDestinationLocationIdAndStatusNotIn(
+            Long productId, Long destinationLocationId, Collection<ReplenishmentStatus> statuses
+    );
+    boolean existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
+            Long productId, Long destinationLocationId, Collection<ReplenishmentStatus> statuses, Long id
     );
 }

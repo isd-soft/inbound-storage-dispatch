@@ -4,24 +4,27 @@ import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StockMapper {
 
     public StockResponse toResponse(Stock stock) {
-        Product product = stock.getProduct();
-        Location location = stock.getLocation();
-        return StockResponse.builder()
-                .id(stock.getId())
-                .sku(stock.getSku())
-                .productId(product == null ? null : product.getId())
-                .productName(product == null ? null : product.getName())
-                .locationId(location == null ? null : location.getId())
-                .locationCode(location == null ? null : location.getLocationCode())
-                .quantity(stock.getQuantity())
-                .manufactureDate(stock.getManufactureDate())
-                .expirationDate(stock.getExpirationDate())
-                .build();
+        Optional<Product> product = stock.getProduct();
+        Optional<Location> location = Optional.ofNullable(stock.getLocation());
+        return new StockResponse(
+                stock.getId(),
+                product.map(Product::getSku).orElse(null),
+                product.map(Product::getId).orElse(null),
+                product.map(Product::getName).orElse(null),
+                location.map(Location::getId).orElse(null),
+                location.map(Location::getLocationCode).orElse(null),
+                stock.getQuantity(),
+                stock.getReservedQuantity(),
+                stock.getQuantity() - stock.getReservedQuantity(),
+                stock.getManufactureDate(),
+                stock.getExpirationDate()
+        );
     }
 }

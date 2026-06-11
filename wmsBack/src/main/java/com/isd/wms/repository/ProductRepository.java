@@ -26,4 +26,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             HAVING SUM(s.quantity - s.reservedQuantity) > 0
             """)
     List<ProductWithQuantityProjection> getProductsWithQuantities();
+    boolean existsBySkuIgnoreCase(String sku);
+
+    boolean existsBySkuIgnoreCaseAndIdNot(String sku, Long id);
 }

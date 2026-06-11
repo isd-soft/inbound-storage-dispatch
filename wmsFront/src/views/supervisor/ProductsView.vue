@@ -71,6 +71,7 @@
               <Tag severity="info" :value="categoryName(slotProps.data.categoryId)" />
             </template>
           </Column>
+          <Column field="sku" header="SKU" sortable></Column>
           <Column field="description" header="Description">
             <template #body="slotProps">
               <span class="app-subtitle">{{ slotProps.data.description || 'No description' }}</span>
@@ -128,6 +129,12 @@
         </div>
 
         <div class="flex flex-col gap-2">
+          <label for="productSku" class="app-subtitle font-medium">SKU</label>
+          <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+          <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
+        </div>
+
+        <div class="flex flex-col gap-2">
           <label for="productDescription" class="app-subtitle font-medium">Description</label>
           <Textarea id="productDescription" v-model.trim="form.description" placeholder="Short operational description" rows="4" class="w-full" />
         </div>
@@ -181,6 +188,7 @@ const filters = reactive({
 
 const form = reactive({
   name: '',
+  sku: '',
   description: '',
   categoryId: null
 })
@@ -261,6 +269,7 @@ const openEditDialog = (product) => {
   dialogMode.value = 'edit'
   selectedProductId.value = product.id
   form.name = product.name || ''
+  form.sku = product.sku || ''
   form.description = product.description || ''
   form.categoryId = product.categoryId || null
   submitted.value = false
@@ -273,6 +282,7 @@ const closeDialog = () => {
 
 const resetForm = () => {
   form.name = ''
+  form.sku = ''
   form.description = ''
   form.categoryId = null
   submitted.value = false
@@ -280,11 +290,12 @@ const resetForm = () => {
 
 const submitProduct = async () => {
   submitted.value = true
-  if (!form.name || !form.categoryId) return
+  if (!form.name || !form.sku || !form.categoryId) return
 
   actionLoading.value = true
   const payload = {
     name: form.name,
+    sku: form.sku,
     description: form.description || null,
     categoryId: form.categoryId
   }

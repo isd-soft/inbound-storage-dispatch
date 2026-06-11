@@ -6,12 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InventoryHistoryRepository extends JpaRepository<InventoryHistory, Long> {
 
-    List<InventoryHistory> findByProductIdAndSkuIgnoreCaseAndSourceLocationIdOrProductIdAndSkuIgnoreCaseAndDestinationLocationId(
+    List<InventoryHistory> findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
             Long sourceProductId,
-            String sourceSku,
             Long sourceLocationId,
             Long destinationProductId,
-            String destinationSku,
             Long destinationLocationId
     );
 }
