@@ -130,7 +130,17 @@
 
         <div class="flex flex-col gap-2">
           <label for="productSku" class="app-subtitle font-medium">SKU</label>
-          <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+          <div class="flex gap-2">
+            <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+            <Button
+              icon="pi pi-camera"
+              severity="secondary"
+              outlined
+              aria-label="Scan SKU barcode"
+              type="button"
+              @click="scannerVisible = true"
+            />
+          </div>
           <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
         </div>
 
@@ -144,6 +154,16 @@
         <Button label="Cancel" severity="secondary" text :disabled="actionLoading" @click="closeDialog" />
         <Button :label="dialogMode === 'create' ? 'Create Product' : 'Save Changes'" :loading="actionLoading" @click="submitProduct" />
       </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="scannerVisible"
+      header="Scan SKU Barcode"
+      modal
+      class="w-full max-w-lg"
+    >
+      <BarcodeScanner @detected="handleSkuDetected" />
+      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The SKU field will be filled automatically after detection.</p>
     </Dialog>
   </div>
 </template>
@@ -165,6 +185,7 @@ import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import Toast from 'primevue/toast'
 
+import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import { productApi } from '@/api/productApi'
 import { useAuthStore } from '@/stores/auth'
 
@@ -177,6 +198,7 @@ const categories = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
+const scannerVisible = ref(false)
 const dialogMode = ref('create')
 const selectedProductId = ref(null)
 const submitted = ref(false)
@@ -277,6 +299,7 @@ const openEditDialog = (product) => {
 }
 
 const closeDialog = () => {
+  scannerVisible.value = false
   dialogVisible.value = false
 }
 
@@ -286,6 +309,12 @@ const resetForm = () => {
   form.description = ''
   form.categoryId = null
   submitted.value = false
+}
+
+const handleSkuDetected = (sku) => {
+  form.sku = sku
+  scannerVisible.value = false
+  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `SKU set to ${sku}`, life: 2500 })
 }
 
 const submitProduct = async () => {
