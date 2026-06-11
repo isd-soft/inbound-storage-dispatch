@@ -4,6 +4,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
+import com.isd.wms.dto.location.ShortLocationProjection;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -92,6 +93,10 @@ public class LocationService {
 
     public LocationResponse getLocationById(Long locationId) {
         return locationMapper.toResponse(getLocation(locationId));
+    }
+
+    public List<ShortLocationProjection> getShortLocationsDispatch() {
+        return locationRepository.getLocationDispatch();
     }
 
     private Location getLocation(Long locationId) {

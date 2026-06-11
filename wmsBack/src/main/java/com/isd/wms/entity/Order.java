@@ -39,10 +39,6 @@ public class Order extends BaseTimestampEntity{
         this.destinationLocation = destinationLocation;
     }
 
-    public Order(String logicId) {
-        this.logicId = logicId;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
