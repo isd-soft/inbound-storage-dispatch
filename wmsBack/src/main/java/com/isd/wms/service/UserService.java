@@ -4,6 +4,7 @@ import com.isd.wms.dto.user.UserCreateRequest;
 import com.isd.wms.enums.Role;
 import com.isd.wms.entity.User;
 import com.isd.wms.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,19 +15,13 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    public UserService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       EmailService emailService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-    }
 
     public User registerUser(UserCreateRequest request) {
         if (userRepository.findByUsername(request.username()).isPresent()) {

@@ -16,8 +16,8 @@ public class ReplenishmentMapper {
 
         return new ReplenishmentResponse(
                 replenishment.getId(),
-                product.getId(),
                 task.getId(),
+                product.getId(),
                 replenishment.getRequestedQuantity(),
                 replenishment.getStatus(),
                 destinationLocation.getId(),
