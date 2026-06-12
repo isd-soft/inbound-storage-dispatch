@@ -19,7 +19,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         AND t.operator = :operator
     """)
     List<Task> findAllByOrder(
-        @Param("order") Order order);
+        @Param("order") Order order
+    );
 
 //    @Query("""
 //        SELECT t FROM Task t

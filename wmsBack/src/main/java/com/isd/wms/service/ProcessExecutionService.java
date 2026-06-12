@@ -13,6 +13,7 @@ import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.OrderLineRepository;
@@ -22,6 +23,8 @@ import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
 import java.util.List;
+
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -42,6 +45,7 @@ public class ProcessExecutionService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final InventoryService inventoryService;
+    private final SecurityFacade securityFacade;
 
     public List<ProcessExecutionResponse> getAssignedProcesses() {
         User operator = getCurrentUser();
@@ -53,22 +57,10 @@ public class ProcessExecutionService {
     }
 
     @Transactional
-    public ProcessExecutionResponse startProcess(Long processId) {
-        log.info("Starting process {}", processId);
-        Process process = getAssignedProcess(processId);
-
-        if (process.getStatus() == Status.COMPLETED) {
-            throw new InvalidRequestException("Process is already completed");
-        }
-        if (process.getStatus() == Status.CANCELED) {
-            throw new InvalidRequestException("Process is cancelled");
-        }
-        if (process.getStatus() != Status.ASSIGNED && process.getStatus() != Status.CREATED) {
-            throw new InvalidRequestException("Process cannot be started from status " + process.getStatus());
-        }
-
-        process.setStatus(Status.IN_PROGRESS);
-        return toResponse(processRepository.save(process));
+    public Long startProcess() {
+        String currentUsername = securityFacade.getCurrentUsername();
+        return processRepository.findOldestAssignedProcessId(currentUsername)
+            .orElseThrow(() -> new ProcessesNotFoundException(currentUsername));
     }
 
     @Transactional

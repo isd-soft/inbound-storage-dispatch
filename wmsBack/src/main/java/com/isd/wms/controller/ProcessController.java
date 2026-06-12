@@ -5,6 +5,7 @@ import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,10 +43,10 @@ public class ProcessController {
         return processService.completeProcess(id);
     }
 
-    @PostMapping("/{id}/start")
+    @PostMapping("/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse startProcess(@PathVariable Long id) {
-        return processExecutionService.startProcess(id);
+    public ResponseEntity<String> startProcess() {
+        return ResponseEntity.ok("Process started with id: " + processExecutionService.startProcess());
     }
 
     @PostMapping("/{id}/location")

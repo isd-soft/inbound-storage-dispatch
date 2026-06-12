@@ -6,6 +6,7 @@ import com.isd.wms.entity.Process;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -24,6 +25,24 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     @Query("SELECT p FROM Process p JOIN Task t ON t = p.task WHERE t.operator = :operator AND p.status IN (:statuses)")
     List<Process> findByOperatorAndStatuses(User operator, List<Status> statuses);
 
+    @Query(value = """
+        with oldest_process as (select p.id as process_id from processes p
+                                       left join order_lines ol on ol.task_id = p.task_id
+                                       left join orders o on ol.order_id = o.id
+                                       left join tasks t on t.id = ol.task_id
+                                       left join users u on t.operator_id = u.id
+                              where u.username = :userName
+                                and o.status in ('ASSIGNED', 'IN_PROGRESS')
+                                and p.status in ('ASSIGNED', 'IN_PROGRESS')
+                              order by p.created_at, p.id
+                              limit 1)
+    update processes p
+    set status = 'IN_PROGRESS'
+    where p.id = (select process_id from oldest_process)
+    returning p.id
+    """, nativeQuery = true)
+    Optional<Long> findOldestAssignedProcessId(String username);
+
     @Query("""
         SELECT p FROM Process p
         JOIN OrderLine o ON o.task.id = p.task.id
@@ -33,21 +52,6 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     """)
     List<Process> findAllByOrder(
         @Param("order") Order order
-    );
-
-    @Query(value = """
-        SELECT DISTINCT p FROM processes p
-        JOIN order_lines o ON o.task_id = p.task_id
-        JOIN tasks t ON p.task_id = t.id
-        WHERE o.order_id = :orderId
-        AND t.operator_id = :operatorId
-        AND p.status = 'ASSIGNED'
-        ORDER BY p.created_at, p.id
-        LIMIT 1
-    """, nativeQuery = true)
-    Optional<Process> findOldestProcessesByOrder(
-        @Param("orderId") Long orderId,
-        @Param("operatorId") Long operatorId
     );
 
     @Query("""
@@ -98,5 +102,7 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
         order by p.created_at, p.id
         limit 1;
     """, nativeQuery = true)
-    Optional<OperatorProcessProjection> getProcessInfoForOperator(String currentUsername);
+    Optional<OperatorProcessProjection> getProcessInfoForOperator(
+        @Param("userName") String currentUsername
+    );
 }

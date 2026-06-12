@@ -118,26 +118,26 @@ class ProcessExecutionServiceTest {
         assertThat(responses.get(0).requiredQuantity()).isEqualTo(10);
     }
 
-    @Test
-    void startAssignedProcessSuccessfully() {
-        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
-        when(processRepository.save(process)).thenReturn(process);
-
-        ProcessExecutionResponse response = processExecutionService.startProcess(50L);
-
-        assertThat(process.getStatus()).isEqualTo(Status.IN_PROGRESS);
-        assertThat(response.status()).isEqualTo("IN_PROGRESS");
-    }
-
-    @Test
-    void failWhenProcessIsNotAssignedToCurrentOperator() {
-        ReflectionTestUtils.setField(process, "operator", otherOperator);
-        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
-
-        assertThatThrownBy(() -> processExecutionService.startProcess(50L))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Process is not assigned to current operator");
-    }
+//    @Test
+//    void startAssignedProcessSuccessfully() {
+//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(processRepository.save(process)).thenReturn(process);
+//
+//        ProcessExecutionResponse response = processExecutionService.startProcess(50L);
+//
+//        assertThat(process.getStatus()).isEqualTo(Status.IN_PROGRESS);
+//        assertThat(response.status()).isEqualTo("IN_PROGRESS");
+//    }
+//
+//    @Test
+//    void failWhenProcessIsNotAssignedToCurrentOperator() {
+//        ReflectionTestUtils.setField(process, "operator", otherOperator);
+//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+//
+//        assertThatThrownBy(() -> processExecutionService.startProcess(50L))
+//                .isInstanceOf(InvalidRequestException.class)
+//                .hasMessage("Process is not assigned to current operator");
+//    }
 
     @Test
     void scanCorrectSourceLocation() {

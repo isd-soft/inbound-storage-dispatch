@@ -94,9 +94,4 @@ public class ProcessService {
         return processRepository.getProcessInfoForOperator(username)
             .orElseThrow(() -> new ProcessesNotFoundException(username));
     }
-
-    private @NonNull Process getOldestProcessAssignedByOrderAndOperator(Order oldestOrder, User operator) {
-        return processRepository.findOldestProcessesByOrder(oldestOrder.getId(), operator.getId())
-            .orElseThrow(() -> new ProcessesNotFoundException(operator.getUsername()));
-    }
 }
