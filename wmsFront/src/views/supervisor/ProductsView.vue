@@ -72,7 +72,7 @@
               <Tag severity="info" :value="categoryName(slotProps.data.categoryId)" />
             </template>
           </Column>
-          <Column field="sku" header="SKU" sortable></Column>
+          <Column field="barcode" header="barcode" sortable></Column>
           <Column field="description" header="Description">
             <template #body="slotProps">
               <span class="app-subtitle">{{ slotProps.data.description || 'No description' }}</span>
@@ -140,19 +140,19 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="productSku" class="app-subtitle font-medium">SKU</label>
+          <label for="productbarcode" class="app-subtitle font-medium">barcode</label>
           <div class="flex gap-2">
-            <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+            <InputText id="productbarcode" v-model.trim="form.barcode" placeholder="Product barcode" class="w-full" />
             <Button
               icon="pi pi-camera"
               severity="secondary"
               outlined
-              aria-label="Scan SKU barcode"
+              aria-label="Scan barcode barcode"
               type="button"
               @click="scannerVisible = true"
             />
           </div>
-          <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
+          <small v-if="submitted && !form.barcode" class="app-danger">barcode is required.</small>
         </div>
 
         <div class="flex flex-col gap-2">
@@ -169,12 +169,12 @@
 
     <Dialog
       v-model:visible="scannerVisible"
-      header="Scan SKU Barcode"
+      header="Scan barcode Barcode"
       modal
       class="w-full max-w-lg"
     >
-      <BarcodeScanner @detected="handleSkuDetected" />
-      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The SKU field will be filled automatically after detection.</p>
+      <BarcodeScanner @detected="handlebarcodeDetected" />
+      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The barcode field will be filled automatically after detection.</p>
     </Dialog>
 
     <Dialog
@@ -243,7 +243,7 @@ const filters = reactive({
 
 const form = reactive({
   name: '',
-  sku: '',
+  barcode: '',
   description: '',
   categoryId: null
 })
@@ -333,7 +333,7 @@ const openEditDialog = (product) => {
   dialogMode.value = 'edit'
   selectedProductId.value = product.id
   form.name = product.name || ''
-  form.sku = product.sku || ''
+  form.barcode = product.barcode || ''
   form.description = product.description || ''
   form.categoryId = product.categoryId || null
   submitted.value = false
@@ -347,7 +347,7 @@ const closeDialog = () => {
 
 const resetForm = () => {
   form.name = ''
-  form.sku = ''
+  form.barcode = ''
   form.description = ''
   form.categoryId = null
   submitted.value = false
@@ -358,10 +358,10 @@ const resetCategoryForm = () => {
   categorySubmitted.value = false
 }
 
-const handleSkuDetected = (sku) => {
-  form.sku = sku
+const handlebarcodeDetected = (barcode) => {
+  form.barcode = barcode
   scannerVisible.value = false
-  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `SKU set to ${sku}`, life: 2500 })
+  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `barcode set to ${barcode}`, life: 2500 })
 }
 
 const submitCategory = async () => {
@@ -384,12 +384,12 @@ const submitCategory = async () => {
 
 const submitProduct = async () => {
   submitted.value = true
-  if (!form.name || !form.sku || !form.categoryId) return
+  if (!form.name || !form.barcode || !form.categoryId) return
 
   actionLoading.value = true
   const payload = {
     name: form.name,
-    sku: form.sku,
+    barcode: form.barcode,
     description: form.description || null,
     categoryId: form.categoryId
   }

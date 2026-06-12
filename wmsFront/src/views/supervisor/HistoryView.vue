@@ -31,7 +31,7 @@
             </template>
           </Column>
           <Column field="productName" header="Product" sortable></Column>
-          <Column field="sku" header="SKU" sortable></Column>
+          <Column field="barcode" header="barcode" sortable></Column>
           <Column field="alteredQuantity" header="Altered Qty" sortable>
             <template #body="slotProps">
               <span :class="slotProps.data.alteredQuantity >= 0 ? 'app-success font-bold' : 'app-danger font-bold'">
@@ -40,14 +40,14 @@
             </template>
           </Column>
           <Column field="quantityAfterChange" header="Qty After" sortable></Column>
-          <Column field="sourceLocationCode" header="Source Location" sortable>
+          <Column field="sourceBarcode" header="Source Location" sortable>
             <template #body="slotProps">
-              {{ slotProps.data.sourceLocationCode || '-' }}
+              {{ slotProps.data.sourceBarcode || '-' }}
             </template>
           </Column>
-          <Column field="destinationLocationCode" header="Destination Location" sortable>
+          <Column field="destinationBarcode" header="Destination Location" sortable>
             <template #body="slotProps">
-              {{ slotProps.data.destinationLocationCode || '-' }}
+              {{ slotProps.data.destinationBarcode || '-' }}
             </template>
           </Column>
           <Column field="operationType" header="Operation" sortable></Column>
