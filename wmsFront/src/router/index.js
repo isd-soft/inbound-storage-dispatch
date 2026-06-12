@@ -47,7 +47,7 @@ const router = createRouter({
       children: [
         { path: '', alias: '/dashboard', name: 'supervisor-dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'inventory', alias: '/inventory', name: 'inventory', component: InventoryView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'tasks', name: 'tasks', component: TasksView, meta: { roles: SUPERVISOR_OR_DEV } },
+        // { path: 'tasks', name: 'tasks', component: TasksView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'replenishments', name: 'replenishments', component: ReplenishmentsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'products', name: 'products', component: ProductsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'locations', name: 'locations', component: LocationsView, meta: { roles: SUPERVISOR_OR_DEV } },

@@ -9,8 +9,20 @@
         <p class="text-sm text-gray-400 mt-1">Manage physical storage zones and picking racks.</p>
       </div>
       <div class="flex gap-2">
-        <Button label="Create Location" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadLocations" />
+        <Button
+          label="Create Location"
+          icon="pi pi-plus"
+          severity="success"
+          @click="openCreateDialog"
+        />
+        <Button
+          label="Refresh"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          @click="loadLocations"
+        />
       </div>
     </div>
 
@@ -28,9 +40,9 @@
         >
           <Column field="id" header="ID" sortable></Column>
 
-          <Column field="locationCode" header="Code" sortable>
+          <Column field="barcode" header="Code" sortable>
             <template #body="{ data }">
-              <span class="font-bold text-blue-400">{{ data.locationCode }}</span>
+              <span class="font-bold text-blue-400">{{ data.barcode }}</span>
             </template>
           </Column>
 
@@ -40,16 +52,32 @@
 
           <Column header="Status" sortable>
             <template #body="{ data }">
-              <Tag :severity="data.available ? 'success' : 'danger'"
-                   :value="data.available ? 'AVAILABLE' : 'DISABLED'" />
+              <Tag
+                :severity="data.available ? 'success' : 'danger'"
+                :value="data.available ? 'AVAILABLE' : 'DISABLED'"
+              />
             </template>
           </Column>
 
           <Column header="Actions" style="min-width: 8rem">
             <template #body="{ data }">
               <div class="flex gap-2">
-                <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="openEditDialog(data)" />
-                <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="confirmDelete(data)" />
+                <Button
+                  icon="pi pi-pencil"
+                  outlined
+                  rounded
+                  severity="warning"
+                  size="small"
+                  @click="openEditDialog(data)"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  outlined
+                  rounded
+                  severity="danger"
+                  size="small"
+                  @click="confirmDelete(data)"
+                />
               </div>
             </template>
           </Column>
@@ -57,11 +85,21 @@
       </template>
     </Card>
 
-    <Dialog v-model:visible="dialogVisible" :header="isEditing ? 'Edit Location' : 'Create Location'" :modal="true" class="p-fluid w-full max-w-md">
-
+    <Dialog
+      v-model:visible="dialogVisible"
+      :header="isEditing ? 'Edit Location' : 'Create Location'"
+      :modal="true"
+      class="p-fluid w-full max-w-md"
+    >
       <div class="field mb-4">
-        <label for="locationCode" class="block text-sm font-medium mb-1">Location Code *</label>
-        <InputText id="locationCode" v-model="formData.locationCode" placeholder="e.g., PICK-A-01" required autofocus />
+        <label for="barcode" class="block text-sm font-medium mb-1">Location Code *</label>
+        <InputText
+          id="barcode"
+          v-model="formData.barcode"
+          placeholder="e.g., PICK-A-01"
+          required
+          autofocus
+        />
       </div>
 
       <div class="field mb-4">
@@ -71,7 +109,12 @@
 
       <div class="field mb-4">
         <label for="description" class="block text-sm font-medium mb-1">Description</label>
-        <Textarea id="description" v-model="formData.description" rows="2" placeholder="Optional description..." />
+        <Textarea
+          id="description"
+          v-model="formData.description"
+          rows="2"
+          placeholder="Optional description..."
+        />
       </div>
 
       <div class="field mb-4 flex items-center gap-2" v-if="isEditing">
@@ -81,7 +124,14 @@
 
       <template #footer>
         <Button label="Cancel" icon="pi pi-times" text @click="dialogVisible = false" />
-        <Button :label="isEditing ? 'Save' : 'Create'" icon="pi pi-check" severity="success" :loading="actionLoading" @click="saveLocation" :disabled="!isFormValid" />
+        <Button
+          :label="isEditing ? 'Save' : 'Create'"
+          icon="pi pi-check"
+          severity="success"
+          :loading="actionLoading"
+          @click="saveLocation"
+          :disabled="!isFormValid"
+        />
       </template>
     </Dialog>
   </div>
@@ -119,16 +169,16 @@ const isEditing = ref(false)
 
 const formData = ref({
   id: null,
-  locationCode: '',
+  barcode: '',
   zone: null,
   description: '',
-  available: true
+  available: true,
 })
 
 const zones = ref(['PICKING', 'REPLENISHMENT', 'DISPATCH'])
 
 const isFormValid = computed(() => {
-  return formData.value.locationCode?.trim() && formData.value.zone
+  return formData.value.barcode?.trim() && formData.value.zone
 })
 
 const loadLocations = async () => {
@@ -145,7 +195,7 @@ const loadLocations = async () => {
 
 const openCreateDialog = () => {
   isEditing.value = false
-  formData.value = { id: null, locationCode: '', zone: null, description: '', available: true }
+  formData.value = { id: null, barcode: '', zone: null, description: '', available: true }
   dialogVisible.value = true
 }
 
@@ -159,10 +209,11 @@ const saveLocation = async () => {
   actionLoading.value = true
   try {
     const payload = {
-      locationCode: formData.value.locationCode,
+      name: formData.value.barcode,
+      barcode: formData.value.barcode,
       zone: formData.value.zone,
       description: formData.value.description,
-      available: formData.value.available
+      available: formData.value.available,
     }
 
     if (isEditing.value) {
@@ -184,24 +235,33 @@ const saveLocation = async () => {
 
 const confirmDelete = (location) => {
   confirm.require({
-    message: `Are you sure you want to delete ${location.locationCode}?`,
+    message: `Are you sure you want to delete ${location.barcode}?`,
     header: 'Confirm Deletion',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
       try {
         await locationApi.delete(location.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Location deleted', life: 3000 })
+        toast.add({
+          severity: 'success',
+          summary: 'Deleted',
+          detail: 'Location deleted',
+          life: 3000,
+        })
         await loadLocations()
       } catch (error) {
         showError('Deletion failed', error)
       }
-    }
+    },
   })
 }
 
 const showError = (summary, error) => {
-  const detail = error.response?.data?.message || error.response?.data?.error || error.message || 'An error occurred'
+  const detail =
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message ||
+    'An error occurred'
   toast.add({ severity: 'error', summary, detail, life: 5000 })
 }
 

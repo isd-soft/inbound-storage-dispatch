@@ -27,8 +27,8 @@
           emptyMessage="No inventory stock found."
         >
           <Column field="productName" header="Product" sortable></Column>
-          <Column field="sku" header="SKU" sortable></Column>
-          <Column field="locationCode" header="Location" sortable></Column>
+          <Column field="barcode" header="SKU" sortable></Column>
+          <Column field="locationBarcode" header="Location" sortable></Column>
 
           <Column field="quantity" header="Total Qty" sortable>
             <template #body="{ data }">
