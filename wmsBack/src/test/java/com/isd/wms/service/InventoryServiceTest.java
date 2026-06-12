@@ -236,7 +236,7 @@ class InventoryServiceTest {
     }
 
     @Test
-    void returnsHistoryForStockByProductSkuAndLocation() {
+    void returnsHistoryForStockByProductBarcodeAndLocation() {
         Stock stock = stock(10L, product, location, "SKU-1", 8);
 
         InventoryHistory history = new InventoryHistory();
@@ -292,7 +292,7 @@ class InventoryServiceTest {
         return result;
     }
 
-    private Stock stock(Long id, Product product, Location location, String sku, Integer quantity) {
+    private Stock stock(Long id, Product product, Location location, String barcode, Integer quantity) {
         Stock result = new Stock();
         result.setProduct(product);
         result.setLocation(location);

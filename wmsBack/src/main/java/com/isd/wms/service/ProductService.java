@@ -39,13 +39,13 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
-        log.info("Creating product: name={}, sku={}, categoryId={}", request.name(), request.sku(), request.categoryId());
-        String sku = request.sku().trim();
-        if (productRepository.existsBySkuIgnoreCase(sku)) {
-            throw new InvalidRequestException("Product SKU already exists");
+        log.info("Creating product: name={}, barcode={}, categoryId={}", request.name(), request.barcode(), request.categoryId());
+        String barcode = request.barcode().trim();
+        if (productRepository.existsByBarcodeIgnoreCase(barcode)) {
+            throw new InvalidRequestException("Product barcode already exists");
         }
         Category category = getCategory(request.categoryId());
-        Product product = new Product(request.name().trim(), sku, request.description(), category);
+        Product product = new Product(request.name().trim(), barcode, request.description(), category);
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
         return productMapper.toResponse(savedProduct);
@@ -53,15 +53,15 @@ public class ProductService {
 
     @Transactional
     public ProductResponse updateProduct(Long productId, ProductUpdateRequest request) {
-        log.info("Updating product: productId={}, name={}, sku={}, categoryId={}", productId, request.name(), request.sku(), request.categoryId());
-        String sku = request.sku().trim();
+        log.info("Updating product: productId={}, name={}, barcode={}, categoryId={}", productId, request.name(), request.barcode(), request.categoryId());
+        String barcode = request.barcode().trim();
         Product product = getProduct(productId);
-        if (productRepository.existsBySkuIgnoreCaseAndIdNot(sku, productId)) {
-            throw new InvalidRequestException("Product SKU already exists");
+        if (productRepository.existsByBarcodeIgnoreCaseAndIdNot(barcode, productId)) {
+            throw new InvalidRequestException("Product barcode already exists");
         }
         Category category = getCategory(request.categoryId());
         product.setName(request.name().trim());
-        product.setBarcode(sku);
+        product.setBarcode(barcode);
         product.setDescription(request.description());
         product.setCategory(category);
         Product savedProduct = productRepository.save(product);

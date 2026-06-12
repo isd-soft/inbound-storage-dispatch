@@ -18,5 +18,5 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     Optional<Stock> findByProductIdAndLocationId(Long productId, Long locationId);
 
-    boolean existsByLocationIdAndQuantityGreaterThan(Long LocationCode, Integer quantity);
+    boolean existsByLocationIdAndQuantityGreaterThan(Long barcode, Integer quantity);
 }

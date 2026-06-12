@@ -16,7 +16,7 @@ public class InventoryHistoryResponse {
     private Long id;
     private Long productId;
     private String productName;
-    private String sku;
+    private String barcode;
     private Integer alteredQuantity;
     private Integer quantityAfterChange;
     private Long sourceLocationId;
