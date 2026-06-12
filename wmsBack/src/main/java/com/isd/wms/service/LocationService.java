@@ -6,7 +6,6 @@ import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.dto.location.ShortLocationProjection;
 import com.isd.wms.entity.Location;
-import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
@@ -79,7 +78,7 @@ public class LocationService {
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
         if (hasProducts) {
             log.warn("Attempt to deactivate occupied location ID: {}", locationId);
-            throw new IllegalStateException("Нельзя деактивировать локацию, на ней находится товар.");
+            throw new IllegalStateException("You cannot deactivate a location while there is a product in it");
         }
 
         Location location = getLocation(locationId);

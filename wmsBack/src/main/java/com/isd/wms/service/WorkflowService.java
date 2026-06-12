@@ -11,8 +11,8 @@ import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.service.allocation.StockAllocationStrategy;
 import com.isd.wms.service.process.ProcessCompletionStrategy;
-import com.isd.wms.service.process.ReplenishmentProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -30,61 +29,61 @@ public class WorkflowService {
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
+
     private final List<ProcessCompletionStrategy> processCompletionStrategies;
+    private final List<StockAllocationStrategy> allocationStrategies;
 
     @Transactional
     public void generateProcessesForTask(Task task, Long productId, int remainingQuantity) {
+        StockAllocationStrategy strategy = allocationStrategies.stream()
+            .filter(s -> s.support(task.getTaskType()))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No allocation strategy found for task type: " + task.getTaskType()));
 
-        List<Stock> availableStocks = new ArrayList<>(stockRepository.findAvailableStocksByProductId(productId));
-        List<Process> processesToSave = new ArrayList<>();
+        List<Stock> availableStocks = new ArrayList<>(
+            stockRepository.findAvailableStocksByProductIdAndZone(productId, strategy.getSourceZone())
+        );
 
-        availableStocks.sort((s1, s2) -> {
-            int diff1 = s1.getQuantity() - s1.getReservedQuantity();
-            int diff2 = s2.getQuantity() - s2.getReservedQuantity();
-            return Integer.compare(diff1, diff2);
-        });
+        if (availableStocks.isEmpty()) {
+            throw new InvalidRequestException(
+                String.format("Insufficient stock for Product ID: %d in %s zone.", productId, strategy.getSourceZone().name())
+            );
+        }
 
-        assignProcesses(task, productId, remainingQuantity, availableStocks, processesToSave);
+        strategy.sortStocks(availableStocks);
+
+        List<Process> processesToSave = allocateStockToProcesses(task, availableStocks, remainingQuantity, productId, strategy.getSourceZone().name());
 
         processRepository.saveAll(processesToSave);
         stockRepository.saveAll(availableStocks);
     }
 
-    private static void assignProcesses(Task task, Long productId, int remainingQuantity, List<Stock> availableStocks, List<Process> processesToSave) {
-        while (remainingQuantity > 0) {
-            Stock bestStock = null;
+    private List<Process> allocateStockToProcesses(Task task, List<Stock> availableStocks, int quantityNeeded, Long productId, String zoneName) {
+        List<Process> processes = new ArrayList<>();
+        int qtyNeeded = quantityNeeded;
 
-            bestStock = searchForStock(availableStocks, remainingQuantity, bestStock);
-
-            if (bestStock == null) {
-                throw new InvalidRequestException("Insufficient stock for Product ID: " + productId);
-            }
-
-            int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
-            int quantityToTake = Math.min(available, remainingQuantity);
-
-            Process process = new Process(task, bestStock, quantityToTake, ProcessStatus.CREATED);
-            processesToSave.add(process);
-
-            bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
-            remainingQuantity -= quantityToTake;
-        }
-    }
-
-    private static Stock searchForStock(List<Stock> availableStocks, int remainingQuantity, Stock bestStock) {
         for (Stock stock : availableStocks) {
-            int available = stock.getQuantity() - stock.getReservedQuantity();
+            if (qtyNeeded <= 0) break;
 
+            int available = stock.getQuantity() - stock.getReservedQuantity();
             if (available <= 0) continue;
 
-            if (available >= remainingQuantity) {
-                bestStock = stock;
-                break;
-            }
+            int quantityToTake = Math.min(available, qtyNeeded);
 
-            bestStock = stock;
+            Process process = new Process(task, stock, quantityToTake, ProcessStatus.CREATED);
+            processes.add(process);
+
+            stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
+            qtyNeeded -= quantityToTake;
         }
-        return bestStock;
+
+        if (qtyNeeded > 0) {
+            throw new InvalidRequestException(
+                String.format("Insufficient stock for Product ID: %d in %s zone. Missing %d pcs.",
+                    productId, zoneName, qtyNeeded)
+            );
+        }
+        return processes;
     }
 
     @Transactional
@@ -104,21 +103,22 @@ public class WorkflowService {
         Task task = process.getTask();
 
         processCompletionStrategies.stream()
-                .filter(strategy -> strategy.support(task.getTaskType()))
-                .findAny()
-                .ifPresentOrElse(strategy -> strategy.handle(process),
-                        () -> new RuntimeException("new exc"));
+            .filter(strategy -> strategy.support(task.getTaskType()))
+            .findAny()
+            .ifPresentOrElse(strategy -> strategy.handle(process),
+                () -> new RuntimeException("No completion strategy found for task type: " + task.getTaskType()));
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()
-                .allMatch(p -> p.getStatus() == ProcessStatus.COMPLETED || p.getId().equals(process.getId()));
+            .allMatch(p -> p.getStatus() == ProcessStatus.COMPLETED || p.getId().equals(process.getId()));
 
         if (isTaskFullyCompleted) {
             task.setStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
 
             if (task.getTaskType() == TaskType.REPLENISHMENT) {
-                Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId()).get();
+                Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
+                    .orElseThrow(() -> new RuntimeException("Replenishment not found"));
                 replenishment.setStatus(ReplenishmentStatus.COMPLETED);
                 replenishmentRepository.save(replenishment);
             }

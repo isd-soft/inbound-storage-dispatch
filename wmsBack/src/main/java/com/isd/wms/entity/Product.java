@@ -33,6 +33,15 @@ public class Product extends BaseTimestampEntity {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(name = "auto_replenish", nullable = false)
+    private Boolean autoReplenish = false;
+
+    @Column(name = "min_threshold")
+    private Integer minThreshold;
+
+    @Column(name = "replenish_qty")
+    private Integer replenishQty;
+
     public Product(String name, String sku, String description, Category category) {
         this.name = name;
         this.sku = sku;
