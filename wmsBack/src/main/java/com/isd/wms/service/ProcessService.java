@@ -72,11 +72,6 @@ public class ProcessService {
             .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
     }
 
-    private User getUserById(Long userId) {
-        return userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
-    }
-
     public ProcessOperatorResponse getProcessesOperator() {
         String username = securityFacade.getCurrentUsername();
         OperatorProcessProjection info = getProcessForOperator(username);

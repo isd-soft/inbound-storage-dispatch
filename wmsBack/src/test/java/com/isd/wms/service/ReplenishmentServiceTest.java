@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,7 +65,7 @@ class ReplenishmentServiceTest {
         supervisor = mock(User.class);
         task = mock(Task.class);
         replenishment = mock(Replenishment.class);
-        response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, Timestamp.from(Instant.now()));
+        response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, LocalDateTime.from(Instant.now()));
     }
 
     @AfterEach

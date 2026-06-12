@@ -37,14 +37,19 @@ public class Location{
     @Column(nullable = false)
     private Boolean available = true;
 
+    @Column(nullable = false)
+    private Boolean isActive = true;
+
     public Location(String name, String barcode, Zone zone, String description, Boolean available) {
         this.name = name;
         this.barcode = barcode;
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+        this.zone = zone;
+        this.description = description;
+        this.available = available;
+    }
 
-    public Location(String locationCode, Zone zone, String description, Boolean available) {
-        this.locationCode = locationCode;
+    public Location(String barcode, Zone zone, String description, Boolean available) {
+        this.barcode = barcode;
         this.zone = zone;
         this.description = description;
         this.available = available;

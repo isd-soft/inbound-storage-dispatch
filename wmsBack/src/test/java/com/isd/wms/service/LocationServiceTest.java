@@ -9,6 +9,7 @@ import com.isd.wms.exception.DuplicateBarcodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
+import com.isd.wms.repository.StockRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,9 +34,12 @@ class LocationServiceTest {
 
     private LocationService locationService;
 
+    @Mock
+    private StockRepository stockRepository;
+
     @BeforeEach
     void setUp() {
-        locationService = new LocationService(locationRepository, new LocationMapper());
+        locationService = new LocationService(locationRepository, new LocationMapper(), stockRepository);
     }
 
     @Test
