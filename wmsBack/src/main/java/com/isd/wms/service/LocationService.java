@@ -6,6 +6,7 @@ import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.dto.location.ShortLocationProjection;
 import com.isd.wms.entity.Location;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
@@ -98,6 +99,7 @@ public class LocationService {
     public List<ShortLocationProjection> getShortLocationsDispatch() {
         return locationRepository.getLocationDispatch();
     }
+
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)

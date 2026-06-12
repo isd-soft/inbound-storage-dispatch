@@ -1,7 +1,468 @@
 <template>
-  <OrderWithLinesForm />
+  <div class="p-6">
+    <Toast position="top-right" />
+
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+      <div>
+        <h2 class="app-title text-2xl font-bold">Orders</h2>
+        <p class="app-subtitle text-sm mt-1">Create and monitor warehouse dispatch orders.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <Button label="Create Order" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadOrders" />
+      </div>
+    </div>
+
+    <Message v-if="loadError" severity="error" class="mb-6" :closable="false">
+      {{ loadError }}
+    </Message>
+
+    <Card class="app-card border-none shadow-lg">
+      <template #content>
+        <DataTable
+          :value="orders"
+          :loading="loading"
+          paginator
+          :rows="10"
+          :rowsPerPageOptions="[10, 25, 50]"
+          v-model:expandedRows="expandedRows"
+          stripedRows
+          class="p-datatable-sm"
+          dataKey="order.id"
+          emptyMessage="No orders found."
+        >
+          <Column expander style="width: 3rem">
+            <template #body="{ data }">
+              <Button
+                v-if="hasExpandableLines(data)"
+                :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                text
+                rounded
+                size="small"
+                aria-label="Toggle order lines"
+                @click="toggleOrderExpansion(data)"
+              />
+            </template>
+          </Column>
+          <Column field="order.id" header="ID" sortable style="width: 6rem" />
+          <Column field="order.logicId" header="Logic ID" sortable />
+          <Column header="Destination" sortable>
+            <template #body="{ data }">
+              {{ getLocationLabel(data.order.destinationLocationId) }}
+            </template>
+          </Column>
+          <Column header="Lines" style="width: 7rem">
+            <template #body="{ data }">
+              <Tag severity="info" :value="`${data.lines?.length || 0} line${(data.lines?.length || 0) === 1 ? '' : 's'}`" />
+            </template>
+          </Column>
+          <Column header="Total Qty" style="width: 8rem">
+            <template #body="{ data }">
+              <span class="font-semibold">{{ getOrderQuantity(data) }}</span>
+            </template>
+          </Column>
+          <Column header="Status" sortable>
+            <template #body="{ data }">
+              <Tag :severity="getStatusSeverity(data.order.status || data.order.Status)" :value="data.order.status || data.order.Status || 'CREATED'" />
+            </template>
+          </Column>
+          <Column field="order.createdAt" header="Created" sortable>
+            <template #body="{ data }">
+              {{ formatDate(data.order.createdAt) }}
+            </template>
+          </Column>
+          <template #expansion="{ data }">
+            <div class="order-lines-expansion">
+              <DataTable :value="data.lines" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
+                <Column field="orderLineId" header="Line ID" style="width: 7rem" />
+                <Column field="productId" header="Product">
+                  <template #body="{ data: line }">
+                    {{ getProductLabel(line.productId) }}
+                  </template>
+                </Column>
+                <Column field="requestedQuantity" header="Requested Qty">
+                  <template #body="{ data: line }">
+                    <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
+                  </template>
+                </Column>
+                <Column field="status" header="Status">
+                  <template #body="{ data: line }">
+                    <Tag :severity="getStatusSeverity(line.status)" :value="line.status || 'CREATED'" />
+                  </template>
+                </Column>
+                <Column field="taskId" header="Task ID">
+                  <template #body="{ data: line }">
+                    {{ line.taskId || '-' }}
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </template>
+        </DataTable>
+      </template>
+    </Card>
+
+    <Dialog v-model:visible="createDialogVisible" header="Create Order" :modal="true" class="w-full max-w-5xl">
+      <div class="flex flex-col gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="field">
+            <label for="logicId" class="block text-sm font-medium mb-1">Logic ID</label>
+            <InputText id="logicId" v-model.trim="formData.logicId" class="w-full" :invalid="submitted && !formData.logicId" />
+            <small v-if="submitted && !formData.logicId" class="text-red-400">Logic ID is required.</small>
+          </div>
+
+          <div class="field">
+            <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
+            <Select
+              id="location"
+              v-model="formData.location"
+              :options="locations"
+              optionLabel="locationCode"
+              optionValue="id"
+              placeholder="Select a location"
+              class="w-full"
+              :invalid="submitted && !formData.location"
+            />
+            <small v-if="submitted && !formData.location" class="text-red-400">Location is required.</small>
+          </div>
+        </div>
+
+        <Card class="app-card border-none">
+          <template #title>
+            <div class="flex items-center justify-between gap-3">
+              <span class="app-subtitle">Order Lines</span>
+              <Button label="Add Line" icon="pi pi-plus" size="small" outlined @click="addLine" />
+            </div>
+          </template>
+          <template #content>
+            <DataTable :value="formData.lines" class="p-datatable-sm" dataKey="id" responsiveLayout="scroll" emptyMessage="Add at least one order line.">
+              <Column header="Product" style="min-width: 18rem">
+                <template #body="{ data }">
+                  <Select
+                    v-model="data.product"
+                    :options="products"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Choose product"
+                    class="w-full"
+                    :invalid="submitted && !data.product"
+                    @change="data.quantity = 1"
+                  />
+                  <small v-if="submitted && !data.product" class="text-red-400">Product is required.</small>
+                </template>
+              </Column>
+              <Column header="Available" style="width: 9rem">
+                <template #body="{ data }">
+                  <Tag severity="secondary" :value="getAvailableQuantity(data.product)" />
+                </template>
+              </Column>
+              <Column header="Quantity" style="min-width: 13rem">
+                <template #body="{ data }">
+                  <InputNumber
+                    v-model="data.quantity"
+                    :min="1"
+                    :max="getMaxAllowedForLine(data)"
+                    showButtons
+                    buttonLayout="horizontal"
+                    class="w-full"
+                    :invalid="submitted && (!data.quantity || data.quantity < 1)"
+                  />
+                  <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum quantity is 1.</small>
+                </template>
+              </Column>
+              <Column header="Actions" style="width: 6rem">
+                <template #body="{ index }">
+                  <Button icon="pi pi-trash" severity="danger" text rounded aria-label="Remove line" @click="removeLine(index)" />
+                </template>
+              </Column>
+            </DataTable>
+          </template>
+        </Card>
+      </div>
+
+      <template #footer>
+        <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
+        <Button label="Submit Order" icon="pi pi-check" severity="success" :loading="actionLoading" @click="onSubmit" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <script setup>
-import OrderWithLinesForm from '@/components/OrderWithLinesForm.vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Message from 'primevue/message'
+import Select from 'primevue/select'
+import Tag from 'primevue/tag'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
+
+import { orderApi } from '@/api/orderApi.js'
+
+const toast = useToast()
+
+const orders = ref([])
+const expandedRows = ref({})
+const products = ref([])
+const locations = ref([])
+const loading = ref(false)
+const actionLoading = ref(false)
+const loadError = ref('')
+const createDialogVisible = ref(false)
+const submitted = ref(false)
+
+const formData = reactive({
+  logicId: '',
+  location: null,
+  lines: []
+})
+
+let nextLineId = 1
+
+const getErrorMessage = (error) => {
+  return error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+}
+
+const normalizeOrder = (order) => ({
+  order: order.order || order,
+  lines: order.lines || []
+})
+
+const loadOrders = async () => {
+  loading.value = true
+  loadError.value = ''
+
+  try {
+    const response = await orderApi.getAll()
+    orders.value = (response.data || []).map(normalizeOrder)
+  } catch (error) {
+    orders.value = []
+    loadError.value = getErrorMessage(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadOrderCreateData = async () => {
+  const [productsResponse, locationsResponse] = await Promise.all([
+    orderApi.getProducts(),
+    orderApi.getLocationsForDispatch()
+  ])
+
+  products.value = productsResponse.data || []
+  locations.value = locationsResponse.data || []
+}
+
+const resetForm = () => {
+  formData.logicId = ''
+  formData.location = null
+  formData.lines = []
+  submitted.value = false
+  nextLineId = 1
+  addLine()
+}
+
+const openCreateDialog = async () => {
+  resetForm()
+  createDialogVisible.value = true
+
+  try {
+    await loadOrderCreateData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Order data load failed', detail: getErrorMessage(error), life: 4000 })
+  }
+}
+
+const closeCreateDialog = () => {
+  createDialogVisible.value = false
+  resetForm()
+}
+
+const addLine = () => {
+  formData.lines.push({
+    id: nextLineId++,
+    product: null,
+    quantity: 1
+  })
+}
+
+const removeLine = (index) => {
+  formData.lines.splice(index, 1)
+}
+
+const getProduct = (productId) => products.value.find((product) => product.id === productId)
+
+const getProductLabel = (productId) => {
+  const product = getProduct(productId)
+  return product?.name ? `${product.name} (#${productId})` : productId || '-'
+}
+
+const getAvailableQuantity = (productId) => {
+  const product = getProduct(productId)
+  return Number(product?.quantity ?? 0)
+}
+
+const getTotalRequestedQuantity = (productId, excludeLineId = null) => {
+  return formData.lines
+    .filter((line) => line.product === productId && line.id !== excludeLineId)
+    .reduce((sum, line) => sum + (line.quantity || 0), 0)
+}
+
+const getMaxAllowedForLine = (line) => {
+  const availableQuantity = getAvailableQuantity(line.product)
+  if (!availableQuantity) return 1
+
+  const alreadyUsed = getTotalRequestedQuantity(line.product, line.id)
+  return Math.max(1, availableQuantity - alreadyUsed)
+}
+
+const getOrderQuantity = (order) => {
+  return (order.lines || []).reduce((total, line) => total + Number(line.requestedQuantity ?? line.quantity ?? 0), 0)
+}
+
+const hasExpandableLines = (order) => {
+  return (order.lines || []).length > 0
+}
+
+const isExpanded = (order) => {
+  return Boolean(expandedRows.value[order.order.id])
+}
+
+const toggleOrderExpansion = (order) => {
+  const orderId = order.order.id
+  if (!orderId || !hasExpandableLines(order)) return
+
+  expandedRows.value = {
+    ...expandedRows.value,
+    [orderId]: isExpanded(order) ? undefined : true
+  }
+
+  if (!expandedRows.value[orderId]) {
+    const { [orderId]: _removed, ...remainingRows } = expandedRows.value
+    expandedRows.value = remainingRows
+  }
+}
+
+const getLocationLabel = (locationId) => {
+  const location = locations.value.find((item) => Number(item.id) === Number(locationId))
+  return location?.locationCode || locationId || '-'
+}
+
+const getStatusSeverity = (status) => {
+  return {
+    CREATED: 'info',
+    ASSIGNED: 'warning',
+    IN_PROGRESS: 'warning',
+    COMPLETED: 'success',
+    CANCELED: 'danger',
+    CANCELLED: 'danger'
+  }[status] || 'secondary'
+}
+
+const formatDate = (value) => {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value))
+}
+
+watch(
+  () => formData.lines,
+  (lines) => {
+    lines.forEach((line) => {
+      const max = getMaxAllowedForLine(line)
+      if (line.quantity > max) {
+        line.quantity = max
+      }
+    })
+  },
+  { deep: true }
+)
+
+const onSubmit = async () => {
+  submitted.value = true
+
+  const isTopValid = Boolean(formData.logicId && formData.location)
+  const areLinesValid = formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity && line.quantity >= 1)
+
+  if (!isTopValid || !areLinesValid) {
+    toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 4000 })
+    return
+  }
+
+  const payload = {
+    order: {
+      logicId: formData.logicId,
+      destinationLocationId: formData.location
+    },
+    lines: formData.lines.map((line) => ({
+      orderId: null,
+      productId: line.product,
+      requestedQuantity: line.quantity
+    }))
+  }
+
+  actionLoading.value = true
+  try {
+    const order = await orderApi.create(payload)
+    toast.add({ severity: 'success', summary: `Order submitted with id ${order.data.id}`, detail: `${formData.lines.length} line(s) added.`, life: 5000 })
+    closeCreateDialog()
+    await loadOrders()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Order creation failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadOrders(), loadOrderCreateData()])
+})
 </script>
+
+<style scoped>
+.order-lines-expansion {
+  animation: order-lines-enter 0.22s ease-out;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 14%, transparent), transparent 15rem),
+    color-mix(in srgb, var(--surface-ground) 84%, black);
+  border-left: 3px solid color-mix(in srgb, var(--brand-primary) 68%, transparent);
+  margin: -0.75rem -1rem;
+  padding: 0.5rem 0 0.5rem 0.75rem;
+  transform-origin: top;
+}
+
+.order-lines-table :deep(.p-datatable-table) {
+  width: 100%;
+}
+
+.order-lines-table :deep(.p-datatable-thead > tr > th),
+.order-lines-table :deep(.p-datatable-tbody > tr > td) {
+  background: transparent !important;
+  border-color: color-mix(in srgb, var(--border-subtle) 55%, transparent);
+}
+
+.order-lines-table :deep(.p-datatable-tbody > tr:hover > td) {
+  background: color-mix(in srgb, var(--surface-hover) 72%, transparent) !important;
+}
+
+@keyframes order-lines-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem) scaleY(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+</style>
