@@ -328,7 +328,7 @@ const getOrderQuantity = (order) => {
 }
 
 const hasExpandableLines = (order) => {
-  return (order.lines || []).length > 1
+  return (order.lines || []).length > 0
 }
 
 const isExpanded = (order) => {
