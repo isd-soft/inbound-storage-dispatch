@@ -15,6 +15,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 import lombok.AllArgsConstructor;
@@ -62,7 +63,7 @@ public class InventoryHistory{
     private InventoryOperationType operationType;
 
     @Column(nullable = false)
-    private Instant timestamp;
+    private LocalDateTime timestamp;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -71,7 +72,7 @@ public class InventoryHistory{
     @PrePersist
     void prePersist() {
         if (timestamp == null) {
-            timestamp = Instant.now();
+            timestamp = LocalDateTime.now();
         }
     }
 

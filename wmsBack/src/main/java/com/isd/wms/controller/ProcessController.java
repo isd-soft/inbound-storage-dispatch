@@ -31,12 +31,6 @@ public class ProcessController {
 //        return processService.getMyProcesses();
 //    }
 
-//    @GetMapping
-//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-//    public List<ProcessExecutionResponse> getAssignedProcesses() {
-//        return processExecutionService.getAssignedProcesses();
-//    }
-
     @PatchMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ProcessResponse completeProcess(@PathVariable Long id) {

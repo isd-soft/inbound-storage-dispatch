@@ -8,5 +8,6 @@ CREATE TABLE IF NOT EXISTS users (
     user_role varchar(30) NOT NULL,
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     verification_token VARCHAR(255),
-    verification_token_expires_at TIMESTAMPTZ
+    verification_token_expires_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL
 );

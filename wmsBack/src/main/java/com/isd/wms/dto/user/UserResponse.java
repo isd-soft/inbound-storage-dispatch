@@ -6,5 +6,6 @@ public record UserResponse(
         Long id,
         String username,
         String email,
-        Role userRole
+        Role userRole,
+        Boolean isActive
 ) {}

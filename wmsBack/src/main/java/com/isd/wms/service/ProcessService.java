@@ -11,7 +11,9 @@ import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.mapper.ProcessMapper;
+import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +69,12 @@ public class ProcessService {
 
     private Process getProcessById(Long processId) {
         return processRepository.findById(processId)
-                .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
+            .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
     public ProcessOperatorResponse getProcessesOperator() {

@@ -12,7 +12,8 @@ public class LocationMapper {
                 location.getBarcode(),
                 location.getZone(),
                 location.getDescription(),
-                location.getAvailable()
+                location.getAvailable(),
+                location.getIsActive()
         );
     }
 }

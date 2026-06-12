@@ -7,5 +7,6 @@ public record LocationResponse(
         String barcode,
         Zone zone,
         String description,
-        Boolean available
+        Boolean available,
+        Boolean isActive
 ) {}

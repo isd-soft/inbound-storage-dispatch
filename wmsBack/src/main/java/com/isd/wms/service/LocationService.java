@@ -10,6 +10,9 @@ import com.isd.wms.exception.DuplicateBarcodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
+import com.isd.wms.repository.StockRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -17,14 +20,13 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
+@Slf4j
 public class LocationService {
     private final LocationRepository locationRepository;
     private final LocationMapper locationMapper;
+    private final StockRepository stockRepository;
 
-    public LocationService(LocationRepository locationRepository, LocationMapper locationMapper) {
-        this.locationRepository = locationRepository;
-        this.locationMapper = locationMapper;
-    }
 
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
@@ -33,6 +35,7 @@ public class LocationService {
         if (locationRepository.existsByBarcodeIgnoreCase(code)) {
             throw new DuplicateBarcodeException(code);
         }
+
 
         Location location = new Location(
                 name,
@@ -64,22 +67,34 @@ public class LocationService {
 
     @Transactional
     public void deleteLocation(Long locationId) {
-        locationRepository.delete(getLocation(locationId));
+        boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
+        if (hasProducts) {
+            log.warn("Attempt to deactivate occupied location ID: {}", locationId);
+            throw new IllegalStateException("Нельзя деактивировать локацию, на ней находится товар.");
+        }
+
+        Location location = getLocation(locationId);
+        location.setIsActive(false); // Деактивируем
+
+        locationRepository.save(location);
+
+        log.info("Location ID {} successfully deactivated", locationId);
+    }
+
+    public List<LocationResponse> getAllLocations() {
+        return locationRepository.findAllByIsActiveTrue().stream()
+            .map(locationMapper::toResponse)
+            .toList();
     }
 
     public LocationResponse getLocationById(Long locationId) {
         return locationMapper.toResponse(getLocation(locationId));
     }
 
-    public List<LocationResponse> getAllLocations() {
-        return locationRepository.findAll().stream()
-                .map(locationMapper::toResponse)
-                .toList();
-    }
-
     public List<ShortLocationProjection> getShortLocationsDispatch() {
         return locationRepository.getLocationDispatch();
     }
+
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)

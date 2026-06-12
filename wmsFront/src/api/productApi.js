@@ -21,5 +21,8 @@ export const productApi = {
   },
   getCategories() {
     return apiClient.get('/categories')
+  },
+  createCategory(payload) {
+    return apiClient.post('/categories', payload)
   }
 }

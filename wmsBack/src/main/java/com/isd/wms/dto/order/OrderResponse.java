@@ -4,13 +4,14 @@ import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 public record OrderResponse(
         Long id,
         String logicId,
         Long destinationLocationId,
         OrderStatus Status,
-        Timestamp createdAt,
-        Timestamp updatedAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 }
