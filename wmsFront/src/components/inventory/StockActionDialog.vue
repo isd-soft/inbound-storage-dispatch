@@ -40,7 +40,10 @@
 
       <div v-if="selectedStock && mode !== 'add'" class="app-muted-panel rounded-lg p-3 text-sm">
         <div class="app-title font-semibold">{{ selectedStock.productName }}</div>
-        <div>{{ selectedStock.sku }} · {{ selectedStock.locationCode }} · Current qty: {{ selectedStock.quantity }}</div>
+        <div>{{ selectedStock.sku }} · {{ selectedStock.locationCode }} · Available qty: {{ availableQuantity }}</div>
+        <div v-if="reservedQuantity > 0" class="app-muted text-xs mt-1">
+          {{ reservedQuantity }} reserved quantity is protected and cannot be removed manually.
+        </div>
       </div>
 
       <div class="flex flex-col gap-2">
@@ -49,6 +52,7 @@
           :id="quantityField"
           v-model="form[quantityField]"
           :min="quantityMin"
+          :max="quantityMax"
           showButtons
           class="w-full"
           inputClass="w-full"
@@ -112,8 +116,18 @@ const dialogTitle = computed(() => {
 })
 
 const quantityField = computed(() => (props.mode === 'adjust' ? 'newQuantity' : 'quantity'))
-const quantityLabel = computed(() => (props.mode === 'adjust' ? 'New Quantity' : 'Quantity'))
+const quantityLabel = computed(() => {
+  if (props.mode === 'adjust') return 'New Available Quantity'
+  if (props.mode === 'remove') return 'Available Quantity to Remove'
+  return 'Quantity'
+})
 const quantityMin = computed(() => (props.mode === 'adjust' ? 0 : 1))
+const reservedQuantity = computed(() => Number(props.selectedStock?.reservedQuantity ?? 0))
+const availableQuantity = computed(() => Number(props.selectedStock?.availableQuantity ?? props.selectedStock?.quantity ?? 0))
+const quantityMax = computed(() => {
+  if (props.mode === 'remove') return availableQuantity.value
+  return undefined
+})
 const submitLabel = computed(() => {
   if (props.mode === 'add') return 'Add Stock'
   if (props.mode === 'remove') return 'Remove Stock'
@@ -126,10 +140,13 @@ const submitSeverity = computed(() => {
 })
 const isQuantityValid = computed(() => {
   const value = form[quantityField.value]
-  return value !== null && value !== undefined && value >= quantityMin.value
+  if (value === null || value === undefined || value < quantityMin.value) return false
+  if (props.mode === 'remove' && value > availableQuantity.value) return false
+  return true
 })
 const quantityValidationMessage = computed(() => {
-  if (props.mode === 'adjust') return 'New quantity must be greater than or equal to 0.'
+  if (props.mode === 'adjust') return 'New available quantity must be greater than or equal to 0.'
+  if (props.mode === 'remove') return `Quantity must be between 1 and available quantity (${availableQuantity.value}).`
   return 'Quantity must be greater than 0.'
 })
 
@@ -139,7 +156,7 @@ watch(
     if (visible) {
       submitted.value = false
       if (props.mode === 'adjust' && props.selectedStock) {
-        form.newQuantity = props.selectedStock.quantity
+        form.newQuantity = availableQuantity.value
       }
     }
   }
@@ -192,7 +209,7 @@ const submitForm = () => {
 
   emit('submit', {
     stockId: props.selectedStock.id,
-    newQuantity: form.newQuantity
+    newQuantity: form.newQuantity + reservedQuantity.value
   })
 }
 </script>

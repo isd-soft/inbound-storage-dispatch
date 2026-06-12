@@ -1,11 +1,16 @@
 package com.isd.wms.dto.user;
 
+import com.isd.wms.enums.Role;
 import com.isd.wms.validation.StrongPassword;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record UserCreateRequest(
-        String username,
-        String email,
+        @NotBlank @Size(max = 50) String username,
+        @NotBlank @Email String email,
         @StrongPassword String password,
-        String userRole
+        @NotNull Role userRole
 ) {
 }

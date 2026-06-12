@@ -13,6 +13,7 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadProducts" />
+        <Button v-if="canManageProducts" label="Add Category" icon="pi pi-folder-plus" severity="secondary" outlined @click="openCategoryDialog" />
         <Button v-if="canManageProducts" label="Add Product" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
       </div>
     </div>
@@ -115,22 +116,42 @@
 
         <div class="flex flex-col gap-2">
           <label for="productCategory" class="app-subtitle font-medium">Category</label>
-          <Dropdown
-            id="productCategory"
-            v-model="form.categoryId"
-            :options="categories"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="Select category"
-            class="w-full"
-            filter
-          />
+          <div class="flex gap-2">
+            <Dropdown
+              id="productCategory"
+              v-model="form.categoryId"
+              :options="categories"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select category"
+              class="w-full"
+              filter
+            />
+            <Button
+              icon="pi pi-plus"
+              severity="secondary"
+              outlined
+              aria-label="Create category"
+              type="button"
+              @click="openCategoryDialog"
+            />
+          </div>
           <small v-if="submitted && !form.categoryId" class="app-danger">Category is required.</small>
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="productSku" class="app-subtitle font-medium">SKU</label>
-          <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+          <div class="flex gap-2">
+            <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
+            <Button
+              icon="pi pi-camera"
+              severity="secondary"
+              outlined
+              aria-label="Scan SKU barcode"
+              type="button"
+              @click="scannerVisible = true"
+            />
+          </div>
           <small v-if="submitted && !form.sku" class="app-danger">SKU is required.</small>
         </div>
 
@@ -143,6 +164,35 @@
       <template #footer>
         <Button label="Cancel" severity="secondary" text :disabled="actionLoading" @click="closeDialog" />
         <Button :label="dialogMode === 'create' ? 'Create Product' : 'Save Changes'" :loading="actionLoading" @click="submitProduct" />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="scannerVisible"
+      header="Scan SKU Barcode"
+      modal
+      class="w-full max-w-lg"
+    >
+      <BarcodeScanner @detected="handleSkuDetected" />
+      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The SKU field will be filled automatically after detection.</p>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="categoryDialogVisible"
+      header="Create Category"
+      modal
+      class="w-full max-w-md"
+      @hide="resetCategoryForm"
+    >
+      <form class="flex flex-col gap-2" @submit.prevent="submitCategory">
+        <label for="categoryName" class="app-subtitle font-medium">Category Name</label>
+        <InputText id="categoryName" v-model.trim="categoryForm.name" placeholder="e.g. Packaging" class="w-full" autofocus />
+        <small v-if="categorySubmitted && !categoryForm.name" class="app-danger">Category name is required.</small>
+      </form>
+
+      <template #footer>
+        <Button label="Cancel" severity="secondary" text :disabled="categoryLoading" @click="categoryDialogVisible = false" />
+        <Button label="Create Category" icon="pi pi-check" :loading="categoryLoading" @click="submitCategory" />
       </template>
     </Dialog>
   </div>
@@ -165,6 +215,7 @@ import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import Toast from 'primevue/toast'
 
+import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import { productApi } from '@/api/productApi'
 import { useAuthStore } from '@/stores/auth'
 
@@ -177,9 +228,13 @@ const categories = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
+const scannerVisible = ref(false)
+const categoryDialogVisible = ref(false)
+const categoryLoading = ref(false)
 const dialogMode = ref('create')
 const selectedProductId = ref(null)
 const submitted = ref(false)
+const categorySubmitted = ref(false)
 
 const filters = reactive({
   name: '',
@@ -191,6 +246,10 @@ const form = reactive({
   sku: '',
   description: '',
   categoryId: null
+})
+
+const categoryForm = reactive({
+  name: ''
 })
 
 const canManageProducts = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
@@ -265,6 +324,11 @@ const openCreateDialog = () => {
   dialogVisible.value = true
 }
 
+const openCategoryDialog = () => {
+  resetCategoryForm()
+  categoryDialogVisible.value = true
+}
+
 const openEditDialog = (product) => {
   dialogMode.value = 'edit'
   selectedProductId.value = product.id
@@ -277,6 +341,7 @@ const openEditDialog = (product) => {
 }
 
 const closeDialog = () => {
+  scannerVisible.value = false
   dialogVisible.value = false
 }
 
@@ -286,6 +351,35 @@ const resetForm = () => {
   form.description = ''
   form.categoryId = null
   submitted.value = false
+}
+
+const resetCategoryForm = () => {
+  categoryForm.name = ''
+  categorySubmitted.value = false
+}
+
+const handleSkuDetected = (sku) => {
+  form.sku = sku
+  scannerVisible.value = false
+  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `SKU set to ${sku}`, life: 2500 })
+}
+
+const submitCategory = async () => {
+  categorySubmitted.value = true
+  if (!categoryForm.name) return
+
+  categoryLoading.value = true
+  try {
+    const response = await productApi.createCategory({ name: categoryForm.name })
+    await loadCategories()
+    form.categoryId = response.data?.id ?? form.categoryId
+    categoryDialogVisible.value = false
+    toast.add({ severity: 'success', summary: 'Category created', detail: response.data?.name || categoryForm.name, life: 3000 })
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Category creation failed', detail: getErrorMessage(error), life: 4000 })
+  } finally {
+    categoryLoading.value = false
+  }
 }
 
 const submitProduct = async () => {

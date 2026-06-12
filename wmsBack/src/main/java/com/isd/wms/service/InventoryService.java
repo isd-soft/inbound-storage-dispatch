@@ -25,6 +25,7 @@ import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -175,7 +176,7 @@ public class InventoryService {
                 operationType,
                 user
         );
-        history.setTimestamp(Instant.now());
+        history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);
     }
 

@@ -1,10 +1,10 @@
 TRUNCATE TABLE processes, replenishments, order_lines, orders, tasks, inventory_history, stocks, locations, products, categories, users RESTART IDENTITY CASCADE;
 
-INSERT INTO users (id, username, email, password, user_role, email_verified)
+INSERT INTO users (id, username, email, password, user_role, email_verified, is_active)
 VALUES
-    (1, 'dev', 'dev@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_DEV', true),
-    (2, 'supervisor', 'super@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_SUPERVISOR', true),
-    (3, 'operator', 'operator@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_OPERATOR', true);
+    (1, 'dev', 'dev@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_DEV', true,true),
+    (2, 'supervisor', 'super@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_SUPERVISOR', true,true),
+    (3, 'operator', 'operator@isd.com', '$2a$12$Jgx.cGwjrw/ICdWSY4iYHuJ0eGKTRhfZ5IOO/tjrAtps/JkZ9J.vS', 'ROLE_OPERATOR', true,true);
 
 INSERT INTO categories (id, name)
 VALUES

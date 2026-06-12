@@ -3,6 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.product.ProductCreateRequest;
 import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.dto.product.ProductUpdateRequest;
+import com.isd.wms.dto.product.ProductWithQuantityProjection;
 import com.isd.wms.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,15 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -42,6 +35,11 @@ public class ProductController {
     public List<ProductResponse> getAllProducts() {
         log.info("Get all products request");
         return productService.getAllProducts();
+    }
+
+    @GetMapping("/quantities")
+    public List<ProductWithQuantityProjection> getAllProductsWithQuantity() {
+        return productService.getAllProductsWithQuantity();
     }
 
     @GetMapping("/{id}")

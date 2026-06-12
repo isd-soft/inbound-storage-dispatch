@@ -13,6 +13,8 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@primeuix/utils": "^0.7.2",
+    "@primevue/forms": "^4.5.5",
     "@primevue/themes": "^4.5.4",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
@@ -21,7 +23,8 @@
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
     "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

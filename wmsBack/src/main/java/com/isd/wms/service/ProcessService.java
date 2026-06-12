@@ -7,7 +7,9 @@ import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.ProcessStatus;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class ProcessService {
     private final ProcessRepository processRepository;
     private final WorkflowService workflowService;
     private final SecurityFacade securityFacade;
+    private final UserRepository userRepository;
 
     public List<ProcessResponse> getAvailableProcesses() {
         List<Process> processes = processRepository.findByStatus(ProcessStatus.CREATED);
@@ -37,21 +40,6 @@ public class ProcessService {
         List<Process> processes = processRepository.findByOperatorAndStatuses(
                 operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS));
         return processes.stream().map(this::toResponse).toList();
-    }
-
-    @Transactional
-    public ProcessResponse assignProcess(Long processId) {
-        Process process = getProcessById(processId);
-        User operator = securityFacade.getCurrentUser();
-
-        if (process.getStatus() != ProcessStatus.CREATED) {
-            throw new InvalidRequestException("Process is already assigned or completed");
-        }
-
-        process.setOperator(operator);
-        process.setStatus(ProcessStatus.ASSIGNED);
-
-        return toResponse(processRepository.save(process));
     }
 
     @Transactional
@@ -77,7 +65,12 @@ public class ProcessService {
 
     private Process getProcessById(Long processId) {
         return processRepository.findById(processId)
-                .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
+            .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
 
