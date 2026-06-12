@@ -2,8 +2,8 @@ package com.isd.wms.service;
 
 import com.isd.wms.entity.*;
 import com.isd.wms.entity.Process;
-import com.isd.wms.enums.ProcessStatus;
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
@@ -12,7 +12,6 @@ import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.service.process.ProcessCompletionStrategy;
-import com.isd.wms.service.process.ReplenishmentProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -63,7 +61,7 @@ public class WorkflowService {
             int available = bestStock.getQuantity() - bestStock.getReservedQuantity();
             int quantityToTake = Math.min(available, remainingQuantity);
 
-            Process process = new Process(task, bestStock, quantityToTake, ProcessStatus.CREATED);
+            Process process = new Process(task, bestStock, quantityToTake, Status.CREATED);
             processesToSave.add(process);
 
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
@@ -111,7 +109,7 @@ public class WorkflowService {
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()
-                .allMatch(p -> p.getStatus() == ProcessStatus.COMPLETED || p.getId().equals(process.getId()));
+                .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
 
         if (isTaskFullyCompleted) {
             task.setStatus(TaskStatus.COMPLETED);
@@ -119,7 +117,7 @@ public class WorkflowService {
 
             if (task.getTaskType() == TaskType.REPLENISHMENT) {
                 Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId()).get();
-                replenishment.setStatus(ReplenishmentStatus.COMPLETED);
+                replenishment.setStatus(Status.COMPLETED);
                 replenishmentRepository.save(replenishment);
             }
         }

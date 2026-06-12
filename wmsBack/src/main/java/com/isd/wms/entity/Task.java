@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -26,6 +27,10 @@ public class Task extends BaseTimestampEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_gen")
     @SequenceGenerator(name = "task_gen", sequenceName = "tasks_sequence", allocationSize = 1)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "operator_id")
+    private User operator;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id", nullable = false)
@@ -48,11 +53,8 @@ public class Task extends BaseTimestampEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Process> processes = new ArrayList<>();
 
-    public Task(User supervisor, TaskType taskType, Integer requestedQuantity, TaskStatus status) {
-        this.supervisor = supervisor;
-        this.taskType = taskType;
-        this.requestedQuantity = requestedQuantity;
-        this.status = status;
+    public Optional<User> getOperator() {
+        return Optional.ofNullable(operator);
     }
 
     public Task(User supervisor, TaskType taskType, Integer requestedQuantity) {

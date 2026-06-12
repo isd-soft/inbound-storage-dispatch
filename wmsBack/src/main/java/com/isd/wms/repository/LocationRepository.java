@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
+    boolean existsByBarcodeIgnoreCase(String barcode);
 
     boolean existsByLocationCodeIgnoreCase (String locationCode);
 
@@ -18,7 +19,7 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByLocationCodeAndIsActiveTrue(String code);
 
     @Query("""
-            SELECT l.id AS id, l.locationCode AS locationCode FROM Location l
+            SELECT l.id AS id, lbarcode AS barcode FROM Location l
             WHERE l.available = true AND l.zone = Zone.DISPATCH
             """)
     List<ShortLocationProjection> getLocationDispatch();

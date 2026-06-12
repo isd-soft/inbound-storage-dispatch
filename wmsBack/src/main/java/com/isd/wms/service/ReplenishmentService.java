@@ -5,17 +5,13 @@ import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
-import com.isd.wms.enums.ReplenishmentStatus;
-import com.isd.wms.enums.TaskStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +31,8 @@ public class ReplenishmentService {
     private final WorkflowService workflowService;
     private final TaskService taskService;
 
-    private static final List<ReplenishmentStatus> TERMINAL_STATUSES = List.of(
-            ReplenishmentStatus.COMPLETED);
+    private static final List<Status> TERMINAL_STATUSES = List.of(
+            Status.COMPLETED);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
@@ -114,10 +110,10 @@ public class ReplenishmentService {
                 .ifPresent(stock -> {
                     if (stock.getQuantity() > 0) {
                         log.warn("Replenishment rejected: location {} already contains {} pcs of product ID {}",
-                                location.getLocationCode(), stock.getQuantity(), product.getId());
+                                location.getBarcode(), stock.getQuantity(), product.getId());
                         throw new InvalidRequestException(
                                 String.format("Replenishment is allowed only when current stock is zero. Location %s currently has %d pcs.",
-                                        location.getLocationCode(), stock.getQuantity())
+                                        location.getBarcode(), stock.getQuantity())
                         );
                     }
                 });

@@ -1,14 +1,12 @@
 package com.isd.wms.dto.process;
 
-import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Status;
 
 public record ProcessResponse(
         Long id,
-        Long taskId,
-        Long productId,
         String productName,
-        String locationCode,
+        String Sku,
+        String barcode,
         Integer quantity,
-        ProcessStatus status
-) {
+        Status status) {
 }

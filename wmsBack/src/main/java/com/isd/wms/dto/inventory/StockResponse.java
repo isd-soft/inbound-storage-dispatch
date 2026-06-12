@@ -18,7 +18,7 @@ public class StockResponse {
     private Long productId;
     private String productName;
     private Long locationId;
-    private String locationCode;
+    private String barcode;
     private Integer quantity;
     private Integer reservedQuantity;
     private Integer availableQuantity;

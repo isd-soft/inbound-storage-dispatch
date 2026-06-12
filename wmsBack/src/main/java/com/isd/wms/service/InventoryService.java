@@ -168,7 +168,7 @@ public class InventoryService {
         Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
                 product,
-                product == null ? null : product.getSku(),
+                product == null ? null : product.getBarcode(),
                 alteredQuantity,
                 quantityAfterChange,
                 sourceLocation,

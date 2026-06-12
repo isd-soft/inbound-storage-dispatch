@@ -106,7 +106,7 @@ class InventoryServiceTest {
 
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getQuantity()).isEqualTo(5);
-        assertThat(response.getSku()).isEqualTo("SKU-1");
+        assertThat(response.getBarcode()).isEqualTo("SKU-1");
 
         ArgumentCaptor<InventoryHistory> historyCaptor = ArgumentCaptor.forClass(InventoryHistory.class);
         verify(inventoryHistoryRepository).save(historyCaptor.capture());
@@ -241,7 +241,7 @@ class InventoryServiceTest {
 
         InventoryHistory history = new InventoryHistory();
         history.setProduct(product);
-        history.setSku("SKU-1");
+        history.setBarcode("SKU-1");
         history.setAlteredQuantity(8);
         history.setQuantityAfterChange(8);
         history.setDestinationLocation(location);
@@ -274,10 +274,10 @@ class InventoryServiceTest {
         return result;
     }
 
-    private Location location(Long id, String locationCode) {
+    private Location location(Long id, String barcode) {
         Location result = new Location();
         ReflectionTestUtils.setField(result, "id", id);
-        result.setLocationCode(locationCode);
+        result.setBarcode(barcode);
         result.setAvailable(true);
         return result;
     }

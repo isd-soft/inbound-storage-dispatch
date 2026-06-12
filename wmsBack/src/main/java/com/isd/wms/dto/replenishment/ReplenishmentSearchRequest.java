@@ -1,12 +1,12 @@
 package com.isd.wms.dto.replenishment;
 
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 
 public record ReplenishmentSearchRequest(
         Long taskId,
         Long productId,
         Integer requestedQuantity,
-        ReplenishmentStatus status,
+        Status status,
         Long destinationLocationId
 ) {
 }

@@ -4,7 +4,7 @@ import com.isd.wms.enums.Zone;
 
 public record LocationResponse(
         Long id,
-        String locationCode,
+        String barcode,
         Zone zone,
         String description,
         Boolean available,
