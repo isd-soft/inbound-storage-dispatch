@@ -11,10 +11,7 @@ import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.Status;
-import com.isd.wms.enums.Role;
-import com.isd.wms.enums.TaskStatus;
-import com.isd.wms.enums.Zone;
+import com.isd.wms.enums.*;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
@@ -319,14 +316,14 @@ class ProcessExecutionServiceTest {
         return product;
     }
 
-    private Location location(Long id, String locationCode) {
-        Location location = new Location(locationCode, Zone.PICKING, null, true);
+    private Location location(Long id, String barcode) {
+        Location location = new Location("name", barcode, Zone.PICKING, null, true);
         ReflectionTestUtils.setField(location, "id", id);
         return location;
     }
 
     private Task task(Long id, TaskStatus status) {
-        Task task = new Task(null, null, null, status);
+        Task task = new Task(null, TaskType.REPLENISHMENT, 0);
         ReflectionTestUtils.setField(task, "id", id);
         return task;
     }

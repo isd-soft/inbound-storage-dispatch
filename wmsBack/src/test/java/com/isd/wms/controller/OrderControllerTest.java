@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.GlobalExceptionHandler;
 import com.isd.wms.exception.OrderNotFoundException;
@@ -64,7 +65,7 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getOrders_asSupervisor_returns200AndList() throws Exception {
-        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
         when(orderService.getAllOrders()).thenReturn(List.of(response));
 
         mockMvc.perform(get(BASE_URL).contentType(MediaType.APPLICATION_JSON))
@@ -98,7 +99,7 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getOrderById_existingId_returns200() throws Exception {
-        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
         when(orderService.getOrderById(1L)).thenReturn(response);
 
         mockMvc.perform(get(BASE_URL + "/1").contentType(MediaType.APPLICATION_JSON))
@@ -128,7 +129,7 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getExtendedOrderById_existingId_returns200() throws Exception {
-        ExtendedOrderResponse response = new ExtendedOrderResponse(new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null), new ArrayList<OrderLineResponse>());
+        ExtendedOrderResponse response = new ExtendedOrderResponse(new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null), new ArrayList<OrderLineResponse>());
         when(orderService.getExtendedOrderById(1L)).thenReturn(response);
 
         mockMvc.perform(get(BASE_URL + "/extended/1").contentType(MediaType.APPLICATION_JSON))
@@ -151,7 +152,7 @@ class OrderControllerTest {
         ExtendedOrderCreateRequest request = new ExtendedOrderCreateRequest(
                 new OrderCreateRequest("LOGIC-001", 1L), new ArrayList<OrderLineCreateRequest>()
         );
-        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
         when(orderService.addExtendedOrder(any(ExtendedOrderCreateRequest.class))).thenReturn(response);
 
         mockMvc.perform(post(BASE_URL)
@@ -165,8 +166,8 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void updateOrder_validRequest_returns200() throws Exception {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, Status.CREATED);
-        OrderResponse response = new OrderResponse(1L, "LOGIC-002", 1L, Status.CREATED, null, null);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.CREATED);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-002", 1L, OrderStatus.CREATED, null, null);
         when(orderService.updateOrder(eq(1L), any(OrderUpdateRequest.class))).thenReturn(response);
 
         mockMvc.perform(put(BASE_URL + "/1")
@@ -180,7 +181,7 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void updateOrder_notFound_returns404() throws Exception {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, Status.CREATED);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.CREATED);
         when(orderService.updateOrder(eq(99L), any())).thenThrow(new OrderNotFoundException(99L));
 
         mockMvc.perform(put(BASE_URL + "/99")
@@ -202,7 +203,7 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void searchOrders_withParams_returns200AndList() throws Exception {
-        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
         when(orderService.searchOrders(any(OrderSearchRequest.class))).thenReturn(List.of(response));
 
         mockMvc.perform(get(BASE_URL + "/filter")

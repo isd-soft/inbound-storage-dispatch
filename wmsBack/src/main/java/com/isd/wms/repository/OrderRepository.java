@@ -2,6 +2,7 @@ package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.NativeQuery;
@@ -28,7 +29,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> filter(
             @Param("logicId") String logicId,
             @Param("destinationId") Long destinationId,
-            @Param("status") Status status,
+            @Param("status") OrderStatus status,
             @Param("createdAt") Timestamp createdAt,
             @Param("updatedAt") Timestamp updatedAt
     );

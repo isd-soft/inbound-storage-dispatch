@@ -110,10 +110,10 @@ public class ReplenishmentService {
                 .ifPresent(stock -> {
                     if (stock.getQuantity() > 0) {
                         log.warn("Replenishment rejected: location {} already contains {} pcs of product ID {}",
-                                location.getLocationCode(), stock.getQuantity(), product.getId());
+                                location.getBarcode(), stock.getQuantity(), product.getId());
                         throw new InvalidRequestException(
                                 String.format("Replenishment is allowed only when current stock is zero. Location %s currently has %d pcs.",
-                                        location.getLocationCode(), stock.getQuantity())
+                                        location.getBarcode(), stock.getQuantity())
                         );
                     }
                 });

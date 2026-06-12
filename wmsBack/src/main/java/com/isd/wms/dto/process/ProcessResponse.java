@@ -6,7 +6,7 @@ public record ProcessResponse(
         Long id,
         String productName,
         String Sku,
-        String locationCode,
+        String barcode,
         Integer quantity,
         Status status) {
 }

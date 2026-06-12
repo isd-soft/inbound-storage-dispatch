@@ -29,9 +29,9 @@ public class ProcessMapper {
         return new ShortProcessResponse(
             process.getId(),
             product.getName(),
-            product.getSku(),
-            stock.getLocation().getLocationCode(),
-            stock.getLocation().getLocationCode(),
+            product.getBarcode(),
+            stock.getLocation().getBarcode(),
+            stock.getLocation().getBarcode(),
             process.getQuantity()
         );
     }
@@ -43,8 +43,8 @@ public class ProcessMapper {
         return new ProcessResponse(
             process.getId(),
             product.getName(),
-            product.getSku(),
-            stock.getLocation().getLocationCode(),
+            product.getBarcode(),
+            stock.getLocation().getBarcode(),
             process.getQuantity(),
             process.getStatus()
         );

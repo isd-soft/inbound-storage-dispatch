@@ -3,15 +3,13 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Order;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.ProcessRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +30,7 @@ class OrderServiceTest {
     private OrderService orderService;
     private UserRepository userRepository;
     private ProcessRepository processRepository;
+    private TaskRepository taskRepository;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +41,8 @@ class OrderServiceTest {
         orderLineService = mock(OrderLineService.class);
         userRepository = mock(UserRepository.class);
         processRepository = mock(ProcessRepository.class);
-        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, userRepository, processRepository);
+        taskRepository = mock(TaskRepository.class);
+        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, userRepository, processRepository, taskRepository);
     }
 
     private Order orderWithId(Long id, String logicId) {
@@ -52,7 +52,7 @@ class OrderServiceTest {
     }
 
     private OrderResponse sampleOrderResponse() {
-        return new OrderResponse(1L, "LOGIC-001", 1L, Status.CREATED, null, null);
+        return new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
     }
 
     private ExtendedOrderResponse sampleExtendedOrderResponse() {
@@ -109,10 +109,10 @@ class OrderServiceTest {
 
     @Test
     void updateOrder_statusIsCreated_updatesAndReturns() {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, Status.CREATED);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.CREATED);
         Order existing = orderWithId(1L, "LOGIC-001");
         Order updated = orderWithId(1L, "LOGIC-002");
-        OrderResponse response = new OrderResponse(1L, "LOGIC-002", 1L, Status.CREATED, null, null);
+        OrderResponse response = new OrderResponse(1L, "LOGIC-002", 1L, OrderStatus.CREATED, null, null);
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(orderRepository.save(existing)).thenReturn(updated);
@@ -125,7 +125,7 @@ class OrderServiceTest {
 
     @Test
     void updateOrder_statusNotCreated_throwsInvalidRequestException() {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, Status.IN_PROGRESS);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.IN_PROGRESS);
 
         assertThatThrownBy(() -> orderService.updateOrder(1L, request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -136,7 +136,7 @@ class OrderServiceTest {
 
     @Test
     void updateOrder_orderNotFound_throwsOrderNotFoundException() {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, Status.CREATED);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.CREATED);
         when(orderRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.updateOrder(99L, request))
@@ -216,9 +216,9 @@ class OrderServiceTest {
 
     @Test
     void searchOrders_withFilters_returnsMappedList() {
-        OrderSearchRequest request = new OrderSearchRequest(null, "LOGIC-001", null, Status.CREATED, null, null);
+        OrderSearchRequest request = new OrderSearchRequest(null, "LOGIC-001", null, OrderStatus.CREATED, null, null);
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.filter("LOGIC-001", null, Status.CREATED, null, null)).thenReturn(List.of(order));
+        when(orderRepository.filter("LOGIC-001", null, OrderStatus.CREATED, null, null)).thenReturn(List.of(order));
         when(orderMapper.toResponse(order)).thenReturn(sampleOrderResponse());
 
         assertThat(orderService.searchOrders(request)).hasSize(1);

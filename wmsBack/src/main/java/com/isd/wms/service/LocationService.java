@@ -6,7 +6,7 @@ import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.dto.location.ShortLocationProjection;
 import com.isd.wms.entity.Location;
-import com.isd.wms.exception.DuplicateLocationCodeException;
+import com.isd.wms.exception.DuplicateBarcodeException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
@@ -28,12 +28,14 @@ public class LocationService {
 
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
-        String code = request.locationCode().trim();
-        if (locationRepository.existsByLocationCodeIgnoreCase(code)) {
-            throw new DuplicateLocationCodeException(code);
+        String name = request.name().trim();
+        String code = request.barcode().trim();
+        if (locationRepository.existsByBarcodeIgnoreCase(code)) {
+            throw new DuplicateBarcodeException(code);
         }
 
         Location location = new Location(
+                name,
                 code,
                 request.zone(),
                 request.description(),
@@ -45,14 +47,14 @@ public class LocationService {
     @Transactional
     public LocationResponse updateLocation(Long locationId, LocationUpdateRequest request) {
         Location location = getLocation(locationId);
-        String newCode = request.locationCode().trim();
+        String newCode = request.barcode().trim();
 
-        if (!location.getLocationCode().equalsIgnoreCase(newCode) &&
-                locationRepository.existsByLocationCodeIgnoreCase(newCode)) {
-            throw new DuplicateLocationCodeException(newCode);
+        if (!location.getBarcode().equalsIgnoreCase(newCode) &&
+                locationRepository.existsByBarcodeIgnoreCase(newCode)) {
+            throw new DuplicateBarcodeException(newCode);
         }
 
-        location.setLocationCode(newCode);
+        location.setBarcode(newCode);
         location.setZone(request.zone());
         location.setDescription(request.description());
         location.setAvailable(request.available());

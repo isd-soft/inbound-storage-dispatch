@@ -57,7 +57,7 @@
 //        product.setName("Test Product");
 //
 //        Location location = new Location();
-//        location.setLocationCode("ZONE-A");
+//        location.setBarcode("ZONE-A");
 //
 //        Stock stock = new Stock();
 //        stock.setProduct(product);

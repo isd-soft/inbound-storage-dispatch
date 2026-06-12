@@ -61,7 +61,7 @@ public class ProductService {
         }
         Category category = getCategory(request.categoryId());
         product.setName(request.name().trim());
-        product.setSku(sku);
+        product.setBarcode(sku);
         product.setDescription(request.description());
         product.setCategory(category);
         Product savedProduct = productRepository.save(product);

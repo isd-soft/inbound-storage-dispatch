@@ -9,6 +9,7 @@ import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.exception.InvalidRequestException;
@@ -74,7 +75,7 @@ public class ProcessExecutionService {
     public ProcessExecutionResponse scanSourceLocation(Long processId, BarcodeScanRequest request) {
         Process process = getAssignedProcessInProgress(processId);
         String barcode = request.barcode().trim();
-        String expectedBarcode = process.getStock().getLocation().getLocationCode();
+        String expectedBarcode = process.getStock().getLocation().getBarcode();
 
         if (!expectedBarcode.equals(barcode)) {
             log.warn("Wrong barcode scanned for process {}", processId);
@@ -96,7 +97,7 @@ public class ProcessExecutionService {
         String barcode = request.barcode().trim();
         Stock expectedStock = process.getStock();
         Product expectedProduct = expectedStock.getProduct()
-                .filter(product -> product.getSku() != null && product.getSku().equalsIgnoreCase(barcode))
+                .filter(product -> product.getBarcode() != null && product.getBarcode().equalsIgnoreCase(barcode))
                 .orElse(null);
         if (expectedProduct == null) {
             log.warn("Wrong barcode scanned for process {}", processId);
@@ -187,7 +188,7 @@ public class ProcessExecutionService {
                 .allMatch(orderLine -> orderLine.getStatus() == Status.COMPLETED);
 
         if (orderCompleted) {
-            order.setStatus(Status.COMPLETED);
+            order.setStatus(OrderStatus.COMPLETED);
             orderRepository.save(order);
         }
     }
@@ -210,7 +211,7 @@ public class ProcessExecutionService {
         Process process = processRepository.findById(processId)
                 .orElseThrow(() -> new InvalidRequestException("Process not found"));
         User operator = getCurrentUser();
-        if (process.getOperator().filter(operator::equals).isEmpty()) {
+        if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("Process is not assigned to current operator");
         }
         return process;
