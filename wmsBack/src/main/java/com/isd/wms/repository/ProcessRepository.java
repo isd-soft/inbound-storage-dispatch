@@ -1,5 +1,6 @@
 package com.isd.wms.repository;
 
+import com.isd.wms.repository.projections.OperatorProcessProjection;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.User;
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProcessRepository extends JpaRepository<Process, Long> {
@@ -19,7 +21,7 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
 
     List<Process> findByStatus(Status status);
 
-    @Query("SELECT p FROM Process p WHERE p.operator = :operator AND p.status IN (:statuses)")
+    @Query("SELECT p FROM Process p JOIN Task t ON t = p.task WHERE t.operator = :operator AND p.status IN (:statuses)")
     List<Process> findByOperatorAndStatuses(User operator, List<Status> statuses);
 
     @Query("""
@@ -33,16 +35,68 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
         @Param("order") Order order
     );
 
-    @Query("""
-        SELECT p  FROM Process p
-        JOIN OrderLine o ON o.task.id = p.task.id
-        WHERE o.order = :order AND p.operator.id = :operator
-        GROUP BY p, o.order.id
-        ORDER BY p.createdAt
-    """)
-    List<Process> findOldestProcessesByOrder(
-        @Param("order") Order order,
-        @Param("operator") User operator
+    @Query(value = """
+        SELECT DISTINCT p FROM processes p
+        JOIN order_lines o ON o.task_id = p.task_id
+        JOIN tasks t ON p.task_id = t.id
+        WHERE o.order_id = :orderId
+        AND t.operator_id = :operatorId
+        AND p.status = 'ASSIGNED'
+        ORDER BY p.created_at, p.id
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<Process> findOldestProcessesByOrder(
+        @Param("orderId") Long orderId,
+        @Param("operatorId") Long operatorId
     );
 
+    @Query("""
+        SELECT COUNT(DISTINCT p) FROM Process p
+        JOIN OrderLine ol ON ol.task = p.task
+        WHERE ol.order.id = :orderId
+        AND NOT p.status = Status.CANCELED
+    """)
+    Integer countProcessesInOrder(
+        @Param("orderId") Long orderId
+    );
+
+    @Query("""
+        SELECT COUNT(DISTINCT p) FROM Process p
+        JOIN OrderLine ol ON ol.task = p.task
+        WHERE ol.order.id = :orderId
+        AND p.status = Status.COMPLETED
+    """)
+    Integer countCompletedProcessesInOrder(
+        @Param("orderId") Long orderId
+    );
+
+    @Query(value = """
+        with oldest_order as (select o.id as order_id, o.logic_id as logic_id
+                              from orders o
+                                       left join order_lines ol on ol.order_id = o.id
+                                       left join tasks t on t.id = ol.task_id
+                                       left join users u on t.operator_id = u.id
+                              where u.username = :userName
+                                and o.status in ('ASSIGNED', 'IN_PROGRESS')
+                              order by o.created_at, o.id
+                              limit 1)
+        select oldest_order.order_id AS oldestOrderId,
+               oldest_order.logic_id AS orderName,
+               p.id AS processId,
+               pr.name AS productName,
+               pr.barcode AS productBarcode,
+               l.name AS locationName,
+               l.barcode AS locationBarcode, --rename it
+               p.quantity AS quantity
+        from oldest_order
+                 left join order_lines ol on ol.order_id = oldest_order.order_id
+                 left join processes p on p.task_id = ol.task_id
+                 left join stocks s on p.stock_id = s.id
+                 left join products pr on pr.id = s.product_id
+                 left join locations l on l.id = s.location_id
+        where p.status in ('ASSIGNED', 'IN_PROGRESS')
+        order by p.created_at, p.id
+        limit 1;
+    """, nativeQuery = true)
+    Optional<OperatorProcessProjection> getProcessInfoForOperator(String currentUsername);
 }

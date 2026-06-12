@@ -20,10 +20,6 @@ public class Process extends BaseTimestampEntity{
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "operator_id")
-    private User operator;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 
@@ -52,10 +48,6 @@ public class Process extends BaseTimestampEntity{
         this.stock = stock;
         this.quantity = quantity;
         this.status = status;
-    }
-
-    public Optional<User> getOperator() {
-        return Optional.ofNullable(operator);
     }
 
     @Override

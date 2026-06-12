@@ -1,21 +1,23 @@
 package com.isd.wms.service;
 
+import com.isd.wms.repository.projections.OperatorProcessProjection;
 import com.isd.wms.dto.process.ProcessOperatorResponse;
 import com.isd.wms.dto.process.ProcessResponse;
+import com.isd.wms.dto.process.ShortProcessResponse;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.mapper.ProcessMapper;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -47,7 +49,7 @@ public class ProcessService {
         Process process = getProcessById(processId);
         User operator = securityFacade.getCurrentUser();
 
-        if (process.getOperator().filter(operator::equals).isEmpty()) {
+        if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("You can only complete your own processes");
         }
 
@@ -68,13 +70,33 @@ public class ProcessService {
                 .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
     }
 
-    public List<ProcessOperatorResponse> getProcessesOperator() {
-        User operator = securityFacade.getCurrentUser();
-        Order oldestOrder = orderService.getOldestOrder(operator);
-        List<Process> processes = processRepository.findOldestProcessesByOrder(oldestOrder, operator);
-        Integer length = processes.size();
-        return processes
-            .stream()
-            .map((p) -> processMapper.toOperatorResponse(p,length)).toList();
+    public ProcessOperatorResponse getProcessesOperator() {
+        String username = securityFacade.getCurrentUsername();
+        OperatorProcessProjection info = getProcessForOperator(username);
+        Long oldestOrder = info.getOldestOrderId();
+        Integer total = processRepository.countProcessesInOrder(oldestOrder);
+        Integer current = processRepository.countCompletedProcessesInOrder(oldestOrder) + 1;
+
+        return new ProcessOperatorResponse(
+            total, current, info.getOrderName(),
+            new ShortProcessResponse(
+                info.getProcessId(),
+                info.getProductName(),
+                info.getProductBarcode(),
+                info.getLocationName(),
+                info.getLocationBarcode(),
+                info.getQuantity()
+            )
+        );
+    }
+
+    private @NonNull OperatorProcessProjection getProcessForOperator(String username) {
+        return processRepository.getProcessInfoForOperator(username)
+            .orElseThrow(() -> new ProcessesNotFoundException(username));
+    }
+
+    private @NonNull Process getOldestProcessAssignedByOrderAndOperator(Order oldestOrder, User operator) {
+        return processRepository.findOldestProcessesByOrder(oldestOrder.getId(), operator.getId())
+            .orElseThrow(() -> new ProcessesNotFoundException(operator.getUsername()));
     }
 }

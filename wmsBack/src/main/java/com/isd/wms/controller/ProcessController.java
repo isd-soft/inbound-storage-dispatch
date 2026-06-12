@@ -19,8 +19,8 @@ public class ProcessController {
     private final ProcessExecutionService processExecutionService;
 
     @GetMapping("/operators")
-    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public List<ProcessOperatorResponse> getAllProcesses() {
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ProcessOperatorResponse getAllProcesses() {
         return processService.getProcessesOperator();
     }
 

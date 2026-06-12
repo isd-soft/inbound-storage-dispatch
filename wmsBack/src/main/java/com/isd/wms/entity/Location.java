@@ -21,8 +21,11 @@ public class Location{
     @SequenceGenerator(name = "location_seq", sequenceName = "locations_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(name = "location_code", nullable = false, unique = true, length = 50)
-    private String locationCode;
+    @Column(nullable = false, unique = true, length = 50)
+    private String name;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String barcode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "zone")
@@ -34,8 +37,9 @@ public class Location{
     @Column(nullable = false)
     private Boolean available = true;
 
-    public Location(String locationCode, Zone zone, String description, Boolean available) {
-        this.locationCode = locationCode;
+    public Location(String name, String barcode, Zone zone, String description, Boolean available) {
+        this.name = name;
+        this.barcode = barcode;
         this.zone = zone;
         this.description = description;
         this.available = available;

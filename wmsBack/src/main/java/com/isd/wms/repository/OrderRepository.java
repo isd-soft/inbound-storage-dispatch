@@ -4,6 +4,7 @@ import com.isd.wms.entity.Order;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.NativeQuery;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Pageable;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -31,16 +33,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("updatedAt") Timestamp updatedAt
     );
 
-    @Query("""
-        SELECT DISTINCT o
-        FROM Order o
-        JOIN OrderLine ol ON ol.order = o
-        JOIN Process p ON p.task = ol.task
-        WHERE p.operator = :operator
-        ORDER BY o.createdAt
-    """)
-    List<Order> findOldestOrderByOperator(
-        @Param("operator") User operator,
-        Pageable pageable
+    @Query(value = """
+        SELECT o.* FROM orders o
+        JOIN order_lines ol ON o.id = ol.order_id
+        JOIN tasks t ON ol.task_id = t.id
+        WHERE t.operator_id = :operatorId
+        AND o.status LIKE 'ASSIGNED'
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<Order> findOldestOrderAssignedToOperator(
+        @Param("operatorId") Long operatorId
     );
 }

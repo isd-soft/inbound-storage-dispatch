@@ -2,10 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.Process;
-import com.isd.wms.entity.User;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -13,13 +10,9 @@ import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.ProcessRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,6 +30,7 @@ public class OrderService {
     private final OrderLineService orderLineService;
     private final UserRepository userRepository;
     private final ProcessRepository processRepository;
+    private final TaskRepository taskRepository;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -92,20 +86,18 @@ public class OrderService {
         Order order = getOrder(orderId);
         User operator = getUser(operatorId);
 
-        List<Process> processes = getProcessesAllByOrder(order);
+        List<Task> tasks = getAllTasksByOrder(order);
 
-        processes.forEach((p)-> p.setOperator(operator));
+        tasks.forEach((t)-> t.setOperator(operator));
+        taskRepository.saveAll(tasks);
     }
 
-    private List<Process> getProcessesAllByOrder(Order order) {
-        return processRepository.findAllByOrder(order);
+    private List<Task> getAllTasksByOrder(Order order) {
+        return taskRepository.findAllByOrder(order);
     }
 
-    public Order getOldestOrder(User operator) {
-        return orderRepository
-            .findOldestOrderByOperator(operator, PageRequest.of(0, 1))
-            .stream()
-            .findFirst()
+    public Order getOldestOrderAssignedToOperator(User operator) {
+        return orderRepository.findOldestOrderAssignedToOperator(operator.getId())
             .orElseThrow(() -> new OrderNotFoundException(operator.getId()));
     }
 

@@ -1,5 +1,6 @@
 package com.isd.wms.entity;
 
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,7 +30,7 @@ public class Order extends BaseTimestampEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status = Status.CREATED;
+    private OrderStatus status = OrderStatus.CREATED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_location_id", nullable = false)
