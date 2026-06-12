@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card border-none shadow-lg">
       <template #content>
         <DataTable
           :value="stockItems"
@@ -26,41 +26,52 @@
           dataKey="id"
           emptyMessage="No inventory stock found."
         >
-          <Column field="productName" header="Product" sortable></Column>
-          <Column field="sku" header="SKU" sortable></Column>
-          <Column field="locationCode" header="Location" sortable></Column>
-
-          <Column field="quantity" header="Total Qty" sortable>
+          <Column field="productName" header="Product" sortable>
             <template #body="{ data }">
-              <span class="font-bold text-gray-200">{{ data.quantity }}</span>
+              <span class="app-title font-semibold">{{ data.productName }}</span>
             </template>
           </Column>
 
+          <Column field="sku" header="SKU" sortable></Column>
+          <Column field="locationCode" header="Location" sortable></Column>
+
+          <!-- Total Qty -->
+          <Column field="quantity" header="Total Qty" sortable>
+            <template #body="{ data }">
+              <span class="app-title font-bold text-base">{{ data.quantity }}</span>
+            </template>
+          </Column>
+
+          <!-- Reserved -->
           <Column field="reservedQuantity" header="Reserved" sortable>
             <template #body="{ data }">
-              <span :class="data.reservedQuantity > 0 ? 'text-orange-400 font-bold' : 'text-gray-500'">
+              <span class="font-bold text-base" :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'">
                 {{ data.reservedQuantity || 0 }}
               </span>
             </template>
           </Column>
 
+          <!-- Available -->
           <Column field="availableQuantity" header="Available" sortable>
             <template #body="{ data }">
-              <span :class="data.availableQuantity <= 0 ? 'text-red-400 font-bold' : (data.availableQuantity < 10 ? 'text-yellow-400 font-bold' : 'text-green-400 font-bold')">
+              <span class="font-bold text-base" :class="data.availableQuantity <= 0 ? 'text-red-500' : (data.availableQuantity < 10 ? 'text-yellow-500' : 'text-green-500')">
                 {{ data.availableQuantity }}
               </span>
             </template>
           </Column>
+
           <Column field="manufactureDate" header="Manufactured" sortable>
             <template #body="{ data }">
-              <span class="text-gray-400">{{ data.manufactureDate || '-' }}</span>
+              <span class="app-muted text-sm">{{ data.manufactureDate || '-' }}</span>
             </template>
           </Column>
+
           <Column field="expirationDate" header="Expires" sortable>
             <template #body="{ data }">
-              <span class="text-gray-400">{{ data.expirationDate || '-' }}</span>
+              <span class="app-muted text-sm">{{ data.expirationDate || '-' }}</span>
             </template>
           </Column>
+
           <Column header="Actions" style="min-width:18rem">
             <template #body="{ data }">
               <div class="flex flex-wrap gap-2">
@@ -144,12 +155,7 @@ const loadInventoryData = async () => {
     products.value = productsResponse.data
     locations.value = locationsResponse.data.filter((location) => location.available !== false)
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Inventory load failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Inventory load failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
@@ -174,12 +180,7 @@ const refreshAfterAction = async () => {
 const submitAction = async (payload) => {
   const userId = currentUserId()
   if (!userId) {
-    toast.add({
-      severity: 'error',
-      summary: 'Missing user',
-      detail: 'User id is required for stock changes.',
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Missing user', detail: 'User id is required for stock changes.', life: 4000 })
     return
   }
 
@@ -188,38 +189,18 @@ const submitAction = async (payload) => {
     const requestPayload = { ...payload, userId }
     if (dialogMode.value === 'add') {
       await inventoryApi.addStock(requestPayload)
-      toast.add({
-        severity: 'success',
-        summary: 'Stock added',
-        detail: 'Inventory stock was added.',
-        life: 3000
-      })
+      toast.add({ severity: 'success', summary: 'Stock added', detail: 'Inventory stock was added.', life: 3000 })
     } else if (dialogMode.value === 'remove') {
       await inventoryApi.removeStock(requestPayload)
-      toast.add({
-        severity: 'success',
-        summary: 'Stock removed',
-        detail: 'Inventory stock was removed.',
-        life: 3000
-      })
+      toast.add({ severity: 'success', summary: 'Stock removed', detail: 'Inventory stock was removed.', life: 3000 })
     } else {
       await inventoryApi.adjustStock(requestPayload)
-      toast.add({
-        severity: 'success',
-        summary: 'Stock adjusted',
-        detail: 'Inventory quantity was updated.',
-        life: 3000
-      })
+      toast.add({ severity: 'success', summary: 'Stock adjusted', detail: 'Inventory quantity was updated.', life: 3000 })
     }
     dialogVisible.value = false
     await refreshAfterAction()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Stock action failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Stock action failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }

@@ -35,9 +35,16 @@ public class AuthController {
     @GetMapping("/verify")
     public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
         try {
-            userService.verifyEmail(token);
-            log.info("Email verified successfully for token: {}", token);
-            return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
+            boolean isVerified = userService.verifyEmail(token);
+            if (isVerified) {
+                log.info("Email verified successfully for token: {}", token);
+                return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "The verification link has expired. The unverified account has been removed. Please ask to send a new invitation."
+                ));
+            }
+
         } catch (RuntimeException e) {
             log.warn("Email verification failed: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

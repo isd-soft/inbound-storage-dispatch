@@ -51,15 +51,19 @@ public class LocationService {
         Location location = getLocation(locationId);
         String newCode = request.locationCode().trim();
 
-        if (!location.getLocationCode().equalsIgnoreCase(newCode) &&
-                locationRepository.existsByLocationCodeIgnoreCase(newCode)) {
-            throw new DuplicateLocationCodeException(newCode);
-        }
+        boolean isCodeChanged = !location.getLocationCode().equalsIgnoreCase(newCode);
+        boolean isZoneChanged = location.getZone() != request.zone();
+        boolean isAvailableChanged = location.getAvailable() != request.available();
 
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
-        if (hasProducts) {
-            log.warn("Attempt to edit occupied location ID: {}", locationId);
-            throw new IllegalStateException("Нельзя изменить параметры локации, так как на ней физически находится товар. Сначала переместите товары в другую ячейку.");
+
+        if (hasProducts && (isCodeChanged || isZoneChanged || isAvailableChanged)) {
+            log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
+            throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
+        }
+
+        if (isCodeChanged && locationRepository.existsByLocationCodeIgnoreCase(newCode)) {
+            throw new DuplicateLocationCodeException(newCode);
         }
 
         location.setLocationCode(newCode);
