@@ -37,7 +37,7 @@ public class Location{
     @Column(nullable = false)
     private Boolean available = true;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     public Location(String name, String barcode, Zone zone, String description, Boolean available) {

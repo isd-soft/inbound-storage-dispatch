@@ -56,7 +56,7 @@ class ProductServiceTest {
         ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", "Whole milk", 1L));
 
         assertThat(response.name()).isEqualTo("Milk");
-        assertThat(response.sku()).isEqualTo("MILK-1");
+        assertThat(response.barcode()).isEqualTo("MILK-1");
         assertThat(response.categoryId()).isEqualTo(1L);
     }
 
@@ -98,7 +98,7 @@ class ProductServiceTest {
         ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", "JUICE-1", null, 2L));
 
         assertThat(response.name()).isEqualTo("Juice");
-        assertThat(response.sku()).isEqualTo("JUICE-1");
+        assertThat(response.barcode()).isEqualTo("JUICE-1");
         assertThat(response.categoryId()).isEqualTo(2L);
     }
 

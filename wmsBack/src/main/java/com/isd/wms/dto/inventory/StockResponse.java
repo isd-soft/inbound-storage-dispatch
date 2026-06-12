@@ -14,11 +14,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class StockResponse {
     private Long id;
-    private String sku;
+    private String barcode;
     private Long productId;
     private String productName;
     private Long locationId;
-    private String barcode;
+    private String locationBarcode;
     private Integer quantity;
     private Integer reservedQuantity;
     private Integer availableQuantity;

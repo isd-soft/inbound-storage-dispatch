@@ -5,8 +5,8 @@ import com.isd.wms.enums.Status;
 public record ProcessResponse(
         Long id,
         String productName,
-        String Sku,
         String barcode,
+        String locationBarcode,
         Integer quantity,
         Status status) {
 }

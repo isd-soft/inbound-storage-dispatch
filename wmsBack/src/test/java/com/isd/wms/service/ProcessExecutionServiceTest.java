@@ -310,8 +310,8 @@ class ProcessExecutionServiceTest {
         return user;
     }
 
-    private Product product(Long id, String name, String sku) {
-        Product product = new Product(name, sku, null, null);
+    private Product product(Long id, String name, String barcode) {
+        Product product = new Product(name, barcode, null, null);
         ReflectionTestUtils.setField(product, "id", id);
         return product;
     }
