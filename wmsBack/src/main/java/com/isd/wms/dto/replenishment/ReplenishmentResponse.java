@@ -12,6 +12,18 @@ public record ReplenishmentResponse(
         Integer requestedQuantity,
         Status status,
         Long destinationLocationId,
+        Long assignedOperatorId,
         LocalDateTime createdAt
 ) {
+    public ReplenishmentResponse(
+            Long id,
+            Long taskId,
+            Long productId,
+            Integer requestedQuantity,
+            Status status,
+            Long destinationLocationId,
+            LocalDateTime createdAt
+    ) {
+        this(id, taskId, productId, requestedQuantity, status, destinationLocationId, null, createdAt);
+    }
 }

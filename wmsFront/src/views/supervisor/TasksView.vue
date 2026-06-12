@@ -30,7 +30,10 @@
 
           <Column header="Product" sortable>
             <template #body="slotProps">
-              <span class="font-semibold">{{ getProductName(slotProps.data.productId) }}</span>
+              <div class="flex flex-col">
+                <span class="font-semibold">{{ getProductName(slotProps.data.productId) }}</span>
+                <span class="text-xs text-gray-400 font-mono">{{ getProductSku(slotProps.data.productId) }}</span>
+              </div>
             </template>
           </Column>
 
@@ -42,7 +45,10 @@
 
           <Column header="Destination" sortable>
             <template #body="slotProps">
-              {{ getLocationName(slotProps.data.destinationLocationId) }}
+              <div class="flex flex-col">
+                <span>{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+                <span class="text-xs text-gray-400 font-mono">{{ getLocationCode(slotProps.data.destinationLocationId) }}</span>
+              </div>
             </template>
           </Column>
 
@@ -72,14 +78,14 @@
     <Dialog v-model:visible="dialogVisible" header="Create Replenishment Task" :modal="true" class="p-fluid w-full max-w-md">
       <div class="field mb-4">
         <label for="product" class="block text-sm font-medium mb-1">Product</label>
-        <Dropdown
-          id="product"
-          v-model="newTask.productId"
-          :options="products"
-          optionLabel="name"
-          optionValue="id"
-          placeholder="Select a Product"
-          filter
+          <Dropdown
+            id="product"
+            v-model="newTask.productId"
+            :options="products"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Select a Product"
+            filter
         />
       </div>
 
@@ -96,7 +102,7 @@
 
       <div class="field mb-4">
         <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
-        <Dropdown
+          <Dropdown
           id="location"
           v-model="newTask.destinationLocationId"
           :options="locations"
@@ -174,9 +180,19 @@ const getProductName = (id) => {
   return product ? product.name : `Product #${id}`
 }
 
+const getProductSku = (id) => {
+  const product = products.value.find((p) => p.id === id)
+  return product ? product.sku || product.barcode || product.code || product.productCode || '-' : '-'
+}
+
 const getLocationName = (id) => {
   const loc = locations.value.find(l => l.id === id)
-  return loc ? loc.locationCode : `Location #${id}`
+  return loc ? loc.name || loc.locationCode || loc.barcode : `Location #${id}`
+}
+
+const getLocationCode = (id) => {
+  const loc = locations.value.find((l) => l.id === id)
+  return loc ? loc.locationCode || loc.barcode || loc.code || loc.location || '-' : '-'
 }
 
 const loadData = async () => {
@@ -189,8 +205,17 @@ const loadData = async () => {
     ])
 
     tasks.value = tasksRes.data
-    products.value = productsRes.data
-    locations.value = locsRes.data.filter(l => l.available !== false) // Only show available locations
+    products.value = productsRes.data.map((product) => ({
+      ...product,
+      name: product.name || product.productName || '',
+      sku: product.sku || product.barcode || product.code || product.productCode || ''
+    }))
+    locations.value = locsRes.data
+      .filter(l => l.available !== false) // Only show available locations
+      .map((location) => ({
+        ...location,
+        locationCode: location.locationCode || location.barcode || location.code || location.location || ''
+      }))
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Load Failed', detail: getErrorMessage(error), life: 4000 })
   } finally {

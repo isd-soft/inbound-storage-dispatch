@@ -13,6 +13,11 @@ public class OrderMapper {
                 order.getLogicId(),
                 order.getDestinationLocation().getId(),
                 order.getStatus(),
+                order.getOrderLines().stream()
+                        .map(orderLine -> orderLine.getTask().getOperator().map(user -> user.getId()).orElse(null))
+                        .filter(operatorId -> operatorId != null)
+                        .findFirst()
+                        .orElse(null),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
         );

@@ -62,9 +62,10 @@
     <main v-else-if="screen === 'replenishment'" class="p-4 max-w-md mx-auto mt-4">
       <!-- Task info bar -->
       <div class="app-muted-panel rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
-        <div>
-          <span class="app-muted text-xs font-mono">Process #{{ activeProcess.id }}</span>
-          <p class="font-semibold text-sm app-title">{{ activeProcess.productName }}</p>
+          <div>
+            <span class="app-muted text-xs font-mono">Process #{{ activeProcess.id }}</span>
+          <p class="font-semibold text-sm app-title">{{ activeProcess.productName || activeProcess.product?.name }}</p>
+          <p class="text-xs app-muted font-mono">{{ activeProcess.productSku || activeProcess.sku || activeProcess.product?.barcode || activeProcess.product?.sku || activeProcess.product?.code }}</p>
           <p class="text-xs app-muted">{{ activeProcess.quantity }} units</p>
         </div>
         <Tag value="Replenishment" severity="info" />
@@ -79,20 +80,20 @@
 
       <!-- Step 0: scan source -->
       <div v-if="replStep === 0" class="app-card rounded-xl p-5 flex flex-col gap-4">
-        <div>
-          <p class="app-subtitle text-sm mb-1">Go to source location and scan:</p>
-          <p class="text-2xl font-bold font-mono app-brand">{{ activeProcess.locationCode }}</p>
-        </div>
+          <div>
+            <p class="app-subtitle text-sm mb-1">Go to source location and scan:</p>
+          <p class="text-2xl font-bold font-mono app-brand">{{ activeProcess.locationCode || activeProcess.location?.barcode || activeProcess.location?.locationCode || activeProcess.location?.code }}</p>
+          </div>
         <ScanInput :key="'r0'" @submit="onReplSource" :error="stepError" :loading="stepLoading" />
       </div>
 
       <!-- Step 1: scan product -->
       <div v-else-if="replStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
-        <div>
-          <p class="app-subtitle text-sm mb-1">Scan product barcode (SKU):</p>
-          <p class="text-xl font-bold font-mono app-warm">{{ activeProcess.productName }}</p>
+          <div>
+            <p class="app-subtitle text-sm mb-1">Scan product barcode (SKU):</p>
+          <p class="text-xl font-bold font-mono app-warm">{{ activeProcess.productSku || activeProcess.sku || activeProcess.product?.barcode || activeProcess.product?.sku || activeProcess.product?.code }}</p>
           <p class="text-xs app-muted mt-1">Qty: {{ activeProcess.quantity }} units</p>
-        </div>
+          </div>
         <ScanInput :key="'r1'" @submit="onReplProduct" :error="stepError" :loading="stepLoading" />
       </div>
 
@@ -145,14 +146,14 @@
             Picked {{ pickedQty }} of {{ activeProcess.quantity }} units
           </p>
         </div>
-        <div class="w-full app-muted-panel rounded-lg p-3 text-sm flex flex-col gap-1.5">
+          <div class="w-full app-muted-panel rounded-lg p-3 text-sm flex flex-col gap-1.5">
           <div class="flex justify-between">
             <span class="app-muted">Product</span>
-            <span class="font-semibold">{{ activeProcess.productName }}</span>
+            <span class="font-semibold">{{ activeProcess.productName || activeProcess.product?.name }}</span>
           </div>
           <div class="flex justify-between">
             <span class="app-muted">From</span>
-            <span class="font-mono app-brand">{{ activeProcess.locationCode }}</span>
+            <span class="font-mono app-brand">{{ activeProcess.locationCode || activeProcess.location?.barcode || activeProcess.location?.locationCode || activeProcess.location?.code }}</span>
           </div>
           <div class="flex justify-between">
             <span class="app-muted">To</span>
@@ -182,9 +183,9 @@
       <!-- Order info bar -->
       <div class="app-muted-panel rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
         <div>
-          <span class="app-muted text-xs font-mono">Order Task #{{ activeProcess.taskId }}</span>
+          <span class="app-muted text-xs font-mono">{{ orderLogicalId || `Process #${activeProcess.id}` }}</span>
           <p class="font-semibold text-sm app-title">Picking Order</p>
-          <p class="text-xs app-muted">{{ orderProcesses.length }} items total</p>
+          <p class="text-xs app-muted">{{ orderTotalProcesses }} items total</p>
         </div>
         <Tag value="Order" severity="warn" />
       </div>
@@ -258,17 +259,17 @@
           class="app-muted-panel rounded-xl px-4 py-2 mb-3 flex items-center justify-between text-sm"
         >
           <span class="app-subtitle"
-            >Item {{ orderLoopIdx + 1 }} of {{ orderProcesses.length }}</span
+            >Item {{ orderCurrentIndex }} of {{ orderTotalProcesses }}</span
           >
           <div class="flex gap-1.5">
             <span
-              v-for="(p, i) in orderProcesses"
-              :key="p.id"
+              v-for="i in orderTotalProcesses"
+              :key="i"
               class="w-2.5 h-2.5 rounded-full transition-all"
               :class="
-                i < orderLoopIdx
+                i < orderCurrentIndex
                   ? 'bg-[var(--status-success)]'
-                  : i === orderLoopIdx
+                  : i === orderCurrentIndex
                     ? 'bg-[var(--brand-warm)]'
                     : 'bg-[var(--border-strong)]'
               "
@@ -280,9 +281,10 @@
         <div class="app-card rounded-xl px-4 py-3 mb-4">
           <p class="app-muted text-xs mb-0.5">Current item</p>
           <p class="font-semibold app-title">{{ currentOrderProc?.productName }}</p>
+          <p class="text-xs app-muted font-mono">{{ currentOrderProc?.productSku || currentOrderProc?.sku || currentOrderProc?.product?.barcode || currentOrderProc?.product?.sku || currentOrderProc?.product?.code }}</p>
           <div class="flex gap-4 mt-1">
             <span class="text-sm app-warm font-bold">{{ currentOrderProc?.quantity }} units</span>
-            <span class="text-xs app-muted font-mono">{{ currentOrderProc?.locationCode }}</span>
+            <span class="text-xs app-muted font-mono">{{ currentOrderProc?.locationCode || currentOrderProc?.location?.barcode || currentOrderProc?.location?.locationCode || currentOrderProc?.location?.code }}</span>
           </div>
         </div>
 
@@ -294,7 +296,7 @@
           <div>
             <p class="app-subtitle text-sm mb-1">Scan source location:</p>
             <p class="text-2xl font-bold font-mono app-brand">
-              {{ currentOrderProc?.locationCode }}
+              {{ currentOrderProc?.locationCode || currentOrderProc?.location?.barcode || currentOrderProc?.location?.locationCode || currentOrderProc?.location?.code }}
             </p>
           </div>
           <ScanInput
@@ -309,7 +311,7 @@
         <div v-else-if="orderLineStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
           <div>
             <p class="app-subtitle text-sm mb-1">Scan product barcode (SKU):</p>
-            <p class="text-xl font-bold font-mono app-warm">{{ currentOrderProc?.productName }}</p>
+            <p class="text-xl font-bold font-mono app-warm">{{ currentOrderProc?.productSku || currentOrderProc?.sku || currentOrderProc?.product?.barcode || currentOrderProc?.product?.sku || currentOrderProc?.product?.code }}</p>
           </div>
           <ScanInput
             :key="'ol1-' + orderLoopIdx"
@@ -474,6 +476,9 @@ const replDestCode = ref('')
 
 const orderProcesses = ref([]) // toate procesele din același task
 const orderLoopIdx = ref(0)
+const orderTotalProcesses = ref(1)
+const orderCurrentIndex = ref(1)
+const orderLogicalId = ref('')
 const orderLineStep = ref(0) // 0=source 1=product 2=qty
 const orderAllLinesDone = ref(false)
 const orderDone = ref(false)
@@ -485,19 +490,41 @@ const pickedQty = ref(1)
 
 const currentOrderProc = computed(() => orderProcesses.value[orderLoopIdx.value] ?? null)
 
+const normalizeLocationCode = (location) => {
+  return location?.locationCode || location?.barcode || location?.code || location?.location || ''
+}
+
+const normalizeProductSku = (process) => {
+  return process?.productSku || process?.sku || process?.productBarcode || process?.product?.barcode || process?.product?.sku || process?.product?.code || process?.productCode || ''
+}
+
+const normalizeProcess = (process) => ({
+  ...process,
+  productName: process?.productName || process?.product?.name || '',
+  productSku: normalizeProductSku(process),
+  locationCode: process?.locationCode || process?.locationBarcode || normalizeLocationCode(process?.location)
+})
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 const api = {
-  getAvailable: () => apiClient.get('/processes/available'),
-  getMyProcesses: () => apiClient.get('/processes/my'),
-  assign: (id) => apiClient.patch(`/processes/${id}/assign`),
-  start: (id) => apiClient.post(`/processes/${id}/start`),
-  scanLocation: (id, barcode) => apiClient.post(`/processes/${id}/scan-location`, { barcode }),
-  scanProduct: (id, barcode) => apiClient.post(`/processes/${id}/scan-product`, { barcode }),
+  getOperatorProcess: () => apiClient.get('/v1/processes/operators'),
+  start: () => apiClient.post('/v1/processes/start'),
+  scanLocation: (id, barcode) => apiClient.post(`/v1/processes/${id}/location`, { barcode }),
+  scanProduct: (id, barcode) => apiClient.post(`/v1/processes/${id}/product`, { barcode }),
   confirmQty: (id, pickedQuantity) =>
-    apiClient.post(`/processes/${id}/confirm-quantity`, { pickedQuantity }),
-  complete: (id) => apiClient.post(`/processes/${id}/complete`),
-  getReplenishmentByTask: (taskId) => apiClient.post('/replenishments/filter', { taskId }),
-  getLocationById: (id) => apiClient.get(`/locations/${id}`),
+    apiClient.post(`/v1/processes/${id}/confirm-quantity`, { pickedQuantity }),
+  complete: (id) => apiClient.post(`/v1/processes/${id}/complete`),
+}
+
+const loadStartedProcess = async () => {
+  await api.start()
+  const operatorRes = await api.getOperatorProcess()
+  const response = operatorRes.data || {}
+  const process = normalizeProcess(response.processes || response)
+  if (!process?.id) {
+    throw new Error('No assigned process returned by backend.')
+  }
+  return { response, process }
 }
 
 // ─── START — FIFO logic ───────────────────────────────────────────────────────
@@ -507,72 +534,28 @@ const startNext = async () => {
   stepError.value = ''
 
   try {
-    // 1. Ia primul process disponibil (FIFO — primul din lista sortată după id)
-    const availRes = await api.getAvailable()
-    const available = availRes.data
-    if (!available.length) {
-      startError.value = 'No processes available right now. Check back later.'
-      return
-    }
+    const { response, process } = await loadStartedProcess()
 
-    // FIFO: sortat după id, luam primul
-    const first = available.sort((a, b) => a.id - b.id)[0]
-
-    // 2. Asignează și pornește
-    await api.assign(first.id)
-    await api.start(first.id)
-
-    // 3. Obține toate procesele mele pentru a determina task-ul complet
-    const myRes = await api.getMyProcesses()
-    const myProcesses = myRes.data
-
-    // Procesele din același task
-    const taskProcesses = myProcesses
-      .filter((p) => p.taskId === first.taskId)
-      .sort((a, b) => a.id - b.id)
-
-    // 4. Determină tipul task-ului — încearcă replenishment
-    let taskType = 'REPLENISHMENT'
-    let destLocationCode = ''
-
-    try {
-      const replRes = await api.getReplenishmentByTask(first.taskId)
-      if (replRes.data?.length > 0) {
-        taskType = 'REPLENISHMENT'
-        const repl = replRes.data[0]
-        // obține location code pentru destinație
-        try {
-          const locRes = await api.getLocationById(repl.destinationLocationId)
-          destLocationCode = locRes.data?.locationCode ?? `LOC-${repl.destinationLocationId}`
-        } catch {
-          destLocationCode = `LOC-${repl.destinationLocationId}`
-        }
-      } else {
-        taskType = 'PICKING_ORDER'
-      }
-    } catch {
-      taskType = 'PICKING_ORDER'
-    }
-
-    activeProcess.value = { ...first }
-    pickedQty.value = first.quantity
-
-    if (taskType === 'REPLENISHMENT') {
-      replStep.value = 0
-      replDestCode.value = destLocationCode
-      screen.value = 'replenishment'
-    } else {
-      orderProcesses.value = taskProcesses
+    activeProcess.value = process
+    pickedQty.value = process.quantity || 1
+    if (response.taskType === 'PICKING_ORDER') {
+      orderProcesses.value = [process]
       orderLoopIdx.value = 0
+      orderTotalProcesses.value = response.totalOfProcess || 1
+      orderCurrentIndex.value = response.currentIndexOfProcess || 1
+      orderLogicalId.value = response.orderLogicalId || ''
       orderLineStep.value = 0
       orderAllLinesDone.value = false
       orderDone.value = false
-      // Dispatch location — DISP-01 din seed, sau prima locație de tip DISPATCH
-      orderDestCode.value = 'DISP-01'
+      orderDestCode.value = response.destinationLocationBarcode || 'DISP-01'
       screen.value = 'order'
+    } else {
+      replStep.value = 0
+      replDestCode.value = response.destinationLocationBarcode || ''
+      screen.value = 'replenishment'
     }
   } catch (e) {
-    startError.value = e.response?.data?.message || 'Failed to start process'
+    startError.value = e.response?.data?.message || e.message || 'Failed to start process'
   } finally {
     starting.value = false
   }
@@ -686,17 +669,25 @@ const onOrderConfirmQty = async () => {
   stepLoading.value = true
   try {
     await api.confirmQty(currentOrderProc.value.id, pickedQty.value)
+    await api.complete(currentOrderProc.value.id)
 
-    const isLast = orderLoopIdx.value >= orderProcesses.value.length - 1
+    const isLast = orderCurrentIndex.value >= orderTotalProcesses.value
     if (isLast) {
       orderAllLinesDone.value = true
       toast.add({ severity: 'info', summary: 'All items picked! Scan destination.', life: 2000 })
     } else {
-      orderLoopIdx.value++
+      const { response, process } = await loadStartedProcess()
+      activeProcess.value = process
+      orderProcesses.value = [process]
+      orderLoopIdx.value = 0
+      orderTotalProcesses.value = response.totalOfProcess || orderTotalProcesses.value
+      orderCurrentIndex.value = response.currentIndexOfProcess || orderCurrentIndex.value + 1
+      orderLogicalId.value = response.orderLogicalId || orderLogicalId.value
+      orderDestCode.value = response.destinationLocationBarcode || orderDestCode.value
       orderLineStep.value = 0
-      pickedQty.value = currentOrderProc.value?.quantity ?? 1
+      pickedQty.value = process.quantity || 1
       stepError.value = ''
-      toast.add({ severity: 'info', summary: `Item ${orderLoopIdx.value} done. Next!`, life: 1500 })
+      toast.add({ severity: 'info', summary: `Item ${orderCurrentIndex.value - 1} done. Next!`, life: 1500 })
     }
   } catch (e) {
     stepError.value = e.response?.data?.message || 'Failed to confirm quantity'
@@ -719,9 +710,6 @@ const onOrderDestination = (barcode) => {
 const onOrderComplete = async () => {
   stepLoading.value = true
   try {
-    for (const proc of orderProcesses.value) {
-      await api.complete(proc.id)
-    }
     toast.add({ severity: 'success', summary: 'Order completed! 🎉', life: 3000 })
     resetToIdle()
   } catch (e) {
@@ -743,6 +731,9 @@ const resetToIdle = () => {
   replDestCode.value = ''
   orderProcesses.value = []
   orderLoopIdx.value = 0
+  orderTotalProcesses.value = 1
+  orderCurrentIndex.value = 1
+  orderLogicalId.value = ''
   orderLineStep.value = 0
   orderAllLinesDone.value = false
   orderDone.value = false

@@ -18,6 +18,8 @@ public class ProcessMapper {
             total,
             current,
             order,
+            process.getTask().getTaskType().name(),
+            null,
             toShortResponse(process)
         );
     }

@@ -132,8 +132,14 @@ const loadOrderCreateData = async () => {
       orderApi.getProducts(),
       orderApi.getLocationsForDispatch(),
     ])
-    products.value = productsResponse.data
-    locations.value = locationsResponse.data
+    products.value = (productsResponse.data || []).map((product) => ({
+      ...product,
+      sku: product.sku || product.barcode || product.code || product.productCode || ''
+    }))
+    locations.value = (locationsResponse.data || []).map((location) => ({
+      ...location,
+      locationCode: location.locationCode || location.barcode || location.code || location.location || ''
+    }))
   } catch (error) {
     toast.add({
       severity: 'error',

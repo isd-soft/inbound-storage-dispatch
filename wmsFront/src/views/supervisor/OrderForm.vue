@@ -66,6 +66,19 @@
               <Tag :severity="getStatusSeverity(data.order.status || data.order.Status)" :value="data.order.status || data.order.Status || 'CREATED'" />
             </template>
           </Column>
+          <Column header="Assign Operator" style="min-width: 14rem">
+            <template #body="{ data }">
+              <Dropdown
+                v-model="assignmentByOrderId[data.order.id]"
+                :options="operators"
+                optionLabel="username"
+                optionValue="id"
+                placeholder="Select operator"
+                class="w-full"
+                @change="assignOrderToOperator(data.order.id, assignmentByOrderId[data.order.id])"
+              />
+            </template>
+          </Column>
           <Column field="order.createdAt" header="Created" sortable>
             <template #body="{ data }">
               {{ formatDate(data.order.createdAt) }}
@@ -200,11 +213,13 @@ import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Select from 'primevue/select'
+import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 import { orderApi } from '@/api/orderApi.js'
+import { userApi } from '@/api/userApi'
 
 const toast = useToast()
 
@@ -212,6 +227,7 @@ const orders = ref([])
 const expandedRows = ref({})
 const products = ref([])
 const locations = ref([])
+const operators = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const loadError = ref('')
@@ -242,6 +258,9 @@ const loadOrders = async () => {
   try {
     const response = await orderApi.getAll()
     orders.value = (response.data || []).map(normalizeOrder)
+    orders.value.forEach((entry) => {
+      assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
+    })
   } catch (error) {
     orders.value = []
     loadError.value = getErrorMessage(error)
@@ -251,13 +270,21 @@ const loadOrders = async () => {
 }
 
 const loadOrderCreateData = async () => {
-  const [productsResponse, locationsResponse] = await Promise.all([
+  const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
     orderApi.getProducts(),
-    orderApi.getLocationsForDispatch()
+    orderApi.getLocationsForDispatch(),
+    userApi.getAll()
   ])
 
-  products.value = productsResponse.data || []
-  locations.value = locationsResponse.data || []
+  products.value = (productsResponse.data || []).map((product) => ({
+    ...product,
+    sku: product.sku || product.barcode || product.code || product.productCode || ''
+  }))
+  locations.value = (locationsResponse.data || []).map((location) => ({
+    ...location,
+    locationCode: location.locationCode || location.barcode || location.code || location.location || ''
+  }))
+  operators.value = (usersResponse.data || []).filter((user) => user.userRole === 'ROLE_OPERATOR')
 }
 
 const resetForm = () => {
@@ -352,7 +379,20 @@ const toggleOrderExpansion = (order) => {
 
 const getLocationLabel = (locationId) => {
   const location = locations.value.find((item) => Number(item.id) === Number(locationId))
-  return location?.locationCode || locationId || '-'
+  return location?.locationCode || location?.barcode || locationId || '-'
+}
+
+const assignmentByOrderId = reactive({})
+
+const assignOrderToOperator = async (orderId, operatorId) => {
+  if (!operatorId) return
+  try {
+    await orderApi.assign(orderId, operatorId)
+    toast.add({ severity: 'success', summary: 'Order assigned', detail: `Order #${orderId} assigned to operator.`, life: 3000 })
+    await loadOrders()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+  }
 }
 
 const getStatusSeverity = (status) => {

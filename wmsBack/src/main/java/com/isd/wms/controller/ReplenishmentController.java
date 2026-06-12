@@ -54,4 +54,9 @@ public class ReplenishmentController {
     public ResponseEntity<List<ReplenishmentResponse>> searchReplenishments(@ModelAttribute ReplenishmentSearchRequest request) {
         return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
     }
+
+    @PostMapping("/search")
+    public ResponseEntity<List<ReplenishmentResponse>> searchReplenishmentsFromBody(@RequestBody ReplenishmentSearchRequest request) {
+        return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
+    }
 }
