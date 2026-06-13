@@ -26,7 +26,7 @@ public class ReplenishmentController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ReplenishmentResponse> createReplenishment(@Valid @RequestBody ReplenishmentCreateRequest request) {
-        log.info("REST request to create Replenishment: Product ID = {}, Request. Qty: {}, to Location ID: {}", request.productId(), request.requestedQuantity, request.destinationLocationId);
+        log.info("REST request to create Replenishment: Product ID = {}, Request. Qty: {}, to Location ID: {}", request.productId(), request.requestedQuantity(), request.destinationLocationId());
         return ResponseEntity.status(HttpStatus.CREATED).body(replenishmentService.createReplenishment(request));
     }
 

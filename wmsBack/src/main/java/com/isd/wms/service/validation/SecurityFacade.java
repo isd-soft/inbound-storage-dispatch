@@ -35,7 +35,7 @@ public class SecurityFacade {
         return userRepository.findByUsername(username)
             .orElseThrow(() -> {
                 log.error("CRITICAL: Authenticated user '{}' found in JWT, but does not exist in the database!", username);
-                return new UserNotFoundException(username));
+                return new UserNotFoundException(username);
             });
     }
 

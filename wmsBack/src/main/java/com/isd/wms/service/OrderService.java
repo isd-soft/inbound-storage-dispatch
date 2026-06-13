@@ -67,14 +67,13 @@ public class OrderService {
 
         Order order = getOrder(id);
         String oldLogicId = order.getLogicId();
-        Status oldStatus = order.getStatus();
 
         order.setLogicId(request.logicId());
         order.setStatus(request.status());
 
         Order savedOrder = orderRepository.save(order);
-        log.info("Order ID: {} successfully updated. Logic ID: '{}' -> '{}', Status: {} -> {}",
-            id, oldLogicId, savedOrder.getLogicId(), oldStatus, savedOrder.getStatus());
+        log.info("Order ID: {} successfully updated. Logic ID: '{}' -> '{}', New Status: {}",
+            id, oldLogicId, savedOrder.getLogicId(), savedOrder.getStatus());
 
         return orderMapper.toResponse(savedOrder);
     }
