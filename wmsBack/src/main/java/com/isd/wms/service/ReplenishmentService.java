@@ -32,8 +32,7 @@ public class ReplenishmentService {
     private final WorkflowService workflowService;
     private final TaskService taskService;
 
-    private static final List<Status> TERMINAL_STATUSES = List.of(
-            Status.COMPLETED);
+    private static final List<Status> TERMINAL_STATUSES = List.of(Status.COMPLETED);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
@@ -66,7 +65,6 @@ public class ReplenishmentService {
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
 
         if (isProductChanged || isLocationChanged) {
-            validateDestinationStockForReplenishment(product, destinationLocation);
             validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), id);
         }
 
@@ -123,23 +121,6 @@ public class ReplenishmentService {
                 productId, locationId);
             throw new InvalidRequestException("An active replenishment task for this product and destination location already exists.");
         }
-    }
-
-    private void validateDestinationStockForReplenishment(Product product, Location location) {
-        stockRepository.findByProductAndLocation(product, location)
-            .ifPresent(stock -> {
-                int allowedThreshold = Boolean.TRUE.equals(product.getAutoReplenish()) && product.getMinThreshold() != null
-                    ? product.getMinThreshold() : 0;
-
-                if (stock.getQuantity() > allowedThreshold) {
-                    log.warn("Replenishment rejected: location {} currently has {} pcs of product ID {} (Threshold is {})",
-                        location.getBarcode(), stock.getQuantity(), product.getId(), allowedThreshold);
-                    throw new InvalidRequestException(
-                        String.format("Replenishment is allowed only when current stock is below threshold (%d). Location %s currently has %d pcs.",
-                            allowedThreshold, location.getBarcode(), stock.getQuantity())
-                    );
-                }
-            });
     }
 
     @Transactional

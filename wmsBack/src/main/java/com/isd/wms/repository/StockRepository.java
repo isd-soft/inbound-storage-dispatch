@@ -29,5 +29,4 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
               AND (s.quantity - s.reservedQuantity) > 0
             """)
     List<Stock> findAvailableStocksByProductIdAndZone(@Param("productId") Long productId, @Param("zone") Zone zone);
-
 }
