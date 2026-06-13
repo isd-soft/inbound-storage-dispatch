@@ -1,6 +1,7 @@
 package com.isd.wms.dto.order;
 
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;

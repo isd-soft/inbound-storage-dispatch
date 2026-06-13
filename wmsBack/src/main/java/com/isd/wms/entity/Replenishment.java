@@ -1,6 +1,6 @@
 package com.isd.wms.entity;
 
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -32,13 +32,13 @@ public class Replenishment extends BaseTimestampEntity{
 
     @Enumerated(EnumType.STRING)
     @NonNull
-    private ReplenishmentStatus status = ReplenishmentStatus.CREATED;
+    private Status status = Status.CREATED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
 
-    public Replenishment(Product product, Task task, Integer requestedQuantity, ReplenishmentStatus status, Location destinationLocation) {
+    public Replenishment(Product product, Task task, Integer requestedQuantity, Status status, Location destinationLocation) {
         this.product = product;
         this.task = task;
         this.requestedQuantity = requestedQuantity;

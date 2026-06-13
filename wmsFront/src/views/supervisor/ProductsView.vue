@@ -72,8 +72,8 @@
               <Tag severity="info" :value="categoryName(slotProps.data.categoryId)" />
             </template>
           </Column>
-          <Column field="sku" header="SKU" sortable></Column>
-
+          <Column field="barcode" header="Barcode" sortable></Column>
+          
           <Column header="Auto Replenish">
             <template #body="slotProps">
               <div v-if="slotProps.data.autoReplenish" class="flex flex-col">
@@ -118,12 +118,12 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="productSku" class="app-subtitle font-medium">SKU *</label>
+            <label for="productBarcode" class="app-subtitle font-medium">Barcode *</label>
             <div class="flex gap-2">
-              <InputText id="productSku" v-model.trim="form.sku" placeholder="Product SKU" class="w-full" />
-              <Button icon="pi pi-camera" severity="secondary" outlined aria-label="Scan SKU barcode" type="button" @click="scannerVisible = true" />
+              <InputText id="productBarcode" v-model.trim="form.barcode" placeholder="Product Barcode" class="w-full" />
+              <Button icon="pi pi-camera" severity="secondary" outlined aria-label="Scan barcode" type="button" @click="scannerVisible = true" />
             </div>
-            <small v-if="submitted && !form.sku" class="text-red-500">SKU is required.</small>
+            <small v-if="submitted && !form.barcode" class="text-red-500">Barcode is required.</small>
           </div>
         </div>
 
@@ -170,9 +170,9 @@
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="scannerVisible" header="Scan SKU Barcode" modal class="w-full max-w-lg">
-      <BarcodeScanner @detected="handleSkuDetected" />
-      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The SKU field will be filled automatically after detection.</p>
+    <Dialog v-model:visible="scannerVisible" header="Scan Barcode" modal class="w-full max-w-lg">
+      <BarcodeScanner @detected="handleBarcodeDetected" />
+      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The barcode field will be filled automatically after detection.</p>
     </Dialog>
 
     <Dialog v-model:visible="categoryDialogVisible" header="Create Category" modal class="w-full max-w-md" @hide="resetCategoryForm">
@@ -236,7 +236,7 @@ const filters = reactive({
 
 const form = reactive({
   name: '',
-  sku: '',
+  barcode: '',
   description: '',
   categoryId: null,
   autoReplenish: false,
@@ -287,12 +287,7 @@ const applySearch = async () => {
     const response = await productApi.searchProducts({ ...(name ? { name } : {}), ...(categoryId ? { categoryId } : {}) })
     products.value = response.data
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Search failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Search failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
@@ -320,7 +315,7 @@ const openEditDialog = (product) => {
   dialogMode.value = 'edit'
   selectedProductId.value = product.id
   form.name = product.name || ''
-  form.sku = product.sku || ''
+  form.barcode = product.barcode || ''
   form.description = product.description || ''
   form.categoryId = product.categoryId || null
   form.autoReplenish = product.autoReplenish || false
@@ -337,7 +332,7 @@ const closeDialog = () => {
 
 const resetForm = () => {
   form.name = ''
-  form.sku = ''
+  form.barcode = ''
   form.description = ''
   form.categoryId = null
   form.autoReplenish = false
@@ -351,15 +346,10 @@ const resetCategoryForm = () => {
   categorySubmitted.value = false
 }
 
-const handleSkuDetected = (sku) => {
-  form.sku = sku
+const handleBarcodeDetected = (barcode) => {
+  form.barcode = barcode
   scannerVisible.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Barcode scanned',
-    detail: `SKU set to ${sku}`,
-    life: 2500
-  })
+  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `Barcode set to ${barcode}`, life: 2500 })
 }
 
 const submitCategory = async () => {
@@ -372,19 +362,9 @@ const submitCategory = async () => {
     await loadCategories()
     form.categoryId = response.data?.id ?? form.categoryId
     categoryDialogVisible.value = false
-    toast.add({
-      severity: 'success',
-      summary: 'Category created',
-      detail: response.data?.name || categoryForm.name,
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Category created', detail: response.data?.name || categoryForm.name, life: 3000 })
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Category creation failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Category creation failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     categoryLoading.value = false
   }
@@ -392,16 +372,14 @@ const submitCategory = async () => {
 
 const submitProduct = async () => {
   submitted.value = true
-
-  // Дополнительная валидация для автопополнения
+  
   const isAutoValid = !form.autoReplenish || (form.minThreshold !== null && form.replenishQty !== null && form.replenishQty > 0)
-
-  if (!form.name || !form.sku || !form.categoryId || !isAutoValid) return
+  if (!form.name || !form.barcode || !form.categoryId || !isAutoValid) return
 
   actionLoading.value = true
   const payload = {
     name: form.name,
-    sku: form.sku,
+    barcode: form.barcode,
     description: form.description || null,
     categoryId: form.categoryId,
     autoReplenish: form.autoReplenish,
@@ -420,12 +398,7 @@ const submitProduct = async () => {
     dialogVisible.value = false
     await applySearch()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Save failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     actionLoading.value = false
   }
@@ -448,12 +421,7 @@ const deleteProduct = async (product) => {
     toast.add({ severity: 'success', summary: 'Product deleted', detail: product.name, life: 3000 })
     await applySearch()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Delete failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     actionLoading.value = false
   }
@@ -464,12 +432,7 @@ onMounted(async () => {
   try {
     await Promise.all([loadCategories(), loadProducts()])
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Products setup failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Products setup failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }

@@ -92,7 +92,7 @@ const SidebarNavigation = defineComponent({
             {
               key: item.to,
               to: item.to,
-              exactActiveClass: item.exact ? 'app-nav-link-active' : undefined,
+              exactActiveClass: 'app-nav-link-active',
               activeClass: 'app-nav-link-active',
               class: 'app-nav-link p-3 rounded-lg transition flex items-center gap-3',
               onClick: () => emit('navigate')

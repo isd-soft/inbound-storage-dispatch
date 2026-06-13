@@ -26,23 +26,20 @@
           dataKey="id"
           emptyMessage="No inventory stock found."
         >
-          <Column field="productName" header="Product" sortable>
+<Column field="productName" header="Product" sortable>
             <template #body="{ data }">
               <span class="app-title font-semibold">{{ data.productName }}</span>
             </template>
           </Column>
 
-          <Column field="sku" header="SKU" sortable></Column>
-          <Column field="locationCode" header="Location" sortable></Column>
-
-          <!-- Total Qty -->
+          <Column field="barcode" header="SKU" sortable></Column>
+          <Column field="locationBarcode" header="Location" sortable></Column>
           <Column field="quantity" header="Total Qty" sortable>
             <template #body="{ data }">
               <span class="app-title font-bold text-base">{{ data.quantity }}</span>
             </template>
           </Column>
 
-          <!-- Reserved -->
           <Column field="reservedQuantity" header="Reserved" sortable>
             <template #body="{ data }">
               <span class="font-bold text-base" :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'">

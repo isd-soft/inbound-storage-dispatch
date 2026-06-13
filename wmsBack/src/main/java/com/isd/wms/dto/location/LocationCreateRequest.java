@@ -4,8 +4,9 @@ import com.isd.wms.enums.Zone;
 import jakarta.validation.constraints.NotBlank;
 
 public record LocationCreateRequest (
+        String name,
         @NotBlank(message = "Location code is required")
-        String locationCode,
+        String barcode,
         Zone zone,
         String description
 ) {}

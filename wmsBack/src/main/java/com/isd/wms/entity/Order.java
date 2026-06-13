@@ -1,6 +1,7 @@
 package com.isd.wms.entity;
 
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -19,6 +20,10 @@ public class Order extends BaseTimestampEntity{
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_gen")
     @SequenceGenerator(name = "order_gen", sequenceName = "orders_sequence", allocationSize = 1)
     private Long id;
+
+    public Order(String logicId) {
+        this.logicId = logicId;
+    }
 
     @Column(name = "logic_id", nullable = false, unique = true)
     private String logicId;

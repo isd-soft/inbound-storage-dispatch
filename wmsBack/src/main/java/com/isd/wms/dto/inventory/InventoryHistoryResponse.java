@@ -16,13 +16,13 @@ public class InventoryHistoryResponse {
     private Long id;
     private Long productId;
     private String productName;
-    private String sku;
+    private String barcode;
     private Integer alteredQuantity;
     private Integer quantityAfterChange;
     private Long sourceLocationId;
-    private String sourceLocationCode;
+    private String sourceBarcode;
     private Long destinationLocationId;
-    private String destinationLocationCode;
+    private String destinationBarcode;
     private String operationType;
     private LocalDateTime timestamp;
     private Long userId;

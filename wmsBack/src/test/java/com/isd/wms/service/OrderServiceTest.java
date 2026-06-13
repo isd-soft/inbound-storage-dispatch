@@ -4,12 +4,12 @@ import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Order;
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.OrderRepository;
+import com.isd.wms.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +28,9 @@ class OrderServiceTest {
     private ExtendedOrderMapper extendedOrderMapper;
     private OrderLineService orderLineService;
     private OrderService orderService;
+    private UserRepository userRepository;
+    private ProcessRepository processRepository;
+    private TaskRepository taskRepository;
 
     @BeforeEach
     void setUp() {
@@ -36,7 +39,10 @@ class OrderServiceTest {
         orderMapper = mock(OrderMapper.class);
         extendedOrderMapper = mock(ExtendedOrderMapper.class);
         orderLineService = mock(OrderLineService.class);
-        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService);
+        userRepository = mock(UserRepository.class);
+        processRepository = mock(ProcessRepository.class);
+        taskRepository = mock(TaskRepository.class);
+        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, userRepository, processRepository, taskRepository);
     }
 
     private Order orderWithId(Long id, String logicId) {
@@ -55,7 +61,7 @@ class OrderServiceTest {
 
     @Test
     void addOrder_validRequest_savesAndReturnsOrder() {
-        OrderCreateRequest request = new OrderCreateRequest("LOGIC-001", 1L, List.of());
+        OrderCreateRequest request = new OrderCreateRequest("LOGIC-001", 1L);
         Order saved = orderWithId(1L, "LOGIC-001");
         when(orderRepository.save(any(Order.class))).thenReturn(saved);
 
@@ -68,9 +74,9 @@ class OrderServiceTest {
 
     @Test
     void addExtendedOrder_withLines_savesOrderAndDelegatesLines() {
-        OrderLineCreateRequest lineRequest = new OrderLineCreateRequest(null, 1L, 1L, 5);
+        OrderLineCreateRequest lineRequest = new OrderLineCreateRequest(null, 1L, 5);
         ExtendedOrderCreateRequest request = new ExtendedOrderCreateRequest(
-                new OrderCreateRequest("LOGIC-001", 1L, List.of()),
+                new OrderCreateRequest("LOGIC-001", 1L),
                 List.of(lineRequest)
         );
         Order saved = orderWithId(1L, "LOGIC-001");
@@ -88,7 +94,7 @@ class OrderServiceTest {
     @Test
     void addExtendedOrder_noLines_neverCallsOrderLineService() {
         ExtendedOrderCreateRequest request = new ExtendedOrderCreateRequest(
-                new OrderCreateRequest("LOGIC-001", 1L, List.of()),
+                new OrderCreateRequest("LOGIC-001", 1L),
                 List.of()
         );
         Order saved = orderWithId(1L, "LOGIC-001");
@@ -119,7 +125,7 @@ class OrderServiceTest {
 
     @Test
     void updateOrder_statusNotCreated_throwsInvalidRequestException() {
-        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.IN_PROCESS);
+        OrderUpdateRequest request = new OrderUpdateRequest("LOGIC-002", 1L, OrderStatus.IN_PROGRESS);
 
         assertThatThrownBy(() -> orderService.updateOrder(1L, request))
                 .isInstanceOf(InvalidRequestException.class)

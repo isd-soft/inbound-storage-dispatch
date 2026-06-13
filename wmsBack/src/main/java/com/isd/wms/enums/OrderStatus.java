@@ -3,7 +3,8 @@ package com.isd.wms.enums;
 public enum OrderStatus {
     CREATED,
     ASSIGNED,
-    IN_PROCESS,
+    IN_PROGRESS,
+    PICKED,
     COMPLETED,
     CANCELED
 }

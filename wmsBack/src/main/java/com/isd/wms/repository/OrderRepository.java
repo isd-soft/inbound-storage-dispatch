@@ -1,14 +1,16 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.NativeQuery;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Pageable;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,4 +35,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("updatedAt") LocalDateTime updatedAt
     );
 
+    @Query(value = """
+        SELECT o.* FROM orders o
+        JOIN order_lines ol ON o.id = ol.order_id
+        JOIN tasks t ON ol.task_id = t.id
+        WHERE t.operator_id = :operatorId
+        AND o.status LIKE 'ASSIGNED'
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<Order> findOldestOrderAssignedToOperator(
+        @Param("operatorId") Long operatorId
+    );
 }

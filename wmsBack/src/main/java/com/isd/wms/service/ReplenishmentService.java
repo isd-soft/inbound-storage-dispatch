@@ -6,6 +6,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
@@ -34,6 +35,8 @@ public class ReplenishmentService {
 
     private static final List<ReplenishmentStatus> TERMINAL_STATUSES = List.of(
         ReplenishmentStatus.COMPLETED);
+    private static final List<Status> TERMINAL_STATUSES = List.of(
+            Status.COMPLETED);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
@@ -96,7 +99,7 @@ public class ReplenishmentService {
 
             if (!hasActive) {
                 log.info("Auto-triggering replenishment for product {} at location {} (Location Qty: {}, Threshold: {})",
-                    product.getSku(), location.getLocationCode(), locationQty, product.getMinThreshold());
+                    product.getSku(), location.getBarcode(), locationQty, product.getMinThreshold());
 
                 ReplenishmentCreateRequest req = new ReplenishmentCreateRequest(
                     product.getId(), product.getReplenishQty(), location.getId()
@@ -134,10 +137,10 @@ public class ReplenishmentService {
 
                 if (stock.getQuantity() > allowedThreshold) {
                     log.warn("Replenishment rejected: location {} currently has {} pcs of product ID {} (Threshold is {})",
-                        location.getLocationCode(), stock.getQuantity(), product.getId(), allowedThreshold);
+                        location.getBarcode(), stock.getQuantity(), product.getId(), allowedThreshold);
                     throw new InvalidRequestException(
                         String.format("Replenishment is allowed only when current stock is below threshold (%d). Location %s currently has %d pcs.",
-                            allowedThreshold, location.getLocationCode(), stock.getQuantity())
+                            allowedThreshold, location.getBarcode(), stock.getQuantity())
                     );
                 }
             });
