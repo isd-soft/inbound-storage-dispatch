@@ -178,14 +178,14 @@ public class InventoryService {
     ) {
         Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
-            product,
-            product == null ? null : product.getSku(),
-            alteredQuantity,
-            quantityAfterChange,
-            sourceLocation,
-            destinationLocation,
-            operationType,
-            user
+                product,
+                product == null ? null : product.getBarcode(),
+                alteredQuantity,
+                quantityAfterChange,
+                sourceLocation,
+                destinationLocation,
+                operationType,
+                user
         );
         history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);

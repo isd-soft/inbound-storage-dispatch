@@ -7,6 +7,7 @@ import com.isd.wms.enums.Zone;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +20,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     Optional<Stock> findByProductIdAndLocationId(Long productId, Long locationId);
 
-    boolean existsByLocationIdAndQuantityGreaterThan(Long LocationCode, Integer quantity);
+    boolean existsByLocationIdAndQuantityGreaterThan(Long locationId, Integer quantity);
 
     @Query("""
             SELECT s FROM Stock s
@@ -27,4 +28,6 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
               AND s.location.zone = :zone
               AND (s.quantity - s.reservedQuantity) > 0
             """)
-    List<Stock> findAvailableStocksByProductIdAndZone(@Param("productId") Long productId, @Param("zone") Zone zone);}
+    List<Stock> findAvailableStocksByProductIdAndZone(@Param("productId") Long productId, @Param("zone") Zone zone);
+
+}

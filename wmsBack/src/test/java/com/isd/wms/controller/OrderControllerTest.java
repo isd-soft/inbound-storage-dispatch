@@ -5,6 +5,7 @@ import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.GlobalExceptionHandler;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.service.OrderService;
@@ -149,7 +150,7 @@ class OrderControllerTest {
     @WithMockUser(roles = "SUPERVISOR")
     void createOrder_validRequest_returns201() throws Exception {
         ExtendedOrderCreateRequest request = new ExtendedOrderCreateRequest(
-                new OrderCreateRequest("LOGIC-001", 1L, new ArrayList<OrderLineCreateRequest>()), List.of()
+                new OrderCreateRequest("LOGIC-001", 1L), new ArrayList<OrderLineCreateRequest>()
         );
         OrderResponse response = new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null);
         when(orderService.addExtendedOrder(any(ExtendedOrderCreateRequest.class))).thenReturn(response);

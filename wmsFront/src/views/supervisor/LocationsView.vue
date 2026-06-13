@@ -28,9 +28,9 @@
         >
           <Column field="id" header="ID" sortable style="width: 5rem"></Column>
 
-          <Column field="locationCode" header="Code" sortable>
+          <Column field="barcode" header="Code" sortable>
             <template #body="{ data }">
-              <span class="app-title font-bold text-primary">{{ data.locationCode }}</span>
+              <span class="app-title font-bold text-primary">{{ data.barcode }}</span>
             </template>
           </Column>
 
@@ -44,8 +44,10 @@
 
           <Column header="Status" sortable>
             <template #body="{ data }">
-              <Tag :severity="data.available ? 'success' : 'danger'"
-                   :value="data.available ? 'AVAILABLE' : 'DISABLED'" />
+              <Tag
+                :severity="data.available ? 'success' : 'danger'"
+                :value="data.available ? 'AVAILABLE' : 'DISABLED'"
+              />
             </template>
           </Column>
 
@@ -64,8 +66,8 @@
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? 'Edit Location' : 'Create Location'" :modal="true" class="w-full max-w-md">
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
-          <label for="locationCode" class="app-subtitle font-medium">Location Code <span class="text-red-500">*</span></label>
-          <InputText id="locationCode" v-model="formData.locationCode" placeholder="e.g., PICK-A-01" required autofocus class="w-full" />
+          <label for="barcode" class="app-subtitle font-medium">Location Code <span class="text-red-500">*</span></label>
+          <InputText id="barcode" v-model="formData.barcode" placeholder="e.g., PICK-A-01" required autofocus class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -123,16 +125,16 @@ const isEditing = ref(false)
 
 const formData = ref({
   id: null,
-  locationCode: '',
+  barcode: '',
   zone: null,
   description: '',
-  available: true
+  available: true,
 })
 
 const zones = ref(['PICKING', 'REPLENISHMENT', 'DISPATCH'])
 
 const isFormValid = computed(() => {
-  return formData.value.locationCode?.trim() && formData.value.zone
+  return formData.value.barcode?.trim() && formData.value.zone
 })
 
 const loadLocations = async () => {
@@ -149,7 +151,7 @@ const loadLocations = async () => {
 
 const openCreateDialog = () => {
   isEditing.value = false
-  formData.value = { id: null, locationCode: '', zone: null, description: '', available: true }
+  formData.value = { id: null, barcode: '', zone: null, description: '', available: true }
   dialogVisible.value = true
 }
 
@@ -163,10 +165,11 @@ const saveLocation = async () => {
   actionLoading.value = true
   try {
     const payload = {
-      locationCode: formData.value.locationCode,
+      name: formData.value.barcode,
+      barcode: formData.value.barcode,
       zone: formData.value.zone,
       description: formData.value.description,
-      available: formData.value.available
+      available: formData.value.available,
     }
 
     if (isEditing.value) {
@@ -188,7 +191,7 @@ const saveLocation = async () => {
 
 const confirmDelete = (location) => {
   confirm.require({
-    message: `Are you sure you want to delete ${location.locationCode}?`,
+    message: `Are you sure you want to delete ${location.barcode}?`,
     header: 'Confirm Deletion',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',

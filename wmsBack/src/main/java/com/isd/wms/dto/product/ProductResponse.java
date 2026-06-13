@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public record ProductResponse(
     Long id,
     String name,
-    String sku,
+    String barcode,
     String description,
     Long categoryId,
     Boolean autoReplenish,

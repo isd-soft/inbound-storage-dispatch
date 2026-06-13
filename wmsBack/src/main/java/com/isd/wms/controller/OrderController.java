@@ -60,6 +60,12 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{orderId}/operators/{operatorId}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> assignOrder(@PathVariable Long orderId, @PathVariable Long operatorId) {
+        orderService.assignOrder(orderId, operatorId);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/filter")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")

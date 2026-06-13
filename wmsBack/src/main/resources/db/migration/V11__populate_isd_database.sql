@@ -11,7 +11,7 @@ VALUES
     (3, 'Household'),
     (4, 'Pharmacy');
 
-INSERT INTO products (id, name, SKU, description, category_id)
+INSERT INTO products (id, name, barcode, description, category_id)
 VALUES
     (1, 'Wireless Scanner', 'SCN-WLS-001', 'Handheld barcode scanner for warehouse operations', 1),
     (2, 'Thermal Label Roll', 'LBL-100X150', '100x150 mm thermal labels for shipping and inventory', 1),
@@ -20,7 +20,7 @@ VALUES
     (5, 'Paper Towels', 'TOWELS-12R', 'Absorbent paper towels, 12 rolls per case', 3),
     (6, 'Hand Sanitizer', 'SAN-500ML', 'Alcohol-based hand sanitizer, 500 ml bottle', 4);
 
-INSERT INTO locations (id, location_code, zone, description, available)
+INSERT INTO locations (id, barcode, zone, description, available)
 VALUES
     (1, 'A-01-01', 'A', 'Receiving buffer rack A-01-01', true),
     (2, 'A-01-02', 'A', 'Receiving buffer rack A-01-02', true),
@@ -44,7 +44,7 @@ VALUES
 INSERT INTO inventory_history (
     id,
     product_id,
-    SKU,
+    barcode,
     altered_quantity,
     quantity_after_change,
     source_location_id,

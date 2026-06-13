@@ -2,8 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.entity.*;
 import com.isd.wms.entity.Process;
-import com.isd.wms.enums.ProcessStatus;
-import com.isd.wms.enums.ReplenishmentStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
@@ -70,7 +69,7 @@ public class WorkflowService {
 
             int quantityToTake = Math.min(available, qtyNeeded);
 
-            Process process = new Process(task, stock, quantityToTake, ProcessStatus.CREATED);
+            Process process = new Process(task, stock, quantityToTake, Status.CREATED);
             processes.add(process);
 
             stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
@@ -110,7 +109,7 @@ public class WorkflowService {
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()
-            .allMatch(p -> p.getStatus() == ProcessStatus.COMPLETED || p.getId().equals(process.getId()));
+                .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
 
         if (isTaskFullyCompleted) {
             task.setStatus(TaskStatus.COMPLETED);
@@ -119,7 +118,7 @@ public class WorkflowService {
             if (task.getTaskType() == TaskType.REPLENISHMENT) {
                 Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
                     .orElseThrow(() -> new RuntimeException("Replenishment not found"));
-                replenishment.setStatus(ReplenishmentStatus.COMPLETED);
+                replenishment.setStatus(Status.COMPLETED);
                 replenishmentRepository.save(replenishment);
             }
         }

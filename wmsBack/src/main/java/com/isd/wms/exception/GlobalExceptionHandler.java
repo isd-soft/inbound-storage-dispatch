@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             DuplicateCategoryNameException.class,
             CategoryInUseException.class,
-            DuplicateLocationCodeException.class
+            DuplicateBarcodeException.class
     })
     public ResponseEntity<ApiErrorResponse> handleConflict(RuntimeException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), Map.of());

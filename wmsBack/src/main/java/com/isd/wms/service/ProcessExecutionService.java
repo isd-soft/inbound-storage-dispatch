@@ -4,16 +4,16 @@ import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.ProcessStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.OrderLineRepository;
@@ -23,6 +23,8 @@ import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
 import java.util.List;
+
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -43,40 +45,29 @@ public class ProcessExecutionService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final InventoryService inventoryService;
+    private final SecurityFacade securityFacade;
 
     public List<ProcessExecutionResponse> getAssignedProcesses() {
         User operator = getCurrentUser();
         return processRepository.findByOperatorAndStatuses(
-                        operator, List.of(ProcessStatus.ASSIGNED, ProcessStatus.IN_PROGRESS))
+                        operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional
-    public ProcessExecutionResponse startProcess(Long processId) {
-        log.info("Starting process {}", processId);
-        Process process = getAssignedProcess(processId);
-
-        if (process.getStatus() == ProcessStatus.COMPLETED) {
-            throw new InvalidRequestException("Process is already completed");
-        }
-        if (process.getStatus() == ProcessStatus.CANCELED) {
-            throw new InvalidRequestException("Process is cancelled");
-        }
-        if (process.getStatus() != ProcessStatus.ASSIGNED && process.getStatus() != ProcessStatus.CREATED) {
-            throw new InvalidRequestException("Process cannot be started from status " + process.getStatus());
-        }
-
-        process.setStatus(ProcessStatus.IN_PROGRESS);
-        return toResponse(processRepository.save(process));
+    public Long startProcess() {
+        String currentUsername = securityFacade.getCurrentUsername();
+        return processRepository.findOldestAssignedProcessId(currentUsername)
+            .orElseThrow(() -> new ProcessesNotFoundException(currentUsername));
     }
 
     @Transactional
     public ProcessExecutionResponse scanSourceLocation(Long processId, BarcodeScanRequest request) {
         Process process = getAssignedProcessInProgress(processId);
         String barcode = request.barcode().trim();
-        String expectedBarcode = process.getStock().getLocation().getLocationCode();
+        String expectedBarcode = process.getStock().getLocation().getBarcode();
 
         if (!expectedBarcode.equals(barcode)) {
             log.warn("Wrong barcode scanned for process {}", processId);
@@ -98,7 +89,7 @@ public class ProcessExecutionService {
         String barcode = request.barcode().trim();
         Stock expectedStock = process.getStock();
         Product expectedProduct = expectedStock.getProduct()
-                .filter(product -> product.getSku() != null && product.getSku().equalsIgnoreCase(barcode))
+                .filter(product -> product.getBarcode() != null && product.getBarcode().equalsIgnoreCase(barcode))
                 .orElse(null);
         if (expectedProduct == null) {
             log.warn("Wrong barcode scanned for process {}", processId);
@@ -153,7 +144,7 @@ public class ProcessExecutionService {
         sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - process.getQuantity()));
         stockRepository.save(sourceStock);
 
-        process.setStatus(ProcessStatus.COMPLETED);
+        process.setStatus(Status.COMPLETED);
         Process savedProcess = processRepository.save(process);
 
         inventoryService.recordPickingHistory(sourceStock, pickedQuantity, operator);
@@ -167,7 +158,7 @@ public class ProcessExecutionService {
         Task task = process.getTask();
         List<Process> taskProcesses = processRepository.findAllByTaskId(task.getId());
         boolean taskCompleted = taskProcesses.stream()
-                .allMatch(taskProcess -> taskProcess.getStatus() == ProcessStatus.COMPLETED
+                .allMatch(taskProcess -> taskProcess.getStatus() == Status.COMPLETED
                         || taskProcess.getId().equals(process.getId()));
 
         if (!taskCompleted) {
@@ -178,7 +169,7 @@ public class ProcessExecutionService {
         taskRepository.save(task);
 
         orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
-            orderLine.setStatus(OrderStatus.COMPLETED);
+            orderLine.setStatus(Status.COMPLETED);
             orderLineRepository.save(orderLine);
             updateOrderStatus(orderLine.getOrder());
         });
@@ -186,7 +177,7 @@ public class ProcessExecutionService {
 
     private void updateOrderStatus(Order order) {
         boolean orderCompleted = order.getOrderLines().stream()
-                .allMatch(orderLine -> orderLine.getStatus() == OrderStatus.COMPLETED);
+                .allMatch(orderLine -> orderLine.getStatus() == Status.COMPLETED);
 
         if (orderCompleted) {
             order.setStatus(OrderStatus.COMPLETED);
@@ -196,13 +187,13 @@ public class ProcessExecutionService {
 
     private Process getAssignedProcessInProgress(Long processId) {
         Process process = getAssignedProcess(processId);
-        if (process.getStatus() == ProcessStatus.COMPLETED) {
+        if (process.getStatus() == Status.COMPLETED) {
             throw new InvalidRequestException("Process is already completed");
         }
-        if (process.getStatus() == ProcessStatus.CANCELED) {
+        if (process.getStatus() == Status.CANCELED) {
             throw new InvalidRequestException("Process is cancelled");
         }
-        if (process.getStatus() != ProcessStatus.IN_PROGRESS) {
+        if (process.getStatus() != Status.IN_PROGRESS) {
             throw new InvalidRequestException("Process is not in progress");
         }
         return process;
@@ -212,7 +203,7 @@ public class ProcessExecutionService {
         Process process = processRepository.findById(processId)
                 .orElseThrow(() -> new InvalidRequestException("Process not found"));
         User operator = getCurrentUser();
-        if (process.getOperator().filter(operator::equals).isEmpty()) {
+        if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("Process is not assigned to current operator");
         }
         return process;

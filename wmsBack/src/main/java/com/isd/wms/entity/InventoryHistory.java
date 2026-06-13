@@ -41,8 +41,8 @@ public class InventoryHistory{
     @JoinColumn(name = "product_id")
     private Product product;
 
-    @Column(name = "SKU", nullable = false, length = 100)
-    private String sku;
+    @Column(nullable = false, length = 100)
+    private String barcode;
 
     @Column(name = "altered_quantity", nullable = false)
     private Integer alteredQuantity;
@@ -76,9 +76,9 @@ public class InventoryHistory{
         }
     }
 
-    public InventoryHistory(Product product, String sku, Integer alteredQuantity, Integer quantityAfterChange, Location sourceLocation, Location destinationLocation, InventoryOperationType operationType, User user) {
+    public InventoryHistory(Product product, String barcode, Integer alteredQuantity, Integer quantityAfterChange, Location sourceLocation, Location destinationLocation, InventoryOperationType operationType, User user) {
         this.product = product;
-        this.sku = sku;
+        this.barcode = barcode;
         this.alteredQuantity = alteredQuantity;
         this.quantityAfterChange = quantityAfterChange;
         this.sourceLocation = sourceLocation;

@@ -17,22 +17,18 @@
 
     <Card class="app-card mb-6">
       <template #content>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="flex flex-col gap-2">
             <label class="app-subtitle text-xs font-semibold">Filter by Product</label>
             <Dropdown v-model="filters.productId" :options="products" optionLabel="name" optionValue="id" placeholder="All Products" filter showClear class="w-full" @change="applyFilters" />
           </div>
           <div class="flex flex-col gap-2">
             <label class="app-subtitle text-xs font-semibold">Filter by Destination</label>
-            <Dropdown v-model="filters.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" placeholder="All Locations" filter showClear class="w-full" @change="applyFilters" />
+            <Dropdown v-model="filters.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" placeholder="All Locations" filter showClear class="w-full" @change="applyFilters" />
           </div>
           <div class="flex flex-col gap-2">
             <label class="app-subtitle text-xs font-semibold">Filter by Status</label>
             <Dropdown v-model="filters.status" :options="statuses" placeholder="All Statuses" showClear class="w-full" @change="applyFilters" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="app-subtitle text-xs font-semibold">Filter by Task ID</label>
-            <InputNumber v-model="filters.taskId" placeholder="Task ID" :useGrouping="false" class="w-full" showClear @input="applyFilters" />
           </div>
         </div>
       </template>
@@ -51,7 +47,6 @@
           emptyMessage="No replenishment tasks found."
         >
           <Column field="id" header="ID" sortable></Column>
-          <Column field="taskId" header="Task ID" sortable></Column>
 
           <Column header="Product" sortable>
             <template #body="slotProps">
@@ -109,7 +104,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="location" class="app-subtitle font-medium">Destination Location (Pick Zone)</label>
-          <Dropdown id="location" v-model="newReplenishment.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" placeholder="Select Destination Zone" filter class="w-full" />
+          <Dropdown id="location" v-model="newReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" placeholder="Select Destination Zone" filter class="w-full" />
         </div>
       </div>
 
@@ -133,7 +128,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="editLocation" class="app-subtitle font-medium">Destination Location</label>
-          <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" filter class="w-full" />
+          <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" filter class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -183,7 +178,7 @@ const actionLoading = ref(false)
 const createDialogVisible = ref(false)
 const editDialogVisible = ref(false)
 
-const filters = ref({ productId: null, destinationLocationId: null, status: null, taskId: null })
+const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
 const newReplenishment = ref({ productId: null, requestedQuantity: null, destinationLocationId: null })
 const editingReplenishment = ref({ id: null, taskId: null, productId: null, requestedQuantity: null, status: null, destinationLocationId: null })
@@ -194,7 +189,7 @@ const isCreateFormValid = computed(() => {
 
 const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 const getProductName = (id) => products.value.find(p => p.id === id)?.name || `Product #${id}`
-const getLocationName = (id) => locations.value.find(l => l.id === id)?.locationCode || `Location #${id}`
+const getLocationName = (id) => locations.value.find(l => l.id === id)?.barcode || `Location #${id}`
 const formatDate = (ts) => ts ? new Date(ts).toLocaleString() : '-'
 
 const getStatusSeverity = (status) => {
@@ -215,7 +210,6 @@ const loadData = async () => {
       inventoryApi.getLocations()
     ])
     products.value = productsRes.data
-
     locations.value = locsRes.data.filter(l => l.available !== false && l.zone === 'PICKING')
 
     await applyFilters()
@@ -240,7 +234,7 @@ const applyFilters = async () => {
 }
 
 const clearFilters = () => {
-  filters.value = { productId: null, destinationLocationId: null, status: null, taskId: null }
+  filters.value = { productId: null, destinationLocationId: null, status: null }
   applyFilters()
 }
 
@@ -272,7 +266,6 @@ const handleUpdate = async () => {
   actionLoading.value = true
   try {
     const payload = {
-      taskId: editingReplenishment.value.taskId,
       productId: editingReplenishment.value.productId,
       requestedQuantity: editingReplenishment.value.requestedQuantity,
       status: editingReplenishment.value.status,

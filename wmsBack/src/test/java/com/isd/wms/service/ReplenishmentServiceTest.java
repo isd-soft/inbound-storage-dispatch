@@ -5,10 +5,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
-import com.isd.wms.enums.ReplenishmentStatus;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.exception.ReplenishmentNotFoundException;
+import com.isd.wms.enums.Status;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +65,7 @@ class ReplenishmentServiceTest {
         supervisor = mock(User.class);
         task = mock(Task.class);
         replenishment = mock(Replenishment.class);
-        response = new ReplenishmentResponse(1L, 1L, 2L, 10, ReplenishmentStatus.CREATED, 3L, Timestamp.from(Instant.now()));
+        response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, LocalDateTime.from(Instant.now()));
     }
 
     @AfterEach
@@ -107,7 +105,7 @@ class ReplenishmentServiceTest {
 
     @Test
     void updateReplenishment_validRequest_returnsUpdatedResponse() {
-        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, ReplenishmentStatus.COMPLETED, 3L);
+        ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, Status.COMPLETED, 3L);
 
         when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -120,15 +118,15 @@ class ReplenishmentServiceTest {
         assertThat(result).isEqualTo(response);
         verify(replenishment).setProduct(product);
         verify(replenishment).setRequestedQuantity(20);
-        verify(replenishment).setStatus(ReplenishmentStatus.COMPLETED);
+        verify(replenishment).setStatus(Status.COMPLETED);
         verify(replenishment).setDestinationLocation(destinationLocation);
     }
 
     @Test
     void searchReplenishments_withFilters_returnsMappedResults() {
-        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, null, ReplenishmentStatus.CREATED, null);
+        ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, null, Status.CREATED, null);
 
-        when(replenishmentRepository.filter(1L, null, null, ReplenishmentStatus.CREATED, null))
+        when(replenishmentRepository.filter(1L, null, null, Status.CREATED, null))
                 .thenReturn(List.of(replenishment));
         when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
 

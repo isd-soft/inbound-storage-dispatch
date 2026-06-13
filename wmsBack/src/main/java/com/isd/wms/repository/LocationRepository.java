@@ -11,18 +11,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
-
-    boolean existsByLocationCodeIgnoreCase (String locationCode);
+    boolean existsByBarcodeIgnoreCase(String barcode);
 
     List<Location> findAllByIsActiveTrue();
 
-    Optional<Location> findByLocationCodeAndIsActiveTrue(String code);
-
     @Query("""
-        SELECT l.id AS id, l.locationCode AS locationCode FROM Location l
+        SELECT l.id AS id, barcode AS barcode FROM Location l
         WHERE l.available = true
         AND l.isActive = true
-        AND l.zone = com.isd.wms.enums.Zone.DISPATCH
+        AND l.zone = Zone.DISPATCH
         """)
     List<ShortLocationProjection> getLocationDispatch();
 }

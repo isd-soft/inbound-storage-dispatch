@@ -1,6 +1,6 @@
 package com.isd.wms.enums;
 
-public enum ProcessStatus {
+public enum Status {
     CREATED,
     ASSIGNED,
     IN_PROGRESS,

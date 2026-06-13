@@ -29,7 +29,7 @@
           id="locationId"
           v-model="form.locationId"
           :options="locations"
-          optionLabel="locationCode"
+          optionLabel="barcode"
           optionValue="id"
           placeholder="Select location"
           class="w-full"
@@ -40,7 +40,7 @@
 
       <div v-if="selectedStock && mode !== 'add'" class="app-muted-panel rounded-lg p-3 text-sm">
         <div class="app-title font-semibold">{{ selectedStock.productName }}</div>
-        <div>{{ selectedStock.sku }} · {{ selectedStock.locationCode }} · Available qty: {{ availableQuantity }}</div>
+        <div>{{ selectedStock.barcode }} · {{ selectedStock.locationBarcode }} · Available qty: {{ availableQuantity }}</div>
         <div v-if="reservedQuantity > 0" class="app-muted text-xs mt-1">
           {{ reservedQuantity }} reserved quantity is protected and cannot be removed manually.
         </div>

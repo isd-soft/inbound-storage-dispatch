@@ -12,7 +12,7 @@ VALUES
     (2, 'Office Supplies'),
     (3, 'Warehouse Equipment');
 
-INSERT INTO products (id, name, SKU, description, category_id)
+INSERT INTO products (id, name, barcode, description, category_id)
 VALUES
     (1, 'Laptop Pro 15', 'LAP-PRO-001', 'High performance laptop for development', 1),
     (2, 'Wireless Mouse', 'MOUSE-WLS-001', 'Ergonomic optical mouse', 1),
@@ -20,7 +20,7 @@ VALUES
     (4, 'Scanner Symbol', 'SCN-SYM-001', 'Barcode scanner for terminal', 3),
     (5, 'Work Gloves', 'GLOVE-W-01', 'Protective warehouse gloves', 3);
 
-INSERT INTO locations (id, location_code, zone, description, available)
+INSERT INTO locations (id, barcode, zone, description, available)
 VALUES
     (1, 'PICK-A-01', 'PICKING', 'Pick Rack A, Level 1', true),
     (2, 'PICK-A-02', 'PICKING', 'Pick Rack A, Level 2', true),
@@ -39,7 +39,7 @@ VALUES
 INSERT INTO inventory_history (
     id,
     product_id,
-    SKU,
+    barcode,
     altered_quantity,
     quantity_after_change,
     source_location_id,

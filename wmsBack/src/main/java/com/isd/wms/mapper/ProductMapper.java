@@ -13,7 +13,7 @@ public class ProductMapper {
         return new ProductResponse(
                 product.getId(),
                 product.getName(),
-                product.getSku(),
+                product.getBarcode(),
                 product.getDescription(),
                 category == null ? null : category.getId(),
                 product.getAutoReplenish(),
