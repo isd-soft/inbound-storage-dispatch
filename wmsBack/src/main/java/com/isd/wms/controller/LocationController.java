@@ -58,7 +58,6 @@ public class LocationController {
             LocationResponse response = locationService.updateLocation(id, request);
             return ResponseEntity.ok(response);
         } catch (DuplicateLocationCodeException | IllegalStateException e) {
-            // Перехватываем дубликаты имен и занятые товаром локации
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -70,7 +69,7 @@ public class LocationController {
     public ResponseEntity<?> deleteLocation(@PathVariable Long id) {
         try {
             locationService.deleteLocation(id);
-            return ResponseEntity.ok(Map.of("message", "Location successfully deactivated"));
+            return ResponseEntity.ok(Map.of("message", "Location successfully deleted"));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

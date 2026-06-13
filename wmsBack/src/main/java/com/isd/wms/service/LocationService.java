@@ -79,8 +79,8 @@ public class LocationService {
     public void deleteLocation(Long locationId) {
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
         if (hasProducts) {
-            log.warn("Attempt to deactivate occupied location ID: {}", locationId);
-            throw new IllegalStateException("You cannot deactivate a location while there is a product in it");
+            log.warn("Attempt to delete occupied location ID: {}", locationId);
+            throw new IllegalStateException("You cannot delete a location while there is a product in it");
         }
 
         Location location = getLocation(locationId);
@@ -88,7 +88,7 @@ public class LocationService {
 
         locationRepository.save(location);
 
-        log.info("Location ID {} successfully deactivated", locationId);
+        log.info("Location ID {} successfully deleted", locationId);
     }
 
     public List<LocationResponse> getAllLocations() {

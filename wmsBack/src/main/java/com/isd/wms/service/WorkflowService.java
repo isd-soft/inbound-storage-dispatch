@@ -94,7 +94,8 @@ public class WorkflowService {
     @Transactional
     public void executeProcessCompletion(Process process) {
         Stock sourceStock = process.getStock();
-        int quantityToMove = process.getQuantity();
+
+        int quantityToMove = process.getPickedQuantity() != null ? process.getPickedQuantity() : process.getQuantity();
 
         sourceStock.removeQuantity(quantityToMove);
         stockRepository.save(sourceStock);
@@ -109,7 +110,7 @@ public class WorkflowService {
 
         List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
         boolean isTaskFullyCompleted = allProcesses.stream()
-                .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
+            .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
 
         if (isTaskFullyCompleted) {
             task.setStatus(TaskStatus.COMPLETED);

@@ -80,7 +80,6 @@ class AuthControllerTest {
                         .content(loginPayload)
                         .with(csrf()))
                 .andExpect(status().isUnauthorized())
-                // Убеждаемся, что GlobalExceptionHandler перехватил ошибку и вернул JSON с нужным сообщением
                 .andExpect(jsonPath("$.message").value("Incorrect username or password."));
     }
 

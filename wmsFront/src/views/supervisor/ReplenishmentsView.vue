@@ -48,9 +48,9 @@
         >
           <Column field="id" header="ID" sortable></Column>
 
-          <Column header="Product" sortable>
+          <Column field="productName" header="Product" sortable>
             <template #body="slotProps">
-              <span class="app-title font-semibold">{{ getProductName(slotProps.data.productId) }}</span>
+              <span class="app-title font-semibold">{{ slotProps.data.productName }}</span>
             </template>
           </Column>
 
@@ -60,9 +60,9 @@
             </template>
           </Column>
 
-          <Column header="Destination Location" sortable>
+          <Column field="locationName" header="Destination Location" sortable>
             <template #body="slotProps">
-              <span class="app-subtitle">{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+              <span class="app-subtitle">{{ slotProps.data.locationName }}</span>
             </template>
           </Column>
 
@@ -225,7 +225,13 @@ const applyFilters = async () => {
   try {
     const cleanFilters = Object.fromEntries(Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''))
     const res = await replenishmentApi.filter(cleanFilters)
-    replenishments.value = res.data
+
+    replenishments.value = res.data.map(task => ({
+      ...task,
+      productName: getProductName(task.productId),
+      locationName: getLocationName(task.destinationLocationId)
+    }))
+
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
@@ -291,10 +297,20 @@ const confirmDelete = (task) => {
     accept: async () => {
       try {
         await replenishmentApi.delete(task.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Task has been deleted.', life: 3000 })
+        toast.add({
+          severity: 'success',
+          summary: 'Deleted',
+          detail: 'Task has been deleted.',
+          life: 3000
+        })
         await applyFilters()
       } catch (error) {
-        toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
+        toast.add({
+          severity: 'error',
+          summary: 'Deletion Failed',
+          detail: getErrorMessage(error),
+          life: 4000
+        })
       }
     }
   })

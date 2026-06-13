@@ -43,7 +43,6 @@ public class ReplenishmentService {
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        validateDestinationStockForReplenishment(product, destinationLocation);
         validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), null);
 
         Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());

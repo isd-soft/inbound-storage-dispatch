@@ -159,7 +159,7 @@ public class UserService {
         targetUser.setIsActive(false);
         userRepository.save(targetUser);
 
-        log.info("User '{}' (ID: {}) was successfully deactivated by {}",
+        log.info("User '{}' (ID: {}) was successfully deleted by {}",
                 targetUser.getUsername(), userId, securityFacade.getCurrentUsername());
     }
 
