@@ -50,34 +50,50 @@ public class ProcessService {
     public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);
         User operator = securityFacade.getCurrentUser();
+        log.info("Request to complete Process ID: {} initiated by operator '{}'", processId, operator.getUsername());
 
         if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
+            log.warn("Security/Workflow violation: Operator '{}' attempted to complete Process ID {} which is not assigned to them.",
+                operator.getUsername(), processId);
             throw new InvalidRequestException("You can only complete your own processes");
         }
 
         if (process.getStatus() == Status.COMPLETED || process.getStatus() == Status.CANCELED) {
+            log.warn("Process completion rejected: Process ID {} is already in a terminal state ({})", processId, process.getStatus());
             throw new InvalidRequestException("Process is already completed or canceled");
         }
 
+        Status oldStatus = process.getStatus();
         process.setStatus(Status.COMPLETED);
-        process = processRepository.save(process);
+        Process savedProcess = processRepository.save(process);
 
-        workflowService.executeProcessCompletion(process);
+        log.info("Process ID {} state updated: {} -> COMPLETED. Triggering down-stream workflow updates.", processId, oldStatus);
 
-        return processMapper.toResponse(process);
+        workflowService.executeProcessCompletion(savedProcess);
+
+        log.info("Process ID {} successfully closed and finalized by operator '{}'", processId, operator.getUsername());
+        return processMapper.toResponse(savedProcess);
     }
 
     private Process getProcessById(Long processId) {
         return processRepository.findById(processId)
-            .orElseThrow(() -> new RuntimeException("Process not found with id: " + processId));
+            .orElseThrow(() -> {
+                log.warn("Process lookup failed: Process record with ID {} does not exist", processId);
+                return new InvalidRequestException("Process not found with id: " + processId);
+            });
     }
 
     public ProcessOperatorResponse getProcessesOperator() {
         String username = securityFacade.getCurrentUsername();
+        log.debug("Fetching current active process dashboard data for operator user: '{}'", username);
+
         OperatorProcessProjection info = getProcessForOperator(username);
         Long oldestOrder = info.getOldestOrderId();
         Integer total = processRepository.countProcessesInOrder(oldestOrder);
         Integer current = processRepository.countCompletedProcessesInOrder(oldestOrder) + 1;
+
+        log.debug("Dashboard payload calculated for operator '{}'. Order ID: {}, Progress: {}/{}",
+            username, oldestOrder, current, total);
 
         return new ProcessOperatorResponse(
             total, current, info.getOrderName(),
@@ -94,6 +110,9 @@ public class ProcessService {
 
     private @NonNull OperatorProcessProjection getProcessForOperator(String username) {
         return processRepository.getProcessInfoForOperator(username)
-            .orElseThrow(() -> new ProcessesNotFoundException(username));
+            .orElseThrow(() -> {
+                log.warn("Dashboard lookup empty: No active assigned processes found for operator '{}'", username);
+                return new ProcessesNotFoundException(username);
+            });
     }
 }

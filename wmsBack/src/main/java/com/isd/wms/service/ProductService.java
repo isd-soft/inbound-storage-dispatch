@@ -39,9 +39,10 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
-        log.info("Creating product: name={}, barcode={}, categoryId={}", request.name(), request.barcode(), request.categoryId());
+        log.info("Cataloging request started: Preparing to create product '{}' with Barcode '{} and Category ID {}'", request.name(), request.barcode(), request.categoryId());
         String barcode = request.barcode().trim();
         if (productRepository.existsByBarcodeIgnoreCase(barcode)) {
+            log.warn("Product cataloging rejected: Barcode '{}' already assigned to an existing product", barcode);
             throw new InvalidRequestException("Product barcode already exists");
         }
         Category category = getCategory(request.categoryId());
@@ -57,15 +58,21 @@ public class ProductService {
         String barcode = request.barcode().trim();
         Product product = getProduct(productId);
         if (productRepository.existsByBarcodeIgnoreCaseAndIdNot(barcode, productId)) {
+            log.warn("Product update rejected for ID {}: Barcode '{}' conflicts with another existing product", productId, barcode);
             throw new InvalidRequestException("Product barcode already exists");
         }
         Category category = getCategory(request.categoryId());
+        String oldName = product.getName();
+        String oldBarcode = product.getBarcode();
+
         product.setName(request.name().trim());
         product.setBarcode(barcode);
         product.setDescription(request.description());
         product.setCategory(category);
         Product savedProduct = productRepository.save(product);
-        log.info("Product updated successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+
+        log.info("Product ID {} successfully updated. Modifications: Name ['{}' -> '{}'], Barcode ['{}' -> '{}']",
+            productId, oldName, savedProduct.getName(), oldBarcode, savedProduct.getBarcode());
         return productMapper.toResponse(savedProduct);
     }
 
@@ -76,15 +83,14 @@ public class ProductService {
         log.info("Product deleted successfully: productId={}", productId);
     }
 
-    public ProductResponse getProductById(Long productId) {
-        log.info("Getting product by id: productId={}", productId);
+    public ProductResponse getProductById(Long productId) {;
         Product product = getProduct(productId);
         log.debug("Product found: productId={}, categoryId={}", product.getId(), product.getCategory().getId());
         return productMapper.toResponse(product);
     }
 
     public List<ProductResponse> getAllProducts() {
-        log.info("Getting all products");
+        log.debug("Fetching complete master data product catalog");
         List<ProductResponse> products = productRepository.findAll().stream()
                 .map(productMapper::toResponse)
                 .toList();
@@ -93,7 +99,10 @@ public class ProductService {
     }
 
     public List<ProductWithQuantityProjection> getAllProductsWithQuantity() {
-        return productRepository.getProductsWithQuantities();
+        log.debug("Executing cross-table inventory aggregation: Fetching products with current available quantities");
+        List<ProductWithQuantityProjection> results = productRepository.getProductsWithQuantities();
+        log.info("Product inventory overview snapshot generated. Total distinct records: {}", results.size());
+        return results;
     }
 
     public List<ProductResponse> searchProducts(String name, Long categoryId) {

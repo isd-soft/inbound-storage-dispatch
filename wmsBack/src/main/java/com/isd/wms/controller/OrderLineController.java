@@ -6,6 +6,7 @@ import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
 import com.isd.wms.service.OrderLineService;
 import jakarta.validation.Valid;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/order-lines")
 @RequiredArgsConstructor
@@ -34,12 +36,14 @@ public class OrderLineController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<OrderLineResponse> updateOrderLine(@PathVariable Long id, @Valid @NonNull OrderLineUpdateRequest request) {
+        log.info("REST request to update Order Line with ID: {}", id);
         return ResponseEntity.ok(orderLineService.updateOrderLine(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<String> deleteOrderLine(@PathVariable Long id) {
+        log.warn("REST request to DELETE Order Line with ID: {}", id);
         orderLineService.deleteOrderLine(id);
         return ResponseEntity.noContent().build();
     }

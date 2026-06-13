@@ -49,6 +49,7 @@ public class ProcessExecutionService {
 
     public List<ProcessExecutionResponse> getAssignedProcesses() {
         User operator = getCurrentUser();
+        log.debug("Fetching assigned and in-progress processes for operator: '{}'", operator.getUsername());
         return processRepository.findByOperatorAndStatuses(
                         operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
                 .stream()
@@ -59,8 +60,12 @@ public class ProcessExecutionService {
     @Transactional
     public Long startProcess() {
         String currentUsername = securityFacade.getCurrentUsername();
+        log.info("Operator '{}' requested the next available process initialization", currentUsername);
         return processRepository.findOldestAssignedProcessId(currentUsername)
-            .orElseThrow(() -> new ProcessesNotFoundException(currentUsername));
+            .orElseThrow(() -> {
+                log.warn("No assigned processes found for operator '{}'", currentUsername);
+                return new ProcessesNotFoundException(currentUsername);
+            });
     }
 
     @Transactional
@@ -69,13 +74,15 @@ public class ProcessExecutionService {
         String barcode = request.barcode().trim();
         String expectedBarcode = process.getStock().getLocation().getBarcode();
 
+        log.info("Process ID {}: Location barcode scanned. Scanned='{}', Expected='{}'", processId, barcode, expectedBarcode);
+
         if (!expectedBarcode.equals(barcode)) {
-            log.warn("Wrong barcode scanned for process {}", processId);
+            log.warn("Process ID {} validation failed: Wrong source location barcode. Scanned='{}', Expected='{}'", processId, barcode, expectedBarcode);
             throw new InvalidRequestException("Wrong source location barcode");
         }
 
         process.setSourceLocationScanned(true);
-        log.info("Source location scanned successfully for process {}", processId);
+        log.info("Process ID {}: Source location validation successful", processId);
         return toResponse(processRepository.save(process));
     }
 
@@ -83,6 +90,7 @@ public class ProcessExecutionService {
     public ProcessExecutionResponse scanProduct(Long processId, BarcodeScanRequest request) {
         Process process = getAssignedProcessInProgress(processId);
         if (!process.isSourceLocationScanned()) {
+            log.warn("Process ID {} workflow violation: Attempted to scan product before scanning source location", processId);
             throw new InvalidRequestException("Source location must be scanned first");
         }
 
@@ -92,32 +100,46 @@ public class ProcessExecutionService {
                 .filter(product -> product.getBarcode() != null && product.getBarcode().equalsIgnoreCase(barcode))
                 .orElse(null);
         if (expectedProduct == null) {
-            log.warn("Wrong barcode scanned for process {}", processId);
-            throw new InvalidRequestException("Wrong product/SKU barcode");
+            log.warn("Process ID {} validation failed: Wrong product barcode scanned. Value='{}'", processId, barcode);
+            throw new InvalidRequestException("Wrong product barcode");
         }
 
         stockRepository.findByProductIdAndLocationId(
-                        expectedProduct.getId(),
-                        expectedStock.getLocation().getId())
-                .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
+                expectedProduct.getId(),
+                expectedStock.getLocation().getId())
+            .orElseThrow(() -> {
+                log.error("CRITICAL: Stock mismatch for Stock ID {} during process {}. Record missing in DB!", expectedStock.getId(), processId);
+                return new StockNotFoundException(expectedStock.getId());
+            });
 
         process.setProductScanned(true);
-        log.info("Product barcode scanned successfully for process {}", processId);
+        log.info("Process ID {}: Product validation successful for barcode: '{}'", processId, expectedProduct.getName());
         return toResponse(processRepository.save(process));
     }
 
     @Transactional
     public ProcessExecutionResponse confirmPickedQuantity(Long processId, ConfirmPickedQuantityRequest request) {
         Process process = getAssignedProcessInProgress(processId);
+
         if (!process.isProductScanned()) {
+            log.warn("Process ID {} workflow violation: Attempted to confirm quantity before scanning product", processId);
             throw new InvalidRequestException("Product barcode must be scanned first");
         }
 
         Integer pickedQuantity = request.pickedQuantity();
-        validatePickedQuantityForProcess(process, pickedQuantity);
+        log.info("Process ID {}: Quantity confirmation requested. Picked Quantity={}, Target Quantity={}",
+            processId, pickedQuantity, process.getQuantity());
+
+        try {
+            validatePickedQuantityForProcess(process, pickedQuantity);
+        } catch (InvalidRequestException e) {
+            log.warn("Process ID {} quantity validation failed: {} (Requested={}, Available={})",
+                processId, e.getMessage(), pickedQuantity, process.getStock().getQuantity());
+            throw e;
+        }
 
         process.setPickedQuantity(pickedQuantity);
-        log.info("Picked quantity {} confirmed for process {}", pickedQuantity, processId);
+        log.info("Process ID {}: Picked quantity {} confirmed successfully", processId, pickedQuantity);
         return toResponse(processRepository.save(process));
     }
 
@@ -126,20 +148,32 @@ public class ProcessExecutionService {
         Process process = getAssignedProcessInProgress(processId);
         User operator = getCurrentUser();
 
+        log.info("Process ID {}: Completion request triggered by operator '{}'", processId, operator.getUsername());
+
         if (!process.isSourceLocationScanned()) {
+            log.warn("Process completion rejected for Process ID: {}. Reason: Source location has not been scanned yet. [Current State: ProductScanned={}, QtyConfirmed={}]",
+                processId, process.isProductScanned(), (process.getPickedQuantity() != null));
             throw new InvalidRequestException("Source location must be scanned first");
         }
         if (!process.isProductScanned()) {
+            log.warn("Process completion rejected for Process ID: {}. Reason: Product barcode has not been scanned yet. [Current State: LocationScanned=true, QtyConfirmed={}]",
+                processId, (process.getPickedQuantity() != null));
             throw new InvalidRequestException("Product barcode must be scanned first");
         }
         if (process.getPickedQuantity() == null) {
+            log.warn("Process completion rejected for Process ID: {}. Reason: Picked quantity is not confirmed. [Current State: LocationScanned=true, ProductScanned=true]",
+                processId);
             throw new InvalidRequestException("Picked quantity must be confirmed before completion");
         }
 
+        log.debug("Process ID {}: All workflow state validations passed successfully. Proceeding to inventory updates.", processId);
         validatePickedQuantityForProcess(process, process.getPickedQuantity());
 
         Stock sourceStock = process.getStock();
         int pickedQuantity = process.getPickedQuantity();
+        int oldQuantity = sourceStock.getQuantity();
+        int newQuantity = oldQuantity - pickedQuantity;
+
         sourceStock.setQuantity(sourceStock.getQuantity() - pickedQuantity);
         sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - process.getQuantity()));
         stockRepository.save(sourceStock);
@@ -148,9 +182,12 @@ public class ProcessExecutionService {
         Process savedProcess = processRepository.save(process);
 
         inventoryService.recordPickingHistory(sourceStock, pickedQuantity, operator);
+
+        log.info("Process ID {} state changed to COMPLETED. Stock ID {} updated: {} -> {}",
+            processId, sourceStock.getId(), oldQuantity, newQuantity);
         updateParentStatuses(savedProcess);
 
-        log.info("Process {} completed by operator {}", processId, operator.getUsername());
+        log.info("Process ID {} successfully closed by operator '{}'", processId, operator.getUsername());
         return toResponse(savedProcess);
     }
 
@@ -162,15 +199,18 @@ public class ProcessExecutionService {
                         || taskProcess.getId().equals(process.getId()));
 
         if (!taskCompleted) {
+            log.debug("Task ID {} has pending sub-processes. Skipping parent status update.", task.getId());
             return;
         }
 
         task.setStatus(TaskStatus.COMPLETED);
         taskRepository.save(task);
+        log.info("Parent Task ID {} state updated to COMPLETED", task.getId());
 
         orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
             orderLine.setStatus(Status.COMPLETED);
             orderLineRepository.save(orderLine);
+            log.info("Parent OrderLine ID {} state updated to COMPLETED", orderLine.getId());
             updateOrderStatus(orderLine.getOrder());
         });
     }
@@ -182,28 +222,40 @@ public class ProcessExecutionService {
         if (orderCompleted) {
             order.setStatus(OrderStatus.COMPLETED);
             orderRepository.save(order);
+            log.warn("SUCCESS: Entire Order ID {} (Logic ID: '{}') has been fully COMPLETED", order.getId(), order.getLogicId());
         }
     }
 
     private Process getAssignedProcessInProgress(Long processId) {
         Process process = getAssignedProcess(processId);
         if (process.getStatus() == Status.COMPLETED) {
+            log.warn("Process operation rejected: Process ID {} is already COMPLETED. Cannot modify a closed process.", processId);
             throw new InvalidRequestException("Process is already completed");
         }
         if (process.getStatus() == Status.CANCELED) {
+            log.warn("Process operation rejected: Process ID {} has been CANCELED (possibly by a supervisor).", processId);
             throw new InvalidRequestException("Process is cancelled");
         }
         if (process.getStatus() != Status.IN_PROGRESS) {
+            log.warn("Process operation rejected: Process ID {} is in state '{}', but this operation requires it to be IN_PROGRESS.",
+                processId, process.getStatus());
             throw new InvalidRequestException("Process is not in progress");
         }
+        log.debug("Process ID {} state validation passed. Current status is IN_PROGRESS.", processId);
         return process;
     }
 
     private Process getAssignedProcess(Long processId) {
         Process process = processRepository.findById(processId)
-                .orElseThrow(() -> new InvalidRequestException("Process not found"));
+            .orElseThrow(() -> {
+                log.warn("Process execution failed: Process ID {} not found", processId);
+                return new InvalidRequestException("Process not found");
+            });
+
         User operator = getCurrentUser();
         if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
+            log.warn("Security violation: Operator '{}' tried to execute Process ID {} which is not assigned to them",
+                operator.getUsername(), processId);
             throw new InvalidRequestException("Process is not assigned to current operator");
         }
         return process;

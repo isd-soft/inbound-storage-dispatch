@@ -22,12 +22,15 @@ public class EmailService {
     private String appUrl;
 
     public void sendVerificationEmail(String toEmail, String username, String token) {
+        log.info("Preparing verification email for user: '{}' to address: {}", username, toEmail);
+
         try {
             Context ctx = new Context();
             ctx.setVariable("username", username);
             ctx.setVariable("email", toEmail);
             ctx.setVariable("confirmUrl", appUrl + "/api/auth/verify?token=" + token);
 
+            log.debug("Processing Thymeleaf template 'email/operator-welcome' for user '{}'", username);
             String html = templateEngine.process("email/operator-welcome", ctx);
 
             MimeMessage message = mailSender.createMimeMessage();
@@ -36,11 +39,12 @@ public class EmailService {
             helper.setSubject("Account verification — ISD Warehouse");
             helper.setText(html, true);
 
+            log.debug("Sending MimeMessage via SMTP server to {}...", toEmail);
             mailSender.send(message);
-            log.info("Verification email sent to {}", toEmail);
+            log.info("Verification email successfully sent to {}", toEmail);
 
         } catch (Exception e) {
-            log.error("Failed to send verification email to {}", toEmail, e);
+            log.error("CRITICAL: Failed to send verification email to {}. Reason: ", toEmail, e);
             throw new RuntimeException("Failed to send verification email");
         }
     }

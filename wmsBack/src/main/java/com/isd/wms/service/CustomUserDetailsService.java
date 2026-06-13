@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 
-@Service
 @Slf4j
+@Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
@@ -38,7 +38,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new DisabledException("Email not verified for user: " + user.getUsername());
         }
 
-        log.debug("User '{}' found. Assigning authority/role: '{}'", user.getUsername(), user.getUserRole());
+        log.info("User '{}' details loaded successfully. Assigned role: [{}]", user.getUsername(), user.getUserRole());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),

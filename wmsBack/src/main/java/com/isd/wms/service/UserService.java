@@ -32,10 +32,14 @@ public class UserService {
 
     @Transactional
     public void registerUser(UserCreateRequest request) {
+        log.info("Registration request received for username: '{}', email: '{}', role: {}",
+            request.username(), request.email(), request.userRole());
         if (userRepository.findByUsername(request.username()).isPresent()) {
+            log.warn("Registration rejected: Username '{}' is already taken.", request.username());
             throw new RuntimeException("This username is already taken.");
         }
         if (userRepository.findByEmail(request.email()).isPresent()) {
+            log.warn("Registration rejected: Email '{}' is already registered.", request.email());
             throw new RuntimeException("This email is already registered.");
         }
 
@@ -64,17 +68,23 @@ public class UserService {
 
     @Transactional
     public void updateUser(Long userId, UserUpdateRequest request) {
+        log.info("Update user profile requested for Target User ID: {}. Requester: '{}'", userId, securityFacade.getCurrentUsername());
 
         if (!securityFacade.hasRole(Role.ROLE_DEV)) {
-            log.warn("Security block: Non-DEV user attempted to update user ID {}", userId);
+            log.warn("SECURITY BREACH ATTEMPT: Non-DEV user '{}' attempted to update configuration fields for user ID {}",
+                securityFacade.getCurrentUsername(), userId);
             throw new AccessDeniedException("Only Developers are allowed to update user information.");
         }
 
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> {
+                log.warn("User update failed: Target User ID {} does not exist in the database", userId);
+                return new RuntimeException("User not found");
+            });
 
         if (!existingUser.getUsername().equals(request.username()) &&
                 userRepository.findByUsername(request.username()).isPresent()) {
+            log.warn("User update rejected for ID {}: Username '{}' is already assigned to another profile", userId, request.username());
             throw new RuntimeException("This username is already taken by another user.");
         }
 
@@ -83,13 +93,15 @@ public class UserService {
             throw new AccessDeniedException("Promoting an account to ROLE_DEV is strictly prohibited.");
         }
 
+        String oldUsername = existingUser.getUsername();
+        Role oldRole = existingUser.getUserRole();
+
         existingUser.setUsername(request.username());
         existingUser.setUserRole(request.userRole());
-
-        log.info("User ID {} successfully updated. New username: {}, New role: {}",
-                userId, request.username(), request.userRole());
-
         userRepository.save(existingUser);
+
+        log.warn("CRITICAL PROFILE UPDATE: User ID {} modified by DEV '{}'. Changes: Username ['{}' -> '{}'], Role [{} -> {}]",
+            userId, securityFacade.getCurrentUsername(), oldUsername, request.username(), oldRole, request.userRole());
     }
 
     @Transactional
@@ -121,9 +133,13 @@ public class UserService {
     @Transactional
     public void deleteUser(Long userId) {
         User targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> {
+                log.warn("Deactivation aborted: Target User ID {} not found", userId);
+                return new RuntimeException("User not found");
+            });
 
         if (targetUser.getUsername().equals(securityFacade.getCurrentUsername())) {
+            log.warn("Deactivation rejected: User with ID '{}' tried to ban/deactivate their own active profile.", userId);
             throw new RuntimeException("You cannot ban your own account.");
         }
 

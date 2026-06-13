@@ -12,6 +12,7 @@ import com.isd.wms.mapper.CategoryMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,25 +35,41 @@ public class CategoryService {
     public CategoryResponse createCategory(CategoryCreateRequest request) {
         String name = validateAndNormalizeName(request.name());
         verifyUniqueName(name, null);
-        return categoryMapper.toResponse(saveCategory(new Category(name), name));
+
+        log.info("Creating new product category with name: '{}'", name);
+        Category savedCategory = saveCategory(new Category(name), name);
+        log.info("Successfully created Category ID: {} with name: '{}'", savedCategory.getId(), name);
+
+        return categoryMapper.toResponse(savedCategory);
     }
 
     @Transactional
     public CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest request) {
         Category category = getCategory(categoryId);
+        String oldName = category.getName();
         String name = validateAndNormalizeName(request.name());
         verifyUniqueName(name, categoryId);
+
+        log.info("Updating Category ID: {}. Changing name from '{}' to '{}'", categoryId, oldName, name);
         category.setName(name);
-        return categoryMapper.toResponse(saveCategory(category, name));
+        Category updatedCategory = saveCategory(category, name);
+        log.info("Successfully updated Category ID: {}. New name: '{}'", categoryId, name);
+
+        return categoryMapper.toResponse(updatedCategory);
     }
 
     @Transactional
     public void deleteCategory(Long categoryId) {
         Category category = getCategory(categoryId);
+
+        log.info("Attempting to delete Category ID: {} ('{}')", categoryId, category.getName());
         if (productRepository.existsByCategoryId(categoryId)) {
+            log.warn("Cannot delete Category ID: {} because it contains active products", categoryId);
             throw new CategoryInUseException(categoryId);
         }
+
         categoryRepository.delete(category);
+        log.warn("Category ID: {} was successfully DELETED from the system", categoryId);
     }
 
     public CategoryResponse getCategoryById(Long categoryId) {
@@ -66,7 +84,10 @@ public class CategoryService {
 
     private Category getCategory(Long categoryId) {
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+            .orElseThrow(() -> {
+                log.warn("Category lookup failed. ID {} not found", categoryId);
+                return new CategoryNotFoundException(categoryId);
+            });
     }
 
     private String validateAndNormalizeName(String name) {
@@ -78,16 +99,18 @@ public class CategoryService {
 
     private void verifyUniqueName(String name, Long categoryId) {
         categoryRepository.findByNameIgnoreCase(name)
-                .filter(category -> !Objects.equals(category.getId(), categoryId))
-                .ifPresent(category -> {
-                    throw new DuplicateCategoryNameException(name);
-                });
+            .filter(category -> !Objects.equals(category.getId(), categoryId))
+            .ifPresent(category -> {
+                log.warn("Validation failed: Category name '{}' already exists under ID: {}", name, category.getId());
+                throw new DuplicateCategoryNameException(name);
+            });
     }
 
     private Category saveCategory(Category category, String name) {
         try {
             return categoryRepository.save(category);
         } catch (DataIntegrityViolationException exception) {
+            log.error("Database constraint violation while saving category '{}': ", name, exception);
             throw new DuplicateCategoryNameException(name);
         }
     }

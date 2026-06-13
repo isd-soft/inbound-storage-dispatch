@@ -6,6 +6,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.service.ReplenishmentService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/replenishments")
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ public class ReplenishmentController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ReplenishmentResponse> createReplenishment(@Valid @RequestBody ReplenishmentCreateRequest request) {
+        log.info("REST request to create Replenishment: Product ID = {}, Request. Qty: {}, to Location ID: {}", request.productId(), request.requestedQuantity, request.destinationLocationId);
         return ResponseEntity.status(HttpStatus.CREATED).body(replenishmentService.createReplenishment(request));
     }
 
@@ -40,18 +43,21 @@ public class ReplenishmentController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ReplenishmentResponse> updateReplenishment(@PathVariable Long id, @Valid @RequestBody ReplenishmentUpdateRequest request) {
+        log.info("REST request to update Replenishment with ID: {}", id);
         return ResponseEntity.ok(replenishmentService.updateReplenishment(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<Void> deleteReplenishment(@PathVariable Long id) {
+        log.warn("REST request to DELETE Replenishment with ID: {}", id);
         replenishmentService.deleteReplenishment(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/filter")
     public ResponseEntity<List<ReplenishmentResponse>> searchReplenishments(@ModelAttribute ReplenishmentSearchRequest request) {
+        log.info("REST request to search Replenishments with filters: {}", request);
         return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
     }
 }

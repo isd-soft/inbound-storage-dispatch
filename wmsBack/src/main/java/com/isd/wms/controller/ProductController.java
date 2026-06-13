@@ -15,25 +15,23 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@Slf4j
 public class ProductController {
 
     private final ProductService productService;
 
-
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
-        log.info("Create product request: name={}, categoryId={}", request.name(), request.categoryId());
+        log.info("REST request to create Product: {}, Category ID: {}", request.name(), request.categoryId());
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.createProduct(request));
     }
 
     @GetMapping
     public List<ProductResponse> getAllProducts() {
-        log.info("Get all products request");
         return productService.getAllProducts();
     }
 
@@ -44,21 +42,20 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ProductResponse getProductById(@PathVariable Long id) {
-        log.info("Get product by id request: productId={}", id);
         return productService.getProductById(id);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ProductResponse updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequest request) {
-        log.info("Update product request: productId={}, name={}, categoryId={}", id, request.name(), request.categoryId());
+        log.info("REST request to update Product ID: {}, New Name: {}, Category ID: {}", id, request.name(), request.categoryId());
         return productService.updateProduct(id, request);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        log.info("Delete product request: productId={}", id);
+        log.warn("REST request to DELETE Product with ID: {}", id);
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
@@ -68,7 +65,7 @@ public class ProductController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Long categoryId
     ) {
-        log.info("Search products request: name={}, categoryId={}", name, categoryId);
+        log.info("REST request to search Products by name: {} and categoryId: {}", name, categoryId);
         return productService.searchProducts(name, categoryId);
     }
 }

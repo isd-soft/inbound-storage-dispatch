@@ -5,6 +5,7 @@ import com.isd.wms.dto.category.CategoryResponse;
 import com.isd.wms.dto.category.CategoryUpdateRequest;
 import com.isd.wms.service.CategoryService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
@@ -32,6 +34,7 @@ public class CategoryController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
+        log.info("REST request to create Category: {}", request.name());
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(request));
     }
 
@@ -48,12 +51,14 @@ public class CategoryController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public CategoryResponse updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryUpdateRequest request) {
+        log.info("REST request to update Category with ID: {}", id);
         return categoryService.updateCategory(id, request);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        log.warn("REST request to DELETE Category with ID: {}", id);
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }

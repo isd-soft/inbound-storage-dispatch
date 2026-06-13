@@ -32,9 +32,12 @@ public class WorkflowService {
 
     @Transactional
     public void generateProcessesForTask(Task task, Long productId, int remainingQuantity) {
+        log.info("ALGO START: Generating execution processes for Task ID: {}. Target Product ID: {}, Required Qty: {}",
+            task.getId(), productId, remainingQuantity);
 
         List<Stock> availableStocks = new ArrayList<>(stockRepository.findAvailableStocksByProductId(productId));
         List<Process> processesToSave = new ArrayList<>();
+        log.debug("Found {} distinct stock lines available in database for Product ID: {}", availableStocks.size(), productId);
 
         availableStocks.sort((s1, s2) -> {
             int diff1 = s1.getQuantity() - s1.getReservedQuantity();
@@ -46,6 +49,8 @@ public class WorkflowService {
 
         processRepository.saveAll(processesToSave);
         stockRepository.saveAll(availableStocks);
+        log.info("ALGO SUCCESS: Successfully split Task ID {} into {} discrete workflow execution processes",
+            task.getId(), processesToSave.size());
     }
 
     private static void assignProcesses(Task task, Long productId, int remainingQuantity, List<Stock> availableStocks, List<Process> processesToSave) {
@@ -63,6 +68,9 @@ public class WorkflowService {
 
             Process process = new Process(task, bestStock, quantityToTake, Status.CREATED);
             processesToSave.add(process);
+
+            log.debug("Task ID {}: Allocated {} pcs from Stock ID {} (Location: '{}')",
+                task.getId(), quantityToTake, bestStock.getId(), bestStock.getLocation().getBarcode());
 
             bestStock.setReservedQuantity(bestStock.getReservedQuantity() + quantityToTake);
             remainingQuantity -= quantityToTake;
@@ -87,6 +95,7 @@ public class WorkflowService {
 
     @Transactional
     public void updateTask(Task task, Long productId, Integer requestedQuantity) {
+        log.warn("Task structure update triggered for Task ID: {}. Wiping out old processes and re-running allocation engine.", task.getId());
         processRepository.deleteByTaskId(task.getId());
         generateProcessesForTask(task, productId, requestedQuantity);
     }
@@ -96,11 +105,15 @@ public class WorkflowService {
         Stock sourceStock = process.getStock();
         int quantityToMove = process.getQuantity();
 
+        log.info("Executing completion logic for Process ID: {} (Type: {}, Linked Task ID: {})",
+            process.getId(), process.getTask().getTaskType(), process.getTask().getId());
+
         sourceStock.removeQuantity(quantityToMove);
         stockRepository.save(sourceStock);
 
         Task task = process.getTask();
 
+        log.debug("Resolving functional process completion strategy for type: {}", task.getTaskType());
         processCompletionStrategies.stream()
                 .filter(strategy -> strategy.support(task.getTaskType()))
                 .findAny()
@@ -112,6 +125,7 @@ public class WorkflowService {
                 .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
 
         if (isTaskFullyCompleted) {
+            log.info("All sub-processes for Task ID {} are complete. Elevating task status to COMPLETED.", task.getId());
             task.setStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
 

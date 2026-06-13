@@ -58,15 +58,19 @@ public class InventoryService {
 
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
-        log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
-                request.getProductId(), request.getLocationId(), request.getQuantity(), request.getUserId());
+        log.info("Stock inbound (add) request started: Product ID={}, Location ID={}, Quantity={}, User ID={}",
+            request.getProductId(), request.getLocationId(), request.getQuantity(), request.getUserId());
 
         Product product = getProduct(request.getProductId());
         Location location = getLocation(request.getLocationId());
         User user = getUser(request.getUserId());
 
         Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
-                .orElseGet(() -> new Stock(product, location));
+            .orElseGet(() -> {
+                log.info("No existing stock found for Product '{}' at Location '{}'. Initializing new Stock entity.",
+                    product.getName(), location.getName());
+                return new Stock(product, location);
+            });
 
         stock.setQuantity(stock.getQuantity() + request.getQuantity());
         stock.setManufactureDate(request.getManufactureDate());
@@ -82,8 +86,8 @@ public class InventoryService {
 
     @Transactional
     public StockResponse removeStock(RemoveStockRequest request) {
-        log.info("Removing stock: stockId={}, quantity={}, userId={}",
-                request.getStockId(), request.getQuantity(), request.getUserId());
+        log.info("Stock outbound (remove) request started: Stock ID={}, Quantity to remove={}, User ID={}",
+            request.getStockId(), request.getQuantity(), request.getUserId());
 
         Stock stock = getStock(request.getStockId());
         User user = getUser(request.getUserId());
@@ -108,7 +112,7 @@ public class InventoryService {
 
     @Transactional
     public StockResponse adjustStock(AdjustStockRequest request) {
-        log.info("Adjusting stock: stockId={}, newQuantity={}, userId={}",
+        log.info("Manual adjusting stock: stockId={}, newQuantity={}, userId={}",
                 request.getStockId(), request.getNewQuantity(), request.getUserId());
 
         Stock stock = getStock(request.getStockId());
@@ -142,6 +146,8 @@ public class InventoryService {
         Stock stock = getStock(stockId);
         Long productId = stock.getProduct().map(Product::getId).orElse(null);
         Long locationId = stock.getLocation() == null ? null : stock.getLocation().getId();
+
+        log.debug("Fetching inventory operation history for Stock ID: {} (Product ID: {}, Location ID: {})", stockId, productId, locationId);
         return inventoryHistoryRepository
                 .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
                         productId, locationId, productId, locationId)
@@ -152,6 +158,8 @@ public class InventoryService {
 
     @Transactional
     public void recordPickingHistory(Stock stock, Integer pickedQuantity, User user) {
+        log.info("Recording history for background operation PICKING: Stock ID={}, Quantity picked={}, User='{}'",
+            stock.getId(), pickedQuantity, user.getUsername());
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
                 InventoryOperationType.PICKING, user);
     }
@@ -178,12 +186,13 @@ public class InventoryService {
         );
         history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);
+        log.debug("Inventory history record saved successfully. Operation: {}, Delta: {}, Final: {}", operationType, alteredQuantity, quantityAfterChange);
     }
 
     private Stock getStock(Long stockId) {
         return stockRepository.findById(stockId)
                 .orElseThrow(() -> {
-                    log.warn("Stock not found: stockId={}", stockId);
+                    log.warn("Inventory integrity failure: Stock record not found for ID: {}", stockId);
                     return new StockNotFoundException(stockId);
                 });
     }
@@ -191,7 +200,7 @@ public class InventoryService {
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> {
-                    log.warn("Product not found: productId={}", productId);
+                    log.warn("Inventory integrity failure: Product record not found for ID: {}", productId);
                     return new ProductNotFoundException(productId);
                 });
     }
@@ -199,7 +208,7 @@ public class InventoryService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
                 .orElseThrow(() -> {
-                    log.warn("Location not found: locationId={}", locationId);
+                    log.warn("Inventory integrity failure: Location record not found for ID: {}", locationId);
                     return new LocationNotFoundException(locationId);
                 });
     }
@@ -207,7 +216,7 @@ public class InventoryService {
     private User getUser(Long userId) {
         return UserRepository.findById(userId)
                 .orElseThrow(() -> {
-                    log.warn("User not found: userId={}", userId);
+                    log.warn("Security integrity failure: User record not found for ID: {}", userId);
                     return new UserNotFoundException(userId);
                 });
     }

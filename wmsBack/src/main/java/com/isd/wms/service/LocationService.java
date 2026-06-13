@@ -1,6 +1,5 @@
 package com.isd.wms.service;
 
-
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
@@ -27,15 +26,17 @@ public class LocationService {
     private final LocationMapper locationMapper;
     private final StockRepository stockRepository;
 
-
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
         String name = request.name().trim();
         String code = request.barcode().trim();
+
+        log.info("Attempting to create a new warehouse location: Name='{}', Barcode='{}', Zone='{}'", name, code, request.zone());
+
         if (locationRepository.existsByBarcodeIgnoreCase(code)) {
+            log.warn("Location creation rejected: Barcode '{}' already exists in the system", code);
             throw new DuplicateBarcodeException(code);
         }
-
 
         Location location = new Location(
                 name,
@@ -44,7 +45,11 @@ public class LocationService {
                 request.description(),
                 true
         );
-        return locationMapper.toResponse(locationRepository.save(location));
+
+        Location savedLocation = locationRepository.save(location);
+        log.info("Location successfully created. Assigned ID: {}, Barcode: '{}'", savedLocation.getId(), code);
+
+        return locationMapper.toResponse(savedLocation);
     }
 
     @Transactional
@@ -52,8 +57,12 @@ public class LocationService {
         Location location = getLocation(locationId);
         String newCode = request.barcode().trim();
 
+        log.info("Updating warehouse Location ID: {}. Old Barcode='{}', New Barcode='{}', Zone='{}'",
+            locationId, location.getBarcode(), newCode, request.zone());
+
         if (!location.getBarcode().equalsIgnoreCase(newCode) &&
                 locationRepository.existsByBarcodeIgnoreCase(newCode)) {
+            log.warn("Location update rejected for ID {}: Barcode '{}' is already assigned to another location", locationId, newCode);
             throw new DuplicateBarcodeException(newCode);
         }
 
@@ -62,23 +71,28 @@ public class LocationService {
         location.setDescription(request.description());
         location.setAvailable(request.available());
 
-        return locationMapper.toResponse(locationRepository.save(location));
+        Location updatedLocation = locationRepository.save(location);
+        log.info("Location ID {} successfully updated in database", locationId);
+
+        return locationMapper.toResponse(updatedLocation);
     }
 
     @Transactional
     public void deleteLocation(Long locationId) {
+        log.info("Delete (deactivation) requested for Location ID: {}", locationId);
+
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
         if (hasProducts) {
             log.warn("Attempt to deactivate occupied location ID: {}", locationId);
-            throw new IllegalStateException("Нельзя деактивировать локацию, на ней находится товар.");
+            throw new IllegalStateException("You cannot deactivate this location, there is a product on it.");
         }
 
         Location location = getLocation(locationId);
-        location.setIsActive(false); // Деактивируем
+        location.setIsActive(false); // Deactivate
 
         locationRepository.save(location);
 
-        log.info("Location ID {} successfully deactivated", locationId);
+        log.warn("Location ID {} ('{}') has been successfully deactivated (marked as inactive)", locationId, location.getName());
     }
 
     public List<LocationResponse> getAllLocations() {
@@ -95,9 +109,11 @@ public class LocationService {
         return locationRepository.getLocationDispatch();
     }
 
-
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
+            .orElseThrow(() -> {
+                log.warn("Location lookup failed. Warehouse Location ID {} not found", locationId);
+                return new LocationNotFoundException(locationId);
+            });
     }
 }

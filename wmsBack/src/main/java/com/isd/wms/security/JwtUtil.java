@@ -21,7 +21,7 @@ public class JwtUtil {
 
     public JwtUtil(@Value("${wms.jwt.secret}") String secretString) {
         if (secretString == null || secretString.isBlank()) {
-            log.error("CRITICAL: JWT secret string from application.properties is empty or null!");
+            log.error("CRITICAL: JWT secret string is empty or null! Application will fail to boot.");
         } else {
             log.info("JwtUtil initialized. Secret key loaded successfully.");
         }

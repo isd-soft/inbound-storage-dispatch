@@ -45,12 +45,17 @@ public class ReplenishmentService {
         validateDestinationStockIsZero(product, destinationLocation);
         validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), null);
 
+        log.debug("Triggering automatic background task creation of type REPLENISHMENT for Product '{}'", product.getName());
         Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());
+        log.info("System Task ID {} generated successfully for this replenishment run", task.getId());
 
         Replenishment replenishment = new Replenishment(task, product, request.requestedQuantity(), destinationLocation);
-        replenishment = replenishmentRepository.save(replenishment);
+        Replenishment savedReplenishment = replenishmentRepository.save(replenishment);
 
-        return replenishmentMapper.toResponse(replenishment);
+        log.info("Replenishment process successfully created. System ID: {}, Task ID: {}, Destination Location: '{}', Qty: {}",
+            savedReplenishment.getId(), task.getId(), destinationLocation.getName(), request.requestedQuantity());
+
+        return replenishmentMapper.toResponse(savedReplenishment);
     }
 
     @Transactional
@@ -66,21 +71,27 @@ public class ReplenishmentService {
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
 
         if (isProductChanged || isLocationChanged) {
+            log.info("Replenishment ID {} structure modification detected (Product or Destination Location changed). Re-running system rules.", id);
             validateDestinationStockIsZero(product, destinationLocation);
             validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), id);
         }
 
         if (isProductChanged || isQuantityChanged) {
+            log.debug("Propagating replenishment quantity/product changes to down-stream Task ID {}", replenishment.getTask().getId());
             replenishment.getTask().setRequestedQuantity(request.requestedQuantity());
             workflowService.updateTask(replenishment.getTask(), request.productId(), request.requestedQuantity());
         }
 
+        Status oldStatus = replenishment.getStatus();
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
         replenishment.setStatus(request.status());
         replenishment.setDestinationLocation(destinationLocation);
 
-        return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
+        Replenishment updatedReplenishment = replenishmentRepository.save(replenishment);
+        log.info("Replenishment ID {} successfully updated. Status change: {} -> {}", id, oldStatus, updatedReplenishment.getStatus());
+
+        return replenishmentMapper.toResponse(updatedReplenishment);
     }
 
     private void validateNoActiveReplenishment(Long productId, Long locationId, Long excludeReplenishmentId) {
@@ -103,8 +114,6 @@ public class ReplenishmentService {
         }
     }
 
-
-
     private void validateDestinationStockIsZero(Product product, Location location) {
         stockRepository.findByProductAndLocation(product, location)
                 .ifPresent(stock -> {
@@ -121,8 +130,9 @@ public class ReplenishmentService {
 
     @Transactional
     public void deleteReplenishment(Long replenishmentId) {
-        log.info("Deleting replenishment: id={}", replenishmentId);
+        log.warn("Deleting request for replenishment: id={}", replenishmentId);
         replenishmentRepository.delete(getReplenishment(replenishmentId));
+        log.warn("Replenishment ID: {} has been permanently removed from the system database", replenishmentId);
     }
 
     public ReplenishmentResponse getReplenishmentById(Long replenishmentId) {
@@ -149,17 +159,25 @@ public class ReplenishmentService {
 
     private Replenishment getReplenishment(Long replenishmentId) {
         return replenishmentRepository.findById(replenishmentId)
-                .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
+            .orElseThrow(() -> {
+                log.warn("Replenishment logic failure: Record with ID {} not found", replenishmentId);
+                return new ReplenishmentNotFoundException(replenishmentId);
+            });
     }
 
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException(productId));
+            .orElseThrow(() -> {
+                log.warn("Replenishment integrity failure: Referenced Product ID {} does not exist", productId);
+                return new ProductNotFoundException(productId);
+            });
     }
-
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
+            .orElseThrow(() -> {
+                log.warn("Replenishment integrity failure: Referenced Destination Location ID {} does not exist", locationId);
+                return new LocationNotFoundException(locationId);
+            });
     }
 }
