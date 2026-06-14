@@ -9,6 +9,9 @@ public record ProductCreateRequest(
         @NotBlank @Size(max = 100) String name,
         @NotBlank @Size(max = 100) String barcode,
         @Size(max = 255) String description,
-        @NotNull @Min(1) Long categoryId
+        @NotNull @Min(1) Long categoryId,
+        Boolean autoReplenish,
+        @Min(0) Integer minThreshold,
+        @Min(1) Integer replenishQty
 ) {
 }

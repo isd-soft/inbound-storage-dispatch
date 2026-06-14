@@ -21,7 +21,7 @@ public class Location{
     @SequenceGenerator(name = "location_seq", sequenceName = "locations_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(name = "name", nullable = false, unique = true, length = 50)
     private String name;
 
     @Column(nullable = false, unique = true, length = 50)

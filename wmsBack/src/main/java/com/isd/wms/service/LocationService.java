@@ -52,8 +52,18 @@ public class LocationService {
         Location location = getLocation(locationId);
         String newCode = request.barcode().trim();
 
-        if (!location.getBarcode().equalsIgnoreCase(newCode) &&
-                locationRepository.existsByBarcodeIgnoreCase(newCode)) {
+        boolean isCodeChanged = !location.getBarcode().equalsIgnoreCase(newCode);
+        boolean isZoneChanged = location.getZone() != request.zone();
+        boolean isAvailableChanged = location.getAvailable() != request.available();
+
+        boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
+
+        if (hasProducts && (isCodeChanged || isZoneChanged || isAvailableChanged)) {
+            log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
+            throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
+        }
+
+        if (isCodeChanged && locationRepository.existsByBarcodeIgnoreCase(newCode)) {
             throw new DuplicateBarcodeException(newCode);
         }
 
@@ -69,16 +79,16 @@ public class LocationService {
     public void deleteLocation(Long locationId) {
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
         if (hasProducts) {
-            log.warn("Attempt to deactivate occupied location ID: {}", locationId);
-            throw new IllegalStateException("Нельзя деактивировать локацию, на ней находится товар.");
+            log.warn("Attempt to delete occupied location ID: {}", locationId);
+            throw new IllegalStateException("You cannot delete a location while there is a product in it");
         }
 
         Location location = getLocation(locationId);
-        location.setIsActive(false); // Деактивируем
+        location.setIsActive(false);
 
         locationRepository.save(location);
 
-        log.info("Location ID {} successfully deactivated", locationId);
+        log.info("Location ID {} successfully deleted", locationId);
     }
 
     public List<LocationResponse> getAllLocations() {
@@ -98,6 +108,6 @@ public class LocationService {
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
+            .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 }

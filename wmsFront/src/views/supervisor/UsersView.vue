@@ -1,13 +1,15 @@
 <template>
   <div class="p-6">
     <Toast />
-
-    <div class="flex justify-between items-center mb-6">
+    <ConfirmDialog /> <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+    <div>
       <h2 class="app-title text-2xl font-bold">System Users</h2>
-      <Button label="Add User" icon="pi pi-user-plus" severity="success" @click="openCreateDialog" />
+      <p class="app-subtitle text-sm mt-1">Manage personnel access and system roles.</p>
     </div>
+    <Button label="Add User" icon="pi pi-user-plus" severity="success" @click="openCreateDialog" />
+  </div>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
+    <Card class="app-card border-none shadow-lg">
       <template #content>
         <DataTable
           :value="users"
@@ -17,7 +19,11 @@
           emptyMessage="No users found."
         >
           <Column field="id" header="ID"></Column>
-          <Column field="username" header="Username" sortable></Column>
+          <Column field="username" header="Username" sortable>
+            <template #body="{ data }">
+              <span class="app-title font-semibold">{{ data.username }}</span>
+            </template>
+          </Column>
           <Column field="email" header="Email"></Column>
           <Column field="userRole" header="Role" sortable>
             <template #body="{ data }">
@@ -26,61 +32,68 @@
           </Column>
           <Column header="Actions">
             <template #body="{ data }">
-              <Button
-                v-if="isDev"
-                icon="pi pi-pencil"
-                outlined
-                rounded
-                size="small"
-                class="mr-2"
-                severity="warning"
-                @click="openEditDialog(data)"
-              />
-              <Button
-                v-if="canDelete(data)"
-                icon="pi pi-trash"
-                outlined
-                rounded
-                severity="danger"
-                size="small"
-                @click="deleteUser(data)"
-              />
+              <div class="flex gap-2">
+                <Button
+                  v-if="isDev"
+                  icon="pi pi-pencil"
+                  outlined
+                  rounded
+                  size="small"
+                  severity="warning"
+                  @click="openEditDialog(data)"
+                />
+                <Button
+                  v-if="canDelete(data)"
+                  icon="pi pi-trash"
+                  outlined
+                  rounded
+                  severity="danger"
+                  size="small"
+                  @click="deleteUser(data)"
+                />
+              </div>
             </template>
           </Column>
         </DataTable>
       </template>
     </Card>
 
-    <Dialog v-model:visible="dialogVisible" :header="dialogMode === 'add' ? 'Register New User' : 'Edit User'" :modal="true" class="p-fluid w-full max-w-md">
-
-      <div class="field mb-4">
-        <label for="username" class="block text-sm font-medium mb-1">Username *</label>
-        <InputText id="username" v-model="formData.username" required autofocus />
-      </div>
-
-      <template v-if="dialogMode === 'add'">
-        <div class="field mb-4">
-          <label for="email" class="block text-sm font-medium mb-1">Email *</label>
-          <InputText id="email" type="email" v-model="formData.email" required />
+    <Dialog
+      v-model:visible="dialogVisible"
+      :header="dialogMode === 'add' ? 'Register New User' : 'Edit User'"
+      :modal="true"
+      class="w-full max-w-md"
+    >
+      <div class="flex flex-col gap-4 mt-2">
+        <div class="flex flex-col gap-2">
+          <label for="username" class="app-subtitle font-medium">Username <span class="text-red-500">*</span></label>
+          <InputText id="username" v-model="formData.username" required autofocus class="w-full" />
         </div>
 
-        <div class="field mb-4">
-          <label for="password" class="block text-sm font-medium mb-1">Password *</label>
-          <Password id="password" v-model="formData.password" :feedback="false" toggleMask required />
-        </div>
-      </template>
+        <template v-if="dialogMode === 'add'">
+          <div class="flex flex-col gap-2">
+            <label for="email" class="app-subtitle font-medium">Email <span class="text-red-500">*</span></label>
+            <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
+          </div>
 
-      <div class="field mb-4">
-        <label for="role" class="block text-sm font-medium mb-1">Role *</label>
-        <Dropdown id="role" v-model="formData.userRole" :options="roles" placeholder="Select a Role" />
+          <div class="flex flex-col gap-2">
+            <label for="password" class="app-subtitle font-medium">Password <span class="text-red-500">*</span></label>
+            <Password id="password" v-model="formData.password" :feedback="false" toggleMask required inputClass="w-full" class="w-full" />
+          </div>
+        </template>
+
+        <div class="flex flex-col gap-2">
+          <label for="role" class="app-subtitle font-medium">Role <span class="text-red-500">*</span></label>
+          <Dropdown id="role" v-model="formData.userRole" :options="roles" placeholder="Select a Role" class="w-full" />
+        </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="dialogVisible = false" />
+        <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="dialogVisible = false" />
         <Button
           :label="dialogMode === 'add' ? 'Register' : 'Save Changes'"
           icon="pi pi-check"
-          severity="success"
+          :severity="dialogMode === 'add' ? 'success' : 'warning'"
           :loading="actionLoading"
           @click="submitAction"
           :disabled="!isFormValid"
@@ -93,6 +106,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -104,11 +118,13 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Dropdown from 'primevue/dropdown'
 import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 
 import { userApi } from '@/api/userApi'
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
+const confirm = useConfirm()
 const authStore = useAuthStore()
 
 const users = ref([])
@@ -247,20 +263,25 @@ const updateUser = async () => {
   }
 }
 
-const deleteUser = async (user) => {
-  const confirmed = confirm(`Are you sure you want to permanently delete user '${user.username}'?`)
-  if (!confirmed) return
-
-  loading.value = true
-  try {
-    await userApi.delete(user.id)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted successfully', life: 3000 })
-    await loadUsers()
-  } catch (error) {
-    handleBackendError(error)
-  } finally {
-    loading.value = false
-  }
+const deleteUser = (user) => {
+  confirm.require({
+    message: `Are you sure you want to permanently delete user '${user.username}'?`,
+    header: 'Confirm Deletion',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      loading.value = true
+      try {
+        await userApi.delete(user.id)
+        toast.add({ severity: 'success', summary: 'Deleted', detail: 'User deleted successfully', life: 3000 })
+        await loadUsers()
+      } catch (error) {
+        handleBackendError(error)
+      } finally {
+        loading.value = false
+      }
+    }
+  })
 }
 
 onMounted(() => {

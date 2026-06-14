@@ -3,34 +3,28 @@ package com.isd.wms.service;
 import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
-import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
-import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
-import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
-import com.isd.wms.repository.OrderLineRepository;
-import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
-import java.util.List;
-
 import com.isd.wms.service.validation.SecurityFacade;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -40,20 +34,18 @@ public class ProcessExecutionService {
 
     private final ProcessRepository processRepository;
     private final StockRepository stockRepository;
-    private final OrderLineRepository orderLineRepository;
-    private final OrderRepository orderRepository;
-    private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final InventoryService inventoryService;
     private final SecurityFacade securityFacade;
+    private final WorkflowService workflowService; // Внедряем WorkflowService!
 
     public List<ProcessExecutionResponse> getAssignedProcesses() {
         User operator = getCurrentUser();
         return processRepository.findByOperatorAndStatuses(
-                        operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
-                .stream()
-                .map(this::toResponse)
-                .toList();
+                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
+            .stream()
+            .map(this::toResponse)
+            .toList();
     }
 
     @Transactional
@@ -89,17 +81,17 @@ public class ProcessExecutionService {
         String barcode = request.barcode().trim();
         Stock expectedStock = process.getStock();
         Product expectedProduct = expectedStock.getProduct()
-                .filter(product -> product.getBarcode() != null && product.getBarcode().equalsIgnoreCase(barcode))
-                .orElse(null);
+            .filter(product -> product.getBarcode() != null && product.getBarcode().equalsIgnoreCase(barcode))
+            .orElse(null);
         if (expectedProduct == null) {
             log.warn("Wrong barcode scanned for process {}", processId);
             throw new InvalidRequestException("Wrong product/SKU barcode");
         }
 
         stockRepository.findByProductIdAndLocationId(
-                        expectedProduct.getId(),
-                        expectedStock.getLocation().getId())
-                .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
+                expectedProduct.getId(),
+                expectedStock.getLocation().getId())
+            .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
 
         process.setProductScanned(true);
         log.info("Product barcode scanned successfully for process {}", processId);
@@ -138,51 +130,15 @@ public class ProcessExecutionService {
 
         validatePickedQuantityForProcess(process, process.getPickedQuantity());
 
-        Stock sourceStock = process.getStock();
-        int pickedQuantity = process.getPickedQuantity();
-        sourceStock.setQuantity(sourceStock.getQuantity() - pickedQuantity);
-        sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - process.getQuantity()));
-        stockRepository.save(sourceStock);
-
         process.setStatus(Status.COMPLETED);
         Process savedProcess = processRepository.save(process);
 
-        inventoryService.recordPickingHistory(sourceStock, pickedQuantity, operator);
-        updateParentStatuses(savedProcess);
+        inventoryService.recordPickingHistory(process.getStock(), process.getPickedQuantity(), operator);
+
+        workflowService.executeProcessCompletion(savedProcess);
 
         log.info("Process {} completed by operator {}", processId, operator.getUsername());
         return toResponse(savedProcess);
-    }
-
-    private void updateParentStatuses(Process process) {
-        Task task = process.getTask();
-        List<Process> taskProcesses = processRepository.findAllByTaskId(task.getId());
-        boolean taskCompleted = taskProcesses.stream()
-                .allMatch(taskProcess -> taskProcess.getStatus() == Status.COMPLETED
-                        || taskProcess.getId().equals(process.getId()));
-
-        if (!taskCompleted) {
-            return;
-        }
-
-        task.setStatus(TaskStatus.COMPLETED);
-        taskRepository.save(task);
-
-        orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
-            orderLine.setStatus(Status.COMPLETED);
-            orderLineRepository.save(orderLine);
-            updateOrderStatus(orderLine.getOrder());
-        });
-    }
-
-    private void updateOrderStatus(Order order) {
-        boolean orderCompleted = order.getOrderLines().stream()
-                .allMatch(orderLine -> orderLine.getStatus() == Status.COMPLETED);
-
-        if (orderCompleted) {
-            order.setStatus(OrderStatus.COMPLETED);
-            orderRepository.save(order);
-        }
     }
 
     private Process getAssignedProcessInProgress(Long processId) {
@@ -201,7 +157,7 @@ public class ProcessExecutionService {
 
     private Process getAssignedProcess(Long processId) {
         Process process = processRepository.findById(processId)
-                .orElseThrow(() -> new InvalidRequestException("Process not found"));
+            .orElseThrow(() -> new InvalidRequestException("Process not found"));
         User operator = getCurrentUser();
         if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("Process is not assigned to current operator");
@@ -213,7 +169,7 @@ public class ProcessExecutionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(username));
+            .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private void validatePickedQuantityForProcess(Process process, Integer pickedQuantity) {
@@ -227,12 +183,12 @@ public class ProcessExecutionService {
 
     private ProcessExecutionResponse toResponse(Process process) {
         return new ProcessExecutionResponse(
-                process.getId(),
-                process.getStatus().name(),
-                process.isSourceLocationScanned(),
-                process.isProductScanned(),
-                process.getQuantity(),
-                process.getPickedQuantity()
+            process.getId(),
+            process.getStatus().name(),
+            process.isSourceLocationScanned(),
+            process.isProductScanned(),
+            process.getQuantity(),
+            process.getPickedQuantity()
         );
     }
 }

@@ -10,6 +10,7 @@ import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -93,19 +94,22 @@ public class UserService {
     }
 
     @Transactional
-    public User verifyEmail(String rawToken) {
+    public boolean verifyEmail(String rawToken) {
         String cleanToken = rawToken != null ? rawToken.trim() : "";
 
         log.info("Attempting to verify email with token: [{}]", cleanToken);
 
         User user = userRepository.findByVerificationToken(cleanToken)
-                .orElseThrow(() -> {
-                    log.error("Token not found in database: [{}]", cleanToken);
-                    return new RuntimeException("Invalid verification token");
-                });
+            .orElseThrow(() -> {
+                log.error("Token not found in database: [{}]", cleanToken);
+                return new RuntimeException("Invalid verification token.");
+            });
 
         if (user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Verification token has expired. Please ask your supervisor to resend the invitation.");
+            String username = user.getUsername();
+            userRepository.delete(user);
+            log.info("Expired token. Deleted unverified user '{}'", username);
+            return false;
         }
 
         user.setEmailVerified(true);
@@ -115,7 +119,19 @@ public class UserService {
 
         log.info("Email verified for user '{}'", user.getUsername());
 
-        return user;
+        return true;
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void cleanUpExpiredUnverifiedUsers() {
+        List<User> expiredUsers = userRepository.findAllByEmailVerifiedFalseAndVerificationTokenExpiresAtBefore(LocalDateTime.now());
+
+        if (!expiredUsers.isEmpty()) {
+            userRepository.deleteAll(expiredUsers);
+
+            log.info("Background Job: Successfully deleted {} expired unverified accounts.", expiredUsers.size());
+        }
     }
 
     @Transactional
@@ -143,7 +159,7 @@ public class UserService {
         targetUser.setIsActive(false);
         userRepository.save(targetUser);
 
-        log.info("User '{}' (ID: {}) was successfully deactivated by {}",
+        log.info("User '{}' (ID: {}) was successfully deleted by {}",
                 targetUser.getUsername(), userId, securityFacade.getCurrentUsername());
     }
 

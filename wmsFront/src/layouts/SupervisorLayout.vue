@@ -92,7 +92,7 @@ const SidebarNavigation = defineComponent({
             {
               key: item.to,
               to: item.to,
-              exactActiveClass: item.exact ? 'app-nav-link-active' : undefined,
+              exactActiveClass: 'app-nav-link-active',
               activeClass: 'app-nav-link-active',
               class: 'app-nav-link p-3 rounded-lg transition flex items-center gap-3',
               onClick: () => emit('navigate')
@@ -108,14 +108,13 @@ const menuItems = computed(() => {
   const isDev = authStore.role === 'ROLE_DEV'
   const items = [
     { to: '/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
-    { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },
-    // { to: '/supervisor/tasks', label: 'Tasks', icon: 'pi pi-check-square' },
+    { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },
     { to: '/supervisor/replenishments', label: 'Replenishments', icon: 'pi pi-sync' },
+    { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },
     { to: '/supervisor/products', label: 'Products', icon: 'pi pi-tags' },
     { to: '/supervisor/locations', label: 'Locations', icon: 'pi pi-map-marker' },
-    { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
     { to: '/supervisor/users', label: 'Users', icon: 'pi pi-users' },
-    { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },
+    { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
   ]
 
   if (isDev) {

@@ -1,14 +1,11 @@
 package com.isd.wms.controller;
 
-import com.isd.wms.entity.User;
 import com.isd.wms.service.AuthService;
 import com.isd.wms.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Map;
 
@@ -20,9 +17,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
-
-    @Value("${wms.frontend.url:http://localhost:5173}")
-    private String frontendUrl;
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
@@ -39,24 +33,21 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public ModelAndView verifyEmail(@RequestParam String token) {
-        ModelAndView mav = new ModelAndView();
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
         try {
-            User user = userService.verifyEmail(token);
-            log.info("Email verified successfully for token: {}", token);
-
-            mav.setViewName("email/verify-success");
-
-            mav.addObject("username", user.getUsername());
-            mav.addObject("loginUrl", frontendUrl + "/login");
+            boolean isVerified = userService.verifyEmail(token);
+            if (isVerified) {
+                log.info("Email verified successfully for token: {}", token);
+                return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "The verification link has expired. The unverified account has been removed. Please ask to send a new invitation."
+                ));
+            }
 
         } catch (RuntimeException e) {
             log.warn("Email verification failed: {}", e.getMessage());
-
-            mav.setViewName("email/verify-error");
-            mav.addObject("error", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        return mav;
     }
 }
