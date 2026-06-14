@@ -18,6 +18,8 @@ import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +27,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class OrderService {
     private final ExtendedOrderMapper extendedOrderMapper;
     private final OrderMapper orderMapper;
@@ -37,52 +41,6 @@ public class OrderService {
     private final ProcessRepository processRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
-
-    @Autowired
-    public OrderService(
-            ExtendedOrderMapper extendedOrderMapper,
-            OrderMapper orderMapper,
-            OrderRepository orderRepository,
-            LocationRepository locationRepository,
-            OrderLineService orderLineService,
-            UserRepository userRepository,
-            ProcessRepository processRepository,
-            TaskRepository taskRepository,
-            OrderLineRepository orderLineRepository
-    ) {
-        this.extendedOrderMapper = extendedOrderMapper;
-        this.orderMapper = orderMapper;
-        this.orderRepository = orderRepository;
-        this.locationRepository = locationRepository;
-        this.orderLineService = orderLineService;
-        this.userRepository = userRepository;
-        this.processRepository = processRepository;
-        this.taskRepository = taskRepository;
-        this.orderLineRepository = orderLineRepository;
-    }
-
-    public OrderService(
-            ExtendedOrderMapper extendedOrderMapper,
-            OrderMapper orderMapper,
-            OrderRepository orderRepository,
-            LocationRepository locationRepository,
-            OrderLineService orderLineService,
-            UserRepository userRepository,
-            ProcessRepository processRepository,
-            TaskRepository taskRepository
-    ) {
-        this(
-                extendedOrderMapper,
-                orderMapper,
-                orderRepository,
-                locationRepository,
-                orderLineService,
-                userRepository,
-                processRepository,
-                taskRepository,
-                null
-        );
-    }
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -136,35 +94,20 @@ public class OrderService {
 
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
-        Order order = getOrder(orderId);
-        User operator = getUser(operatorId);
+        int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
+        if (updated == 0) {
+            throw new OrderNotFoundException(orderId);
+        }
+        log.info("Updated order with id {}", orderId);
 
-        List<Task> tasks = getAllTasksByOrder(order);
-        List<Process> processes = processRepository.findAllByOrder(order);
-        List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
+        int tasksUpdated = taskRepository.updateOperatorByOrderId(orderId, operatorId);
+        log.info("Updated {} tasks for order {}", tasksUpdated, orderId);
 
-        order.setStatus(OrderStatus.ASSIGNED);
-        tasks.forEach((task) -> task.setOperator(operator));
-        processes.forEach((process) -> process.setStatus(Status.ASSIGNED));
-        orderLines.forEach((orderLine) -> orderLine.setStatus(Status.ASSIGNED));
-        orderRepository.save(order);
-        taskRepository.saveAll(tasks);
-        processRepository.saveAll(processes);
-        orderLineRepository.saveAll(orderLines);
-    }
+        int processesUpdated = processRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} processes for order {}", processesUpdated, orderId);
 
-    private List<Task> getAllTasksByOrder(Order order) {
-        return taskRepository.findAllByOrder(order);
-    }
-
-    public Order getOldestOrderAssignedToOperator(User operator) {
-        return orderRepository.findOldestOrderAssignedToOperator(operator.getId())
-            .orElseThrow(() -> new OrderNotFoundException(operator.getId()));
-    }
-
-    private User getUser(Long operatorId) {
-        return userRepository.findById(operatorId)
-            .orElseThrow(() -> new UserNotFoundException(operatorId));
+        int orderLinesUpdated = orderLineRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} order lines for order {}", orderLinesUpdated, orderId);
     }
 
     private Location getLocation(Long locationId) {

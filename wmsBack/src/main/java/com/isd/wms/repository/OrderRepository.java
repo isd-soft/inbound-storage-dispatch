@@ -5,6 +5,7 @@ import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.NativeQuery;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,4 +47,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findOldestOrderAssignedToOperator(
         @Param("operatorId") Long operatorId
     );
+
+    @Modifying
+    @Query("""
+        UPDATE Order o
+            SET o.status = :orderStatus
+            WHERE o.id = :orderId
+    """)
+    int updateStatus(
+        @Param("orderId") Long orderId,
+        @Param("orderStatus") OrderStatus orderStatus);
 }
