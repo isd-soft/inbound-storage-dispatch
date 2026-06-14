@@ -16,7 +16,7 @@
 
     <Card class="app-card border-none shadow-lg">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="locations"
           :loading="loading"
           paginator
@@ -26,9 +26,7 @@
           dataKey="id"
           emptyMessage="No locations found."
         >
-          <Column field="id" header="ID" sortable style="width: 5rem"></Column>
-
-          <Column field="barcode" header="Code" sortable>
+          <Column field="barcode" header="Barcode" sortable>
             <template #body="{ data }">
               <span class="app-title font-bold text-primary">{{ data.barcode }}</span>
             </template>
@@ -59,20 +57,20 @@
               </div>
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? 'Edit Location' : 'Create Location'" :modal="true" class="w-full max-w-md">
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
-          <label for="barcode" class="app-subtitle font-medium">Location Code <span class="text-red-500">*</span></label>
+          <label for="barcode" class="app-subtitle font-medium">Barcode <span class="text-red-500">*</span></label>
           <InputText id="barcode" v-model="formData.barcode" placeholder="e.g., PICK-A-01" required autofocus class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="zone" class="app-subtitle font-medium">Zone <span class="text-red-500">*</span></label>
-          <Dropdown id="zone" v-model="formData.zone" :options="zones" placeholder="Select Zone" class="w-full" />
+          <Dropdown id="zone" v-model="formData.zone" :options="zones" placeholder="Select Zone" filter class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">

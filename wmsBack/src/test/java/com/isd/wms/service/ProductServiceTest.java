@@ -53,7 +53,7 @@ class ProductServiceTest {
         when(productRepository.save(org.mockito.ArgumentMatchers.any(Product.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", "Whole milk", 1L));
+        ProductResponse response = productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", "Whole milk", 1L, false, null, null));
 
         assertThat(response.name()).isEqualTo("Milk");
         assertThat(response.barcode()).isEqualTo("MILK-1");
@@ -62,13 +62,13 @@ class ProductServiceTest {
 
     @Test
     void rejectsProductWithoutName() {
-        assertThat(validator.validate(new ProductCreateRequest(" ", "MILK-1", null, 1L)))
+        assertThat(validator.validate(new ProductCreateRequest(" ", "MILK-1", null, 1L, false, null, null)))
                 .isNotEmpty();
     }
 
     @Test
     void rejectsProductWithoutCategory() {
-        assertThat(validator.validate(new ProductCreateRequest("Milk", "MILK-1", null, null)))
+        assertThat(validator.validate(new ProductCreateRequest("Milk", "MILK-1", null, null, false, null, null)))
                 .isNotEmpty();
     }
 
@@ -76,7 +76,7 @@ class ProductServiceTest {
     void rejectsProductWithInvalidCategory() {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", null, 99L)))
+        assertThatThrownBy(() -> productService.createProduct(new ProductCreateRequest("Milk", "MILK-1", null, 99L, false, null, null)))
                 .isInstanceOf(CategoryNotFoundException.class);
     }
 
@@ -95,7 +95,7 @@ class ProductServiceTest {
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(drinks));
         when(productRepository.save(product)).thenReturn(product);
 
-        ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", "JUICE-1", null, 2L));
+        ProductResponse response = productService.updateProduct(10L, new ProductUpdateRequest("Juice", "JUICE-1", null, 2L, false, null, null));
 
         assertThat(response.name()).isEqualTo("Juice");
         assertThat(response.barcode()).isEqualTo("JUICE-1");

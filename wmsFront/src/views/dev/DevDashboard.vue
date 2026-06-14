@@ -43,7 +43,7 @@
       <Card class="app-card">
         <template #title><span class="app-subtitle">Recent System Errors</span></template>
         <template #content>
-          <DataTable :value="systemLogs" class="p-datatable-sm">
+          <AppDataTable :value="systemLogs" class="p-datatable-sm">
             <Column field="timestamp" header="Time"></Column>
             <Column field="level" header="Level">
               <template #body="slotProps">
@@ -51,7 +51,7 @@
               </template>
             </Column>
             <Column field="message" header="Message"></Column>
-          </DataTable>
+          </AppDataTable>
         </template>
       </Card>
     </main>
@@ -82,6 +82,6 @@ const handleLogout = () => {
 
 const systemLogs = ref([
   { timestamp: '2026-06-05 10:15:00', level: 'WARN', message: 'Token expiration approaching for user: operator' },
-  { timestamp: '2026-06-05 09:42:11', level: 'ERROR', message: 'Failed to resolve location code: Z-99' }
+  { timestamp: '2026-06-05 09:42:11', level: 'ERROR', message: 'Failed to resolve location Barcode: Z-99' }
 ])
 </script>

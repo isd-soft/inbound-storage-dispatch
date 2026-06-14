@@ -24,6 +24,7 @@
             optionLabel="locationCode"
             optionValue="id"
             placeholder="Select a location"
+            filter
             fluid
             :class="{ 'p-invalid': submitted && !formData.location }"
           />
@@ -50,6 +51,7 @@
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Choose product"
+                filter
                 @change="line.quantity = 1"
                 fluid
                 :class="{ 'p-invalid': submitted && !line.product }"

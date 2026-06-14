@@ -106,6 +106,11 @@ const SidebarNavigation = defineComponent({
 
 const menuItems = computed(() => {
   const isDev = authStore.role === 'ROLE_DEV'
+  const isOperator = authStore.role === 'ROLE_OPERATOR'
+  if (isOperator) {
+    return [{ to: '/operator', label: 'Operator Console', icon: 'pi pi-box' }]
+  }
+
   const items = [
     { to: '/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
     { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },

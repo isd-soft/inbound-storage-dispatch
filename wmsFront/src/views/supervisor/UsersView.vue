@@ -11,14 +11,13 @@
 
     <Card class="app-card border-none shadow-lg">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="users"
           :loading="loading"
           stripedRows
           class="p-datatable-sm"
           emptyMessage="No users found."
         >
-          <Column field="id" header="ID"></Column>
           <Column field="username" header="Username" sortable>
             <template #body="{ data }">
               <span class="app-title font-semibold">{{ data.username }}</span>
@@ -54,7 +53,7 @@
               </div>
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
@@ -84,7 +83,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="role" class="app-subtitle font-medium">Role <span class="text-red-500">*</span></label>
-          <Dropdown id="role" v-model="formData.userRole" :options="roles" placeholder="Select a Role" class="w-full" />
+          <Dropdown id="role" v-model="formData.userRole" :options="roles" placeholder="Select a Role" filter class="w-full" />
         </div>
       </div>
 

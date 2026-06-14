@@ -16,7 +16,7 @@
 
     <Card class="bg-gray-800 border-none shadow-lg">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="tasks"
           :loading="loading"
           paginator
@@ -26,13 +26,17 @@
           dataKey="id"
           emptyMessage="No replenishment tasks found."
         >
-          <Column field="id" header="ID" sortable></Column>
 
           <Column header="Product" sortable>
             <template #body="slotProps">
               <div class="flex flex-col">
-                <span class="font-semibold">{{ getProductName(slotProps.data.productId) }}</span>
-                <span class="text-xs text-gray-400 font-mono">{{ getProductSku(slotProps.data.productId) }}</span>
+                <ProductLink
+                  :product-id="slotProps.data.productId"
+                  :barcode="getProductBarcode(slotProps.data.productId)"
+                  :name="getProductName(slotProps.data.productId)"
+                  class="font-semibold"
+                />
+                <span class="text-xs text-gray-400 font-mono">Barcode: {{ getProductBarcode(slotProps.data.productId) }}</span>
               </div>
             </template>
           </Column>
@@ -71,7 +75,7 @@
               />
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
@@ -84,8 +88,8 @@
             :options="products"
             optionLabel="name"
             optionValue="id"
-            placeholder="Select a Product"
             filter
+            placeholder="Select a Product"
         />
       </div>
 
@@ -108,8 +112,8 @@
           :options="locations"
           optionLabel="locationCode"
           optionValue="id"
-          placeholder="Select Destination Zone"
           filter
+          placeholder="Select Destination Zone"
         />
       </div>
 
@@ -180,9 +184,9 @@ const getProductName = (id) => {
   return product ? product.name : `Product #${id}`
 }
 
-const getProductSku = (id) => {
+const getProductBarcode = (id) => {
   const product = products.value.find((p) => p.id === id)
-  return product ? product.sku || product.barcode || product.code || product.productCode || '-' : '-'
+  return product ? product.barcode || product.sku || product.code || product.productCode || '-' : '-'
 }
 
 const getLocationName = (id) => {
@@ -244,7 +248,7 @@ const createTask = async () => {
 
 const confirmDelete = (task) => {
   confirm.require({
-    message: `Are you sure you want to delete Task #${task.id}?`,
+    message: `Are you sure you want to delete this task?`,
     header: 'Confirm Deletion',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',

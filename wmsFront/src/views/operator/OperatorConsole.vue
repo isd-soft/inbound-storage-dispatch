@@ -90,7 +90,7 @@
       <!-- Step 1: scan product -->
       <div v-else-if="replStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
           <div>
-            <p class="app-subtitle text-sm mb-1">Scan product barcode (SKU):</p>
+            <p class="app-subtitle text-sm mb-1">Scan product Barcode:</p>
           <p class="text-xl font-bold font-mono app-warm">{{ activeProcess.productSku || activeProcess.sku || activeProcess.product?.barcode || activeProcess.product?.sku || activeProcess.product?.code }}</p>
           <p class="text-xs app-muted mt-1">Qty: {{ activeProcess.quantity }} units</p>
           </div>
@@ -310,7 +310,7 @@
         <!-- Line step 1: product -->
         <div v-else-if="orderLineStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
           <div>
-            <p class="app-subtitle text-sm mb-1">Scan product barcode (SKU):</p>
+            <p class="app-subtitle text-sm mb-1">Scan product Barcode:</p>
             <p class="text-xl font-bold font-mono app-warm">{{ currentOrderProc?.productSku || currentOrderProc?.sku || currentOrderProc?.product?.barcode || currentOrderProc?.product?.sku || currentOrderProc?.product?.code }}</p>
           </div>
           <ScanInput
@@ -433,7 +433,7 @@ const ScanInput = defineComponent({
           h(InputText, {
             modelValue: manual.value,
             'onUpdate:modelValue': (v) => (manual.value = v),
-            placeholder: 'Enter code manually...',
+            placeholder: 'Enter Barcode manually...',
             class: 'flex-1',
             disabled: props.loading,
             onKeyup: (e) => {

@@ -34,6 +34,7 @@
               optionLabel="name"
               optionValue="id"
               placeholder="All categories"
+              filter
               showClear
               class="w-full"
             />
@@ -48,9 +49,10 @@
 
     <Card class="app-card">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="products"
           :loading="loading"
+          :rowClass="productRowClass"
           paginator
           :rows="10"
           stripedRows
@@ -58,13 +60,9 @@
           dataKey="id"
           emptyMessage="No products found."
         >
-          <Column field="id" header="ID" sortable style="width: 5rem"></Column>
           <Column field="name" header="Product" sortable>
             <template #body="slotProps">
-              <div class="flex flex-col">
-                <span class="app-title font-semibold">{{ slotProps.data.name }}</span>
-                <span class="app-muted text-xs">#{{ slotProps.data.id }}</span>
-              </div>
+              <ProductLink :product-id="slotProps.data.id" :barcode="slotProps.data.barcode" :name="slotProps.data.name" class="font-semibold" />
             </template>
           </Column>
           <Column field="categoryId" header="Category" sortable>
@@ -97,7 +95,7 @@
               </div>
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
@@ -190,7 +188,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -213,6 +212,7 @@ import { productApi } from '@/api/productApi'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -247,6 +247,7 @@ const form = reactive({
 const categoryForm = reactive({ name: '' })
 
 const canManageProducts = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
+const highlightedProductId = computed(() => route.query.productId ? Number(route.query.productId) : null)
 
 const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 const categoryName = (categoryId) => categories.value.find((c) => c.id === categoryId)?.name || `Category #${categoryId}`
@@ -272,6 +273,30 @@ const loadProducts = async () => {
     loading.value = false
   }
 }
+
+const applyRouteProductFilter = async () => {
+  const queryName = route.query.product
+  const queryBarcode = route.query.barcode
+  const queryProductId = route.query.productId ? Number(route.query.productId) : null
+
+  if (queryName) {
+    filters.name = String(queryName)
+    await applySearch()
+    return
+  }
+
+  await loadProducts()
+
+  if (queryBarcode) {
+    products.value = products.value.filter((product) => product.barcode === queryBarcode)
+  } else if (queryProductId) {
+    products.value = products.value.filter((product) => Number(product.id) === queryProductId)
+  }
+}
+
+const productRowClass = (product) => ({
+  'app-row-highlight': highlightedProductId.value && Number(product.id) === highlightedProductId.value
+})
 
 const applySearch = async () => {
   const name = filters.name?.trim()
@@ -430,11 +455,14 @@ const deleteProduct = async (product) => {
 onMounted(async () => {
   loading.value = true
   try {
-    await Promise.all([loadCategories(), loadProducts()])
+    await loadCategories()
+    await applyRouteProductFilter()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Products setup failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
 })
+
+watch(() => route.query, applyRouteProductFilter)
 </script>

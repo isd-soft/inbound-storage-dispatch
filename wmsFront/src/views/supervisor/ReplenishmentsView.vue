@@ -28,7 +28,7 @@
           </div>
           <div class="flex flex-col gap-2">
             <label class="app-subtitle text-xs font-semibold">Filter by Status</label>
-            <Dropdown v-model="filters.status" :options="statuses" placeholder="All Statuses" showClear class="w-full" @change="applyFilters" />
+            <Dropdown v-model="filters.status" :options="statuses" placeholder="All Statuses" filter showClear class="w-full" @change="applyFilters" />
           </div>
         </div>
       </template>
@@ -36,7 +36,7 @@
 
     <Card class="app-card">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="replenishments"
           :loading="loading"
           paginator
@@ -46,11 +46,9 @@
           dataKey="id"
           emptyMessage="No replenishment tasks found."
         >
-          <Column field="id" header="ID" sortable></Column>
-
           <Column field="productName" header="Product" sortable>
             <template #body="slotProps">
-              <span class="app-title font-semibold">{{ slotProps.data.productName }}</span>
+              <ProductLink :product-id="slotProps.data.productId" :name="slotProps.data.productName" class="font-semibold" />
             </template>
           </Column>
 
@@ -86,7 +84,7 @@
               </div>
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
@@ -133,7 +131,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="editStatus" class="app-subtitle font-medium">Status</label>
-          <Dropdown id="editStatus" v-model="editingReplenishment.status" :options="statuses" placeholder="Select Status" class="w-full" />
+          <Dropdown id="editStatus" v-model="editingReplenishment.status" :options="statuses" placeholder="Select Status" filter class="w-full" />
         </div>
       </div>
 

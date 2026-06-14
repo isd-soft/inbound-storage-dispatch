@@ -16,7 +16,7 @@
 
     <Card class="app-card border-none shadow-lg">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="stockItems"
           :loading="loading"
           paginator
@@ -28,11 +28,11 @@
         >
 <Column field="productName" header="Product" sortable>
             <template #body="{ data }">
-              <span class="app-title font-semibold">{{ data.productName }}</span>
+              <ProductLink :product-id="data.productId" :barcode="data.barcode" :name="data.productName" class="font-semibold" />
             </template>
           </Column>
 
-          <Column field="barcode" header="SKU" sortable></Column>
+          <Column field="barcode" header="Barcode" sortable></Column>
           <Column field="locationBarcode" header="Location" sortable></Column>
           <Column field="quantity" header="Total Qty" sortable>
             <template #body="{ data }">
@@ -78,7 +78,7 @@
               </div>
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 

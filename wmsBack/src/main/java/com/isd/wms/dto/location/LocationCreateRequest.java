@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record LocationCreateRequest (
         String name,
-        @NotBlank(message = "Location code is required")
+        @NotBlank(message = "Barcode is required")
         String barcode,
         Zone zone,
         String description

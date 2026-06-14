@@ -20,7 +20,8 @@ ALTER TABLE locations
 
 UPDATE locations
 SET name = barcode
-WHERE name IS NULL;
+WHERE name IS NULL
+   OR name = 'name';
 
 ALTER TABLE locations
     ALTER COLUMN name SET NOT NULL;

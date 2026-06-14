@@ -63,6 +63,9 @@ class InventoryServiceTest {
     @Mock
     private UserRepository UserRepository;
 
+    @Mock
+    private ReplenishmentService replenishmentService;
+
     private InventoryService inventoryService;
     private Validator validator;
     private Product product;
@@ -78,7 +81,8 @@ class InventoryServiceTest {
                 locationRepository,
                 UserRepository,
                 new StockMapper(),
-                new InventoryHistoryMapper()
+                new InventoryHistoryMapper(),
+                replenishmentService
         );
         validator = Validation.buildDefaultValidatorFactory().getValidator();
         product = product(1L, "Milk");

@@ -15,7 +15,7 @@
 
     <Card class="app-card">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="historyItems"
           :loading="loading"
           paginator
@@ -30,8 +30,12 @@
               {{ formatTimestamp(slotProps.data.timestamp) }}
             </template>
           </Column>
-          <Column field="productName" header="Product" sortable></Column>
-          <Column field="barcode" header="barcode" sortable></Column>
+          <Column field="productName" header="Product" sortable>
+            <template #body="slotProps">
+              <ProductLink :product-id="slotProps.data.productId" :barcode="slotProps.data.barcode" :name="slotProps.data.productName" class="font-semibold" />
+            </template>
+          </Column>
+          <Column field="barcode" header="Barcode" sortable></Column>
           <Column field="alteredQuantity" header="Altered Qty" sortable>
             <template #body="slotProps">
               <span :class="slotProps.data.alteredQuantity >= 0 ? 'app-success font-bold' : 'app-danger font-bold'">
@@ -56,7 +60,7 @@
               {{ slotProps.data.username || `User #${slotProps.data.userId}` }}
             </template>
           </Column>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
   </div>

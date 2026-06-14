@@ -19,7 +19,7 @@
 
     <Card class="app-card border-none shadow-lg">
       <template #content>
-        <DataTable
+        <AppDataTable
           :value="orders"
           :loading="loading"
           paginator
@@ -44,7 +44,6 @@
               />
             </template>
           </Column>
-          <Column field="order.id" header="ID" sortable style="width: 6rem" />
           <Column field="order.logicId" header="Logic ID" sortable />
           <Column header="Destination" sortable>
             <template #body="{ data }">
@@ -73,7 +72,7 @@
                 :options="operators"
                 optionLabel="username"
                 optionValue="id"
-                placeholder="Select operator"
+                placeholder="Select operator" filter
                 class="w-full"
                 @change="assignOrderToOperator(data.order.id, assignmentByOrderId[data.order.id])"
               />
@@ -86,11 +85,15 @@
           </Column>
           <template #expansion="{ data }">
             <div class="order-lines-expansion">
-              <DataTable :value="data.lines" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
-                <Column field="orderLineId" header="Line ID" style="width: 7rem" />
+              <AppDataTable :value="data.lines" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
                 <Column field="productId" header="Product">
                   <template #body="{ data: line }">
-                    {{ getProductLabel(line.productId) }}
+                    <ProductLink
+                      :product-id="line.productId"
+                      :barcode="getProduct(line.productId)?.barcode"
+                      :name="getProduct(line.productId)?.name || getProductLabel(line.productId)"
+                      class="font-semibold"
+                    />
                   </template>
                 </Column>
                 <Column field="requestedQuantity" header="Requested Qty">
@@ -103,15 +106,10 @@
                     <Tag :severity="getStatusSeverity(line.status)" :value="line.status || 'CREATED'" />
                   </template>
                 </Column>
-                <Column field="taskId" header="Task ID">
-                  <template #body="{ data: line }">
-                    {{ line.taskId || '-' }}
-                  </template>
-                </Column>
-              </DataTable>
+              </AppDataTable>
             </div>
           </template>
-        </DataTable>
+        </AppDataTable>
       </template>
     </Card>
 
@@ -132,7 +130,7 @@
               :options="locations"
               optionLabel="locationCode"
               optionValue="id"
-              placeholder="Select a location"
+              placeholder="Select a location" filter
               class="w-full"
               :invalid="submitted && !formData.location"
             />
@@ -148,7 +146,7 @@
             </div>
           </template>
           <template #content>
-            <DataTable :value="formData.lines" class="p-datatable-sm" dataKey="id" responsiveLayout="scroll" emptyMessage="Add at least one order line.">
+            <AppDataTable :value="formData.lines" class="p-datatable-sm" dataKey="id" responsiveLayout="scroll" emptyMessage="Add at least one order line.">
               <Column header="Product" style="min-width: 18rem">
                 <template #body="{ data }">
                   <Select
@@ -156,7 +154,7 @@
                     :options="products"
                     optionLabel="name"
                     optionValue="id"
-                    placeholder="Choose product"
+                    placeholder="Choose product" filter
                     class="w-full"
                     :invalid="submitted && !data.product"
                     @change="data.quantity = 1"
@@ -188,7 +186,7 @@
                   <Button icon="pi pi-trash" severity="danger" text rounded aria-label="Remove line" @click="removeLine(index)" />
                 </template>
               </Column>
-            </DataTable>
+            </AppDataTable>
           </template>
         </Card>
       </div>
@@ -328,7 +326,7 @@ const getProduct = (productId) => products.value.find((product) => product.id ==
 
 const getProductLabel = (productId) => {
   const product = getProduct(productId)
-  return product?.name ? `${product.name} (#${productId})` : productId || '-'
+  return product?.name || 'Product'
 }
 
 const getAvailableQuantity = (productId) => {
