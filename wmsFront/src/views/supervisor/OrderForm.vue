@@ -1,36 +1,34 @@
 <template>
   <div class="p-6">
     <Toast position="top-right" />
-
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-      <div>
-        <h2 class="app-title text-2xl font-bold">Orders</h2>
-        <p class="app-subtitle text-sm mt-1">Create and monitor warehouse dispatch orders.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Button label="Create Order" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadOrders" />
-      </div>
-    </div>
+    <ConfirmDialog />
 
     <Message v-if="loadError" severity="error" class="mb-6" :closable="false">
       {{ loadError }}
     </Message>
 
-    <Card class="app-card border-none shadow-lg">
-      <template #content>
-        <AppDataTable
-          :value="orders"
-          :loading="loading"
-          paginator
-          :rows="10"
-          :rowsPerPageOptions="[10, 25, 50]"
-          v-model:expandedRows="expandedRows"
-          stripedRows
-          class="p-datatable-sm"
-          dataKey="order.id"
-          emptyMessage="No orders found."
-        >
+    <AppDataTable
+      v-model:selection="selectedOrders"
+      :value="orders"
+      :loading="loading"
+      :filterFields="orderFilterFields"
+      paginator
+      :rows="10"
+      :rowsPerPageOptions="[10, 25, 50]"
+      v-model:expandedRows="expandedRows"
+      stripedRows
+      class="p-datatable-sm"
+      dataKey="order.id"
+      emptyMessage="No orders found."
+    >
+      <template #toolbar>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadOrders" />
+        <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!selectedOrders.length" @click="confirmDeleteSelectedOrders" />
+        <span v-if="editMode" class="app-muted text-sm">{{ selectedOrders.length }} selected</span>
+      </template>
+          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
           <Column expander style="width: 3rem">
             <template #body="{ data }">
               <Button
@@ -44,7 +42,7 @@
               />
             </template>
           </Column>
-          <Column field="order.logicId" header="Logic ID" sortable />
+          <Column field="order.logicId" header="Logic ID" sortable  filter />
           <Column header="Destination" sortable>
             <template #body="{ data }">
               {{ getLocationLabel(data.order.destinationLocationId) }}
@@ -65,6 +63,7 @@
               <Tag :severity="getStatusSeverity(data.order.status || data.order.Status)" :value="data.order.status || data.order.Status || 'CREATED'" />
             </template>
           </Column>
+          <!-- Inline editing is intentionally not enabled here because orders contain nested lines and assignment changes backend task ownership. Operator assignment stays row-scoped by business design. -->
           <Column header="Assign Operator" style="min-width: 14rem">
             <template #body="{ data }">
               <Dropdown
@@ -78,15 +77,15 @@
               />
             </template>
           </Column>
-          <Column field="order.createdAt" header="Created" sortable>
+          <Column field="order.createdAt" header="Created" sortable filter>
             <template #body="{ data }">
               {{ formatDate(data.order.createdAt) }}
             </template>
           </Column>
           <template #expansion="{ data }">
             <div class="order-lines-expansion">
-              <AppDataTable :value="data.lines" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
-                <Column field="productId" header="Product">
+              <AppDataTable :value="data.lines" :filterFields="orderLineFilterFields" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
+                <Column field="productId" header="Product" filter>
                   <template #body="{ data: line }">
                     <ProductLink
                       :product-id="line.productId"
@@ -96,12 +95,12 @@
                     />
                   </template>
                 </Column>
-                <Column field="requestedQuantity" header="Requested Qty">
+                <Column field="requestedQuantity" header="Requested Qty" filter>
                   <template #body="{ data: line }">
                     <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
                   </template>
                 </Column>
-                <Column field="status" header="Status">
+                <Column field="status" header="Status" filter>
                   <template #body="{ data: line }">
                     <Tag :severity="getStatusSeverity(line.status)" :value="line.status || 'CREATED'" />
                   </template>
@@ -109,9 +108,7 @@
               </AppDataTable>
             </div>
           </template>
-        </AppDataTable>
-      </template>
-    </Card>
+    </AppDataTable>
 
     <Dialog v-model:visible="createDialogVisible" header="Create Order" :modal="true" class="w-full max-w-5xl">
       <div class="flex flex-col gap-5">
@@ -138,15 +135,10 @@
           </div>
         </div>
 
-        <Card class="app-card border-none">
-          <template #title>
-            <div class="flex items-center justify-between gap-3">
-              <span class="app-subtitle">Order Lines</span>
-              <Button label="Add Line" icon="pi pi-plus" size="small" outlined @click="addLine" />
-            </div>
-          </template>
-          <template #content>
-            <AppDataTable :value="formData.lines" class="p-datatable-sm" dataKey="id" responsiveLayout="scroll" emptyMessage="Add at least one order line.">
+        <div class="flex justify-end">
+          <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
+        </div>
+            <AppDataTable :value="formData.lines" :filterFields="orderCreateLineFilterFields" class="p-datatable-sm" dataKey="id" responsiveLayout="scroll" emptyMessage="Add at least one order line.">
               <Column header="Product" style="min-width: 18rem">
                 <template #body="{ data }">
                   <Select
@@ -187,8 +179,6 @@
                 </template>
               </Column>
             </AppDataTable>
-          </template>
-        </Card>
       </div>
 
       <template #footer>
@@ -201,6 +191,7 @@
 
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
+import { useConfirm } from 'primevue/useconfirm'
 
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -214,15 +205,19 @@ import Select from 'primevue/select'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 
 import { orderApi } from '@/api/orderApi.js'
 import { userApi } from '@/api/userApi'
 
 const toast = useToast()
+const confirm = useConfirm()
 
 const orders = ref([])
+const selectedOrders = ref([])
 const expandedRows = ref({})
+const editMode = ref(false)
 const products = ref([])
 const locations = ref([])
 const operators = ref([])
@@ -231,6 +226,21 @@ const actionLoading = ref(false)
 const loadError = ref('')
 const createDialogVisible = ref(false)
 const submitted = ref(false)
+const orderFilterFields = [
+  { field: 'order.logicId', label: 'Logic ID' },
+  { field: 'order.destinationLocationId', label: 'Destination' },
+  { field: 'order.status', label: 'Status' },
+  { field: 'order.createdAt', label: 'Created' }
+]
+const orderLineFilterFields = [
+  { field: 'productId', label: 'Product' },
+  { field: 'requestedQuantity', label: 'Requested Qty' },
+  { field: 'status', label: 'Status' }
+]
+const orderCreateLineFilterFields = [
+  { field: 'product', label: 'Product' },
+  { field: 'quantity', label: 'Quantity' }
+]
 
 const formData = reactive({
   logicId: '',
@@ -265,6 +275,11 @@ const loadOrders = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const toggleEditMode = () => {
+  editMode.value = !editMode.value
+  selectedOrders.value = []
 }
 
 const loadOrderCreateData = async () => {
@@ -390,6 +405,30 @@ const assignOrderToOperator = async (orderId, operatorId) => {
     await loadOrders()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+  }
+}
+
+const confirmDeleteSelectedOrders = () => {
+  confirm.require({
+    message: `Delete ${selectedOrders.value.length} selected order(s)?`,
+    header: 'Delete Selected Orders',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: deleteSelectedOrders
+  })
+}
+
+const deleteSelectedOrders = async () => {
+  actionLoading.value = true
+  try {
+    await Promise.all(selectedOrders.value.map((entry) => orderApi.delete(entry.order.id)))
+    toast.add({ severity: 'success', summary: 'Orders deleted', detail: `${selectedOrders.value.length} order(s) deleted.`, life: 3000 })
+    selectedOrders.value = []
+    await loadOrders()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
   }
 }
 

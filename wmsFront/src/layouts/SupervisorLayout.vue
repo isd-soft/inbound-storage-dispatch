@@ -124,7 +124,6 @@ const menuItems = computed(() => {
 
   if (isDev) {
     items.unshift({ to: '/supervisor/dev', label: 'Dev Overview', icon: 'pi pi-server' })
-    items.push({ to: '/supervisor/operator', label: 'Operator Console', icon: 'pi pi-box' })
   }
 
   return items

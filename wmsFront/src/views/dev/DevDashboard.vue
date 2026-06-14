@@ -9,7 +9,6 @@
       <div class="flex flex-wrap items-center gap-2">
         <ThemeToggle />
         <Button label="Supervisor" icon="pi pi-chart-bar" severity="secondary" text @click="router.push('/supervisor')" />
-        <Button label="Operator" icon="pi pi-box" severity="secondary" text @click="router.push('/operator')" />
         <Button icon="pi pi-sign-out" label="Logout" severity="danger" text @click="handleLogout" />
       </div>
     </header>
@@ -40,20 +39,15 @@
         </Card>
       </div>
 
-      <Card class="app-card">
-        <template #title><span class="app-subtitle">Recent System Errors</span></template>
-        <template #content>
-          <AppDataTable :value="systemLogs" class="p-datatable-sm">
-            <Column field="timestamp" header="Time"></Column>
-            <Column field="level" header="Level">
+          <AppDataTable :value="systemLogs" :filterFields="systemLogFilterFields" class="p-datatable-sm">
+            <Column field="timestamp" header="Time" filter></Column>
+            <Column field="level" header="Level" filter>
               <template #body="slotProps">
                 <Tag :severity="slotProps.data.level === 'ERROR' ? 'danger' : 'warn'" :value="slotProps.data.level"></Tag>
               </template>
             </Column>
-            <Column field="message" header="Message"></Column>
+            <Column field="message" header="Message" filter></Column>
           </AppDataTable>
-        </template>
-      </Card>
     </main>
 
   </div>
@@ -84,4 +78,9 @@ const systemLogs = ref([
   { timestamp: '2026-06-05 10:15:00', level: 'WARN', message: 'Token expiration approaching for user: operator' },
   { timestamp: '2026-06-05 09:42:11', level: 'ERROR', message: 'Failed to resolve location Barcode: Z-99' }
 ])
+const systemLogFilterFields = [
+  { field: 'timestamp', label: 'Time' },
+  { field: 'level', label: 'Level' },
+  { field: 'message', label: 'Message' }
+]
 </script>

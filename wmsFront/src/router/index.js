@@ -57,16 +57,15 @@ const router = createRouter({
         { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'order-form', name: 'order-form', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'operator', name: 'supervisor-operator', component: OperatorConsole, meta: { roles: [DEV] } },
         { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
       ]
     },
     {
       path: '/operator',
       component: SupervisorLayout,
-      meta: { requiresAuth: true, roles: [OPERATOR, DEV] },
+      meta: { requiresAuth: true, roles: [OPERATOR] },
       children: [
-        { path: '', name: 'operator', component: OperatorConsole, meta: { roles: [OPERATOR, DEV] } }
+        { path: '', name: 'operator', component: OperatorConsole, meta: { roles: [OPERATOR] } }
       ]
     },
     {

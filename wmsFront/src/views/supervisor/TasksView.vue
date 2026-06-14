@@ -3,30 +3,27 @@
     <Toast />
     <ConfirmDialog />
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-100">Warehouse Tasks (Replenishments)</h2>
-        <p class="text-sm text-gray-400 mt-1">Manage stock replenishment requests for operators.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Button label="Create Task" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadData" />
-      </div>
-    </div>
+    <AppDataTable
+      v-model:selection="selectedTasks"
+      :value="tasks"
+      :loading="loading"
+      :filterFields="taskFilterFields"
+      paginator
+      :rows="10"
+      stripedRows
+      class="p-datatable-sm"
+      dataKey="id"
+      emptyMessage="No replenishment tasks found."
+    >
+      <template #toolbar>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadData" />
+        <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedTasks.length" @click="confirmDeleteSelected" />
+        <span v-if="editMode" class="app-muted text-sm">{{ selectedTasks.length }} selected</span>
+      </template>
 
-    <Card class="bg-gray-800 border-none shadow-lg">
-      <template #content>
-        <AppDataTable
-          :value="tasks"
-          :loading="loading"
-          paginator
-          :rows="10"
-          stripedRows
-          class="p-datatable-sm"
-          dataKey="id"
-          emptyMessage="No replenishment tasks found."
-        >
-
+          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
           <Column header="Product" sortable>
             <template #body="slotProps">
               <div class="flex flex-col">
@@ -41,7 +38,7 @@
             </template>
           </Column>
 
-          <Column field="requestedQuantity" header="Requested Qty" sortable>
+          <Column field="requestedQuantity" header="Requested Qty" sortable filter>
             <template #body="slotProps">
               <span class="text-blue-400 font-bold">{{ slotProps.data.requestedQuantity }}</span>
             </template>
@@ -56,28 +53,14 @@
             </template>
           </Column>
 
-          <Column field="status" header="Status" sortable>
+          <Column field="status" header="Status" sortable filter>
             <template #body="slotProps">
               <Tag :severity="getStatusSeverity(slotProps.data.status)" :value="slotProps.data.status" />
             </template>
           </Column>
 
-          <Column header="Actions" style="min-width: 8rem">
-            <template #body="slotProps">
-              <Button
-                v-if="slotProps.data.status === 'CREATED'"
-                icon="pi pi-trash"
-                outlined
-                rounded
-                severity="danger"
-                size="small"
-                @click="confirmDelete(slotProps.data)"
-              />
-            </template>
-          </Column>
-        </AppDataTable>
-      </template>
-    </Card>
+          <!-- Inline editing is intentionally not enabled here because replenishment tasks are backed by generated process allocations. -->
+    </AppDataTable>
 
     <Dialog v-model:visible="dialogVisible" header="Create Replenishment Task" :modal="true" class="p-fluid w-full max-w-md">
       <div class="field mb-4">
@@ -149,12 +132,20 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const tasks = ref([])
+const selectedTasks = ref([])
 const products = ref([])
 const locations = ref([])
 
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
+const editMode = ref(false)
+const taskFilterFields = [
+  { field: 'productId', label: 'Product' },
+  { field: 'requestedQuantity', label: 'Requested Qty' },
+  { field: 'destinationLocationId', label: 'Destination' },
+  { field: 'status', label: 'Status' }
+]
 
 const newTask = ref({
   productId: null,
@@ -167,6 +158,8 @@ const isFormValid = computed(() => {
     newTask.value.requestedQuantity > 0 &&
     newTask.value.destinationLocationId
 })
+
+const deletableSelectedTasks = computed(() => selectedTasks.value.filter((task) => task.status === 'CREATED'))
 
 const getErrorMessage = (error) => {
   return error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
@@ -232,6 +225,11 @@ const openCreateDialog = () => {
   dialogVisible.value = true
 }
 
+const toggleEditMode = () => {
+  editMode.value = !editMode.value
+  selectedTasks.value = []
+}
+
 const createTask = async () => {
   actionLoading.value = true
   try {
@@ -246,22 +244,28 @@ const createTask = async () => {
   }
 }
 
-const confirmDelete = (task) => {
+const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Are you sure you want to delete this task?`,
-    header: 'Confirm Deletion',
+    message: `Delete ${deletableSelectedTasks.value.length} selected task(s)? Only CREATED tasks can be deleted.`,
+    header: 'Delete Selected Tasks',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await replenishmentApi.delete(task.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Task has been deleted.', life: 3000 })
-        await loadData()
-      } catch (error) {
-        toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
-      }
-    }
+    accept: deleteSelectedTasks
   })
+}
+
+const deleteSelectedTasks = async () => {
+  loading.value = true
+  try {
+    await Promise.all(deletableSelectedTasks.value.map((task) => replenishmentApi.delete(task.id)))
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${deletableSelectedTasks.value.length} task(s) deleted.`, life: 3000 })
+    selectedTasks.value = []
+    await loadData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
