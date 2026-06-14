@@ -179,3 +179,122 @@ body {
 .p-dialog {
   color: var(--text-primary);
 }
+
+.app-table-shell {
+  width: 100%;
+}
+
+.app-table-toolbar {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.app-table-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-table-toolbar__search {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.app-table-toolbar__search .p-iconfield {
+  min-width: min(100%, 18rem);
+}
+
+.app-data-table {
+  font-size: 0.925rem;
+  width: 100%;
+}
+
+.app-data-table .p-datatable-thead > tr > th {
+  background: var(--surface-card-muted);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  padding: 0.75rem 0.9rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.app-data-table .p-datatable-tbody > tr > td {
+  padding: 0.7rem 0.9rem;
+  vertical-align: middle;
+}
+
+.app-data-table .p-paginator {
+  border-top: 1px solid var(--border-subtle);
+  gap: 0.25rem;
+  justify-content: flex-end;
+  padding: 0.75rem;
+}
+
+.app-product-link {
+  color: var(--brand-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-product-link:hover {
+  color: var(--brand-primary-hover);
+  text-decoration: underline;
+}
+
+.app-row-highlight {
+  background: color-mix(in srgb, var(--brand-primary) 12%, transparent) !important;
+}
+
+.app-row-modified {
+  background: color-mix(in srgb, var(--brand-accent) 14%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--brand-accent);
+}
+
+.app-data-table .p-cell-editing {
+  background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+}
+
+.p-button {
+  font-weight: 600;
+}
+
+.app-table-toolbar .p-button,
+.app-data-table .p-button,
+.p-dialog-footer .p-button {
+  min-height: 2.25rem;
+}
+
+.p-dialog {
+  margin: 1rem;
+  max-width: min(50vw, 48rem);
+  width: min(50vw, 48rem) !important;
+}
+
+@media (max-width: 768px) {
+  .p-6 {
+    padding: 1rem;
+  }
+
+  .app-data-table .p-datatable-thead > tr > th,
+  .app-data-table .p-datatable-tbody > tr > td {
+    padding: 0.65rem;
+  }
+
+  .app-data-table .p-paginator {
+    justify-content: center;
+  }
+
+  .p-dialog {
+    max-width: calc(100vw - 2rem);
+    width: calc(100vw - 2rem) !important;
+  }
+}

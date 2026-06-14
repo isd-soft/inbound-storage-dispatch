@@ -3,76 +3,84 @@
     <Toast />
     <ConfirmDialog />
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-      <div>
-        <h2 class="app-title text-2xl font-bold">Warehouse Locations</h2>
-        <p class="app-subtitle text-sm mt-1">Manage physical storage zones and picking racks.</p>
-      </div>
-      <div class="flex gap-2">
-        <Button label="Create Location" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadLocations" />
-      </div>
-    </div>
-
-    <Card class="app-card border-none shadow-lg">
-      <template #content>
-        <DataTable
-          :value="locations"
-          :loading="loading"
-          paginator
-          :rows="10"
-          stripedRows
-          class="p-datatable-sm"
-          dataKey="id"
-          emptyMessage="No locations found."
-        >
-          <Column field="id" header="ID" sortable style="width: 5rem"></Column>
-
-          <Column field="barcode" header="Code" sortable>
+    <AppDataTable
+      v-model:selection="selectedLocations"
+      :value="locations"
+      :loading="loading"
+      :rowClass="locationRowClass"
+      :filterFields="locationFilterFields"
+      :editMode="editMode ? 'cell' : null"
+      paginator
+      :rows="10"
+      stripedRows
+      class="p-datatable-sm"
+      dataKey="id"
+      emptyMessage="No locations found."
+      @cell-edit-complete="onCellEditComplete"
+    >
+      <template #toolbar>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadLocations" />
+        <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="editMode" label="Submit" icon="pi pi-check" severity="success" :disabled="!hasPendingChanges" :loading="actionLoading" @click="confirmSubmitChanges" />
+        <Button v-if="editMode" label="Reset" icon="pi pi-refresh" severity="secondary" outlined :disabled="!hasPendingChanges" @click="confirmResetChanges" />
+        <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!selectedLocations.length" @click="confirmDeleteSelected" />
+        <span v-if="editMode" class="app-muted text-sm">{{ selectedLocations.length }} selected</span>
+      </template>
+          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+          <Column field="barcode" header="Barcode" sortable filter>
             <template #body="{ data }">
               <span class="app-title font-bold text-primary">{{ data.barcode }}</span>
             </template>
-          </Column>
-
-          <Column field="zone" header="Zone" sortable></Column>
-
-          <Column field="description" header="Description">
-            <template #body="{ data }">
-              <span class="app-subtitle">{{ data.description || 'No description' }}</span>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" class="w-full" autofocus />
             </template>
           </Column>
 
-          <Column header="Status" sortable>
+          <Column field="zone" header="Zone" sortable filter>
+            <template #editor="{ data, field }">
+              <Dropdown v-model="data[field]" :options="zones" filter class="w-full" />
+            </template>
+          </Column>
+
+          <Column field="description" header="Description" filter>
+            <template #body="{ data }">
+              <span class="app-subtitle">{{ data.description || 'No description' }}</span>
+            </template>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" class="w-full" />
+            </template>
+          </Column>
+
+          <Column field="available" header="Status" sortable filter>
             <template #body="{ data }">
               <Tag
                 :severity="data.available ? 'success' : 'danger'"
                 :value="data.available ? 'AVAILABLE' : 'DISABLED'"
               />
             </template>
-          </Column>
-
-          <Column header="Actions" style="min-width: 8rem">
-            <template #body="{ data }">
-              <div class="flex gap-2">
-                <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="openEditDialog(data)" />
-                <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="confirmDelete(data)" />
-              </div>
+            <template #editor="{ data, field }">
+              <Dropdown
+                v-model="data[field]"
+                :options="availabilityOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+              />
             </template>
           </Column>
-        </DataTable>
-      </template>
-    </Card>
+    </AppDataTable>
 
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? 'Edit Location' : 'Create Location'" :modal="true" class="w-full max-w-md">
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
-          <label for="barcode" class="app-subtitle font-medium">Location Code <span class="text-red-500">*</span></label>
+          <label for="barcode" class="app-subtitle font-medium">Barcode <span class="text-red-500">*</span></label>
           <InputText id="barcode" v-model="formData.barcode" placeholder="e.g., PICK-A-01" required autofocus class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="zone" class="app-subtitle font-medium">Zone <span class="text-red-500">*</span></label>
-          <Dropdown id="zone" v-model="formData.zone" :options="zones" placeholder="Select Zone" class="w-full" />
+          <Dropdown id="zone" v-model="formData.zone" :options="zones" placeholder="Select Zone" filter class="w-full" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -118,10 +126,14 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const locations = ref([])
+const originalLocations = ref([])
+const selectedLocations = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
+const editMode = ref(false)
+const modifiedLocationIds = ref(new Set())
 
 const formData = ref({
   id: null,
@@ -132,6 +144,17 @@ const formData = ref({
 })
 
 const zones = ref(['PICKING', 'REPLENISHMENT', 'DISPATCH'])
+const availabilityOptions = ref([
+  { label: 'AVAILABLE', value: true },
+  { label: 'DISABLED', value: false }
+])
+const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+const locationFilterFields = [
+  { field: 'barcode', label: 'Barcode' },
+  { field: 'zone', label: 'Zone' },
+  { field: 'description', label: 'Description' },
+  { field: 'available', label: 'Status' }
+]
 
 const isFormValid = computed(() => {
   return formData.value.barcode?.trim() && formData.value.zone
@@ -142,11 +165,113 @@ const loadLocations = async () => {
   try {
     const res = await locationApi.getAll()
     locations.value = res.data
+    originalLocations.value = cloneRows(res.data)
+    modifiedLocationIds.value = new Set()
+    selectedLocations.value = []
   } catch (error) {
     showError('Failed to load locations', error)
   } finally {
     loading.value = false
   }
+}
+
+const hasPendingChanges = computed(() => modifiedLocationIds.value.size > 0)
+
+const locationRowClass = (location) => ({
+  'app-row-modified': modifiedLocationIds.value.has(location.id)
+})
+
+const getOriginalLocation = (id) => originalLocations.value.find((location) => location.id === id)
+
+const normalizeLocation = (location) => ({
+  barcode: location.barcode?.trim() || '',
+  zone: location.zone || null,
+  description: location.description || '',
+  available: location.available !== false
+})
+
+const refreshModifiedState = (location) => {
+  const original = getOriginalLocation(location.id)
+  if (!original) return
+
+  const currentValue = JSON.stringify(normalizeLocation(location))
+  const originalValue = JSON.stringify(normalizeLocation(original))
+  const nextIds = new Set(modifiedLocationIds.value)
+
+  if (currentValue !== originalValue) nextIds.add(location.id)
+  else nextIds.delete(location.id)
+
+  modifiedLocationIds.value = nextIds
+}
+
+const onCellEditComplete = ({ data, newValue, field }) => {
+  if (!editMode.value) return
+  data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
+  refreshModifiedState(data)
+}
+
+const toggleEditMode = () => {
+  if (!editMode.value) {
+    editMode.value = true
+    selectedLocations.value = []
+    return
+  }
+
+  if (hasPendingChanges.value) {
+    confirmResetChanges(() => {
+      editMode.value = false
+    })
+    return
+  }
+
+  editMode.value = false
+  selectedLocations.value = []
+}
+
+const confirmSubmitChanges = () => {
+  confirm.require({
+    message: `Submit ${modifiedLocationIds.value.size} changed location(s)?`,
+    header: 'Submit Location Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-success',
+    accept: submitLocationChanges
+  })
+}
+
+const submitLocationChanges = async () => {
+  actionLoading.value = true
+  try {
+    const changedLocations = locations.value.filter((location) => modifiedLocationIds.value.has(location.id))
+    await Promise.all(changedLocations.map((location) => locationApi.update(location.id, {
+      name: location.barcode,
+      barcode: location.barcode,
+      zone: location.zone,
+      description: location.description,
+      available: location.available
+    })))
+    toast.add({ severity: 'success', summary: 'Changes saved', detail: `${changedLocations.length} location(s) updated.`, life: 3000 })
+    editMode.value = false
+    await loadLocations()
+  } catch (error) {
+    showError('Submit failed', error)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmResetChanges = (afterReset) => {
+  confirm.require({
+    message: 'Discard all unsaved location changes?',
+    header: 'Reset Unsaved Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-warning',
+    accept: () => {
+      locations.value = cloneRows(originalLocations.value)
+      modifiedLocationIds.value = new Set()
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved location changes were discarded.', life: 2500 })
+      if (typeof afterReset === 'function') afterReset()
+    }
+  })
 }
 
 const openCreateDialog = () => {
@@ -189,22 +314,28 @@ const saveLocation = async () => {
   }
 }
 
-const confirmDelete = (location) => {
+const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Are you sure you want to delete ${location.barcode}?`,
-    header: 'Confirm Deletion',
+    message: `Delete ${selectedLocations.value.length} selected location(s)?`,
+    header: 'Delete Selected Locations',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await locationApi.delete(location.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Location deleted', life: 3000 })
-        await loadLocations()
-      } catch (error) {
-        showError('Deletion failed', error)
-      }
-    }
+    accept: deleteSelectedLocations
   })
+}
+
+const deleteSelectedLocations = async () => {
+  actionLoading.value = true
+  try {
+    await Promise.all(selectedLocations.value.map((location) => locationApi.delete(location.id)))
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedLocations.value.length} location(s) deleted.`, life: 3000 })
+    selectedLocations.value = []
+    await loadLocations()
+  } catch (error) {
+    showError('Deletion failed', error)
+  } finally {
+    actionLoading.value = false
+  }
 }
 
 const showError = (summary, error) => {

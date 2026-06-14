@@ -3,103 +3,102 @@
     <Toast />
     <ConfirmDialog />
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-      <div>
-        <div class="flex flex-wrap items-center gap-3">
-          <h2 class="app-title text-2xl font-bold">Product Management</h2>
-          <Tag severity="secondary" :value="`${products.length} products`" />
-        </div>
-        <p class="app-subtitle text-sm mt-1">Maintain product master data and category assignments.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadProducts" />
+    <AppDataTable
+      v-model:selection="selectedProducts"
+      :value="products"
+      :loading="loading"
+      :rowClass="productRowClass"
+      :filterFields="productFilterFields"
+      :editMode="editMode ? 'cell' : null"
+      paginator
+      :rows="10"
+      stripedRows
+      class="p-datatable-sm"
+      dataKey="id"
+      emptyMessage="No products found."
+      @cell-edit-complete="onCellEditComplete"
+    >
+      <template #toolbar>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadProducts" />
         <Button v-if="canManageProducts" label="Add Category" icon="pi pi-folder-plus" severity="secondary" outlined @click="openCategoryDialog" />
-        <Button v-if="canManageProducts" label="Add Product" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-      </div>
-    </div>
-
-    <Card class="app-card mb-6">
-      <template #content>
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div class="md:col-span-5 flex flex-col gap-2">
-            <label for="productSearch" class="app-subtitle font-medium">Search by name</label>
-            <InputText id="productSearch" v-model.trim="filters.name" placeholder="e.g. scanner, label, box" class="w-full" @keyup.enter="applySearch" />
-          </div>
-          <div class="md:col-span-4 flex flex-col gap-2">
-            <label for="categoryFilter" class="app-subtitle font-medium">Category</label>
-            <Dropdown
-              id="categoryFilter"
-              v-model="filters.categoryId"
-              :options="categories"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="All categories"
-              showClear
-              class="w-full"
-            />
-          </div>
-          <div class="md:col-span-3 flex flex-wrap gap-2">
-            <Button label="Search" icon="pi pi-search" class="flex-1" :loading="loading" @click="applySearch" />
-            <Button label="Clear" icon="pi pi-filter-slash" severity="secondary" outlined class="flex-1" @click="clearSearch" />
-          </div>
-        </div>
+        <Button v-if="canManageProducts" label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button v-if="canManageProducts" :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="canManageProducts && editMode" label="Edit Details" icon="pi pi-list" severity="warning" outlined :disabled="selectedProducts.length !== 1 || hasPendingChanges" @click="openEditDialog(selectedProducts[0])" />
+        <Button v-if="canManageProducts && editMode" label="Submit" icon="pi pi-check" severity="success" :disabled="!hasPendingChanges" :loading="actionLoading" @click="confirmSubmitChanges" />
+        <Button v-if="canManageProducts && editMode" label="Reset" icon="pi pi-refresh" severity="secondary" outlined :disabled="!hasPendingChanges" @click="confirmResetChanges" />
+        <Button v-if="canManageProducts && editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!selectedProducts.length" @click="confirmDeleteSelected" />
+        <span v-if="canManageProducts && editMode" class="app-muted text-sm">{{ selectedProducts.length }} selected</span>
       </template>
-    </Card>
-
-    <Card class="app-card">
-      <template #content>
-        <DataTable
-          :value="products"
-          :loading="loading"
-          paginator
-          :rows="10"
-          stripedRows
-          class="p-datatable-sm"
-          dataKey="id"
-          emptyMessage="No products found."
-        >
-          <Column field="id" header="ID" sortable style="width: 5rem"></Column>
-          <Column field="name" header="Product" sortable>
+          <Column v-if="canManageProducts && editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+          <Column field="name" header="Product" sortable filter>
             <template #body="slotProps">
-              <div class="flex flex-col">
-                <span class="app-title font-semibold">{{ slotProps.data.name }}</span>
-                <span class="app-muted text-xs">#{{ slotProps.data.id }}</span>
-              </div>
+              <span v-if="editMode" class="font-semibold text-primary">{{ slotProps.data.name }}</span>
+              <ProductLink v-else :product-id="slotProps.data.id" :barcode="slotProps.data.barcode" :name="slotProps.data.name" class="font-semibold" />
+            </template>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" class="w-full" autofocus />
             </template>
           </Column>
-          <Column field="categoryId" header="Category" sortable>
+          <Column field="categoryId" filterField="categoryName" header="Category" sortable filter>
             <template #body="slotProps">
-              <Tag severity="info" :value="categoryName(slotProps.data.categoryId)" />
+              <Tag severity="info" :value="slotProps.data.categoryName" />
+            </template>
+            <template #editor="{ data }">
+              <Dropdown
+                v-model="data.categoryId"
+                :options="categories"
+                optionLabel="name"
+                optionValue="id"
+                filter
+                class="w-full"
+              />
             </template>
           </Column>
-          <Column field="barcode" header="Barcode" sortable></Column>
+          <Column field="barcode" header="Barcode" sortable filter>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" class="w-full" />
+            </template>
+          </Column>
           
-          <Column header="Auto Replenish">
+          <Column field="autoReplenish" header="Auto Replenish" sortable filter>
             <template #body="slotProps">
-              <div v-if="slotProps.data.autoReplenish" class="flex flex-col">
-                <Tag severity="success" value="Active" class="mb-1 w-max" />
-                <span class="text-xs app-muted">Min: {{ slotProps.data.minThreshold }} | Qty: {{ slotProps.data.replenishQty }}</span>
-              </div>
-              <span v-else class="app-muted text-sm">Disabled</span>
+              <Tag :severity="slotProps.data.autoReplenish ? 'success' : 'secondary'" :value="slotProps.data.autoReplenish ? 'Active' : 'Disabled'" />
+            </template>
+            <template #editor="{ data, field }">
+              <Dropdown
+                v-model="data[field]"
+                :options="autoReplenishOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+              />
             </template>
           </Column>
 
-          <Column field="createdAt" header="Created" sortable>
+          <Column field="minThreshold" header="Min Threshold" sortable filter>
+            <template #body="slotProps">
+              <span class="app-subtitle">{{ slotProps.data.autoReplenish ? (slotProps.data.minThreshold ?? '-') : '-' }}</span>
+            </template>
+            <template #editor="{ data, field }">
+              <InputNumber v-model="data[field]" :min="0" class="w-full" />
+            </template>
+          </Column>
+
+          <Column field="replenishQty" header="Replenish Qty" sortable filter>
+            <template #body="slotProps">
+              <span class="app-subtitle">{{ slotProps.data.autoReplenish ? (slotProps.data.replenishQty ?? '-') : '-' }}</span>
+            </template>
+            <template #editor="{ data, field }">
+              <InputNumber v-model="data[field]" :min="1" class="w-full" />
+            </template>
+          </Column>
+
+          <Column field="createdAt" header="Created" sortable filter>
             <template #body="slotProps">
               <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
             </template>
           </Column>
-          <Column v-if="canManageProducts" header="Actions" :exportable="false" style="min-width: 10rem">
-            <template #body="slotProps">
-              <div class="flex flex-wrap gap-2">
-                <Button icon="pi pi-pencil" label="Edit" size="small" outlined @click="openEditDialog(slotProps.data)" />
-                <Button icon="pi pi-trash" label="Delete" size="small" severity="danger" outlined @click="confirmDelete(slotProps.data)" />
-              </div>
-            </template>
-          </Column>
-        </DataTable>
-      </template>
-    </Card>
+    </AppDataTable>
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -190,7 +189,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -213,13 +213,18 @@ import { productApi } from '@/api/productApi'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const toast = useToast()
 const confirm = useConfirm()
 
 const products = ref([])
+const originalProducts = ref([])
 const categories = ref([])
+const selectedProducts = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
+const editMode = ref(false)
+const modifiedProductIds = ref(new Set())
 const dialogVisible = ref(false)
 const scannerVisible = ref(false)
 const categoryDialogVisible = ref(false)
@@ -245,15 +250,42 @@ const form = reactive({
 })
 
 const categoryForm = reactive({ name: '' })
+const autoReplenishOptions = [
+  { label: 'Active', value: true },
+  { label: 'Disabled', value: false }
+]
 
 const canManageProducts = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
+const highlightedProductId = computed(() => route.query.productId ? Number(route.query.productId) : null)
+const productFilterFields = [
+  { field: 'name', label: 'Product' },
+  { field: 'barcode', label: 'Barcode' },
+  { field: 'categoryName', label: 'Category' },
+  { field: 'autoReplenish', label: 'Auto Replenish' },
+  { field: 'minThreshold', label: 'Min Threshold' },
+  { field: 'replenishQty', label: 'Replenish Qty' },
+  { field: 'createdAt', label: 'Created' }
+]
 
 const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 const categoryName = (categoryId) => categories.value.find((c) => c.id === categoryId)?.name || `Category #${categoryId}`
+const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+const enrichProducts = (items) => (items || []).map((product) => ({
+  ...product,
+  categoryName: categoryName(product.categoryId)
+}))
+const snapshotProducts = () => {
+  originalProducts.value = cloneRows(products.value)
+  modifiedProductIds.value = new Set()
+  selectedProducts.value = []
+}
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '-'
-  return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(dateValue))
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(dateValue))
 }
 
 const loadCategories = async () => {
@@ -265,12 +297,147 @@ const loadProducts = async () => {
   loading.value = true
   try {
     const response = await productApi.getAllProducts()
-    products.value = response.data
+    products.value = enrichProducts(response.data)
+    snapshotProducts()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Products load failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
+}
+
+const applyRouteProductFilter = async () => {
+  const queryName = route.query.product
+  const queryBarcode = route.query.barcode
+  const queryProductId = route.query.productId ? Number(route.query.productId) : null
+
+  if (queryName) {
+    filters.name = String(queryName)
+    await applySearch()
+    return
+  }
+
+  await loadProducts()
+
+  if (queryBarcode) {
+    products.value = products.value.filter((product) => product.barcode === queryBarcode)
+  } else if (queryProductId) {
+    products.value = products.value.filter((product) => Number(product.id) === queryProductId)
+  }
+  snapshotProducts()
+}
+
+const productRowClass = (product) => ({
+  'app-row-highlight': highlightedProductId.value && Number(product.id) === highlightedProductId.value,
+  'app-row-modified': modifiedProductIds.value.has(product.id)
+})
+
+const hasPendingChanges = computed(() => modifiedProductIds.value.size > 0)
+
+const normalizeProduct = (product) => ({
+  name: product.name?.trim() || '',
+  barcode: product.barcode?.trim() || '',
+  categoryId: product.categoryId || null,
+  autoReplenish: product.autoReplenish === true,
+  minThreshold: product.autoReplenish ? (product.minThreshold ?? null) : null,
+  replenishQty: product.autoReplenish ? (product.replenishQty ?? null) : null
+})
+
+const refreshModifiedState = (product) => {
+  const original = originalProducts.value.find((item) => item.id === product.id)
+  if (!original) return
+
+  const nextIds = new Set(modifiedProductIds.value)
+  if (JSON.stringify(normalizeProduct(product)) !== JSON.stringify(normalizeProduct(original))) nextIds.add(product.id)
+  else nextIds.delete(product.id)
+  modifiedProductIds.value = nextIds
+}
+
+const onCellEditComplete = ({ data, newValue, field }) => {
+  if (!editMode.value) return
+  if (newValue !== undefined) data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
+  if (field === 'categoryId') data.categoryName = categoryName(data.categoryId)
+  if (field === 'autoReplenish' && !data.autoReplenish) {
+    data.minThreshold = null
+    data.replenishQty = null
+  }
+  refreshModifiedState(data)
+}
+
+const toggleEditMode = () => {
+  if (!editMode.value) {
+    editMode.value = true
+    selectedProducts.value = []
+    return
+  }
+
+  if (hasPendingChanges.value) {
+    confirmResetChanges(() => {
+      editMode.value = false
+    })
+    return
+  }
+
+  editMode.value = false
+  selectedProducts.value = []
+}
+
+const confirmSubmitChanges = () => {
+  confirm.require({
+    message: `Submit ${modifiedProductIds.value.size} changed product(s)?`,
+    header: 'Submit Product Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-success',
+    accept: submitProductChanges
+  })
+}
+
+const submitProductChanges = async () => {
+  actionLoading.value = true
+  try {
+    const changedProducts = products.value.filter((product) => modifiedProductIds.value.has(product.id))
+    const invalidProduct = changedProducts.find((product) => (
+      !product.name?.trim() ||
+      !product.barcode?.trim() ||
+      !product.categoryId ||
+      (product.autoReplenish && (product.minThreshold === null || !product.replenishQty || product.replenishQty < 1))
+    ))
+    if (invalidProduct) {
+      toast.add({ severity: 'error', summary: 'Validation failed', detail: `Check required fields for ${invalidProduct.name || 'selected product'}.`, life: 5000 })
+      return
+    }
+    await Promise.all(changedProducts.map((product) => productApi.updateProduct(product.id, {
+      name: product.name,
+      barcode: product.barcode,
+      description: product.description || null,
+      categoryId: product.categoryId,
+      autoReplenish: product.autoReplenish,
+      minThreshold: product.autoReplenish ? product.minThreshold : null,
+      replenishQty: product.autoReplenish ? product.replenishQty : null
+    })))
+    toast.add({ severity: 'success', summary: 'Changes saved', detail: `${changedProducts.length} product(s) updated.`, life: 3000 })
+    editMode.value = false
+    await applySearch()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Submit failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmResetChanges = (afterReset) => {
+  confirm.require({
+    message: 'Discard all unsaved product changes?',
+    header: 'Reset Unsaved Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-warning',
+    accept: () => {
+      products.value = cloneRows(originalProducts.value)
+      modifiedProductIds.value = new Set()
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved product changes were discarded.', life: 2500 })
+      if (typeof afterReset === 'function') afterReset()
+    }
+  })
 }
 
 const applySearch = async () => {
@@ -285,7 +452,8 @@ const applySearch = async () => {
   loading.value = true
   try {
     const response = await productApi.searchProducts({ ...(name ? { name } : {}), ...(categoryId ? { categoryId } : {}) })
-    products.value = response.data
+    products.value = enrichProducts(response.data)
+    snapshotProducts()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Search failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
@@ -360,6 +528,8 @@ const submitCategory = async () => {
   try {
     const response = await productApi.createCategory({ name: categoryForm.name })
     await loadCategories()
+    products.value = enrichProducts(products.value)
+    snapshotProducts()
     form.categoryId = response.data?.id ?? form.categoryId
     categoryDialogVisible.value = false
     toast.add({ severity: 'success', summary: 'Category created', detail: response.data?.name || categoryForm.name, life: 3000 })
@@ -404,21 +574,22 @@ const submitProduct = async () => {
   }
 }
 
-const confirmDelete = (product) => {
+const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Delete product "${product.name}"? This action cannot be undone.`,
-    header: 'Delete Product',
+    message: `Delete ${selectedProducts.value.length} selected product(s)? This action cannot be undone.`,
+    header: 'Delete Selected Products',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: () => deleteProduct(product)
+    accept: deleteSelectedProducts
   })
 }
 
-const deleteProduct = async (product) => {
+const deleteSelectedProducts = async () => {
   actionLoading.value = true
   try {
-    await productApi.deleteProduct(product.id)
-    toast.add({ severity: 'success', summary: 'Product deleted', detail: product.name, life: 3000 })
+    await Promise.all(selectedProducts.value.map((product) => productApi.deleteProduct(product.id)))
+    toast.add({ severity: 'success', summary: 'Products deleted', detail: `${selectedProducts.value.length} product(s) deleted.`, life: 3000 })
+    selectedProducts.value = []
     await applySearch()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 4000 })
@@ -430,11 +601,14 @@ const deleteProduct = async (product) => {
 onMounted(async () => {
   loading.value = true
   try {
-    await Promise.all([loadCategories(), loadProducts()])
+    await loadCategories()
+    await applyRouteProductFilter()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Products setup failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
 })
+
+watch(() => route.query, applyRouteProductFilter)
 </script>

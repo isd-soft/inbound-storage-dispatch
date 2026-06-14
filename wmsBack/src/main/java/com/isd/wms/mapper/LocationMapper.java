@@ -9,6 +9,7 @@ public class LocationMapper {
     public LocationResponse toResponse(Location location) {
         return new LocationResponse(
                 location.getId(),
+                location.getName(),
                 location.getBarcode(),
                 location.getZone(),
                 location.getDescription(),

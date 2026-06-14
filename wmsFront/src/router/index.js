@@ -37,9 +37,11 @@ const router = createRouter({
     },
     {
       path: '/access-denied',
-      name: 'access-denied',
-      component: AccessDeniedPage,
+      component: SupervisorLayout,
       meta: { requiresAuth: true },
+      children: [
+        { path: '', name: 'access-denied', component: AccessDeniedPage }
+      ]
     },
     {
       path: '/supervisor',
@@ -55,15 +57,16 @@ const router = createRouter({
         { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'order-form', name: 'order-form', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'operator', name: 'supervisor-operator', component: OperatorConsole, meta: { roles: [DEV] } },
         { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
       ]
     },
     {
       path: '/operator',
-      name: 'operator',
-      component: OperatorConsole,
-      meta: { requiresAuth: true, roles: [OPERATOR, DEV] },
+      component: SupervisorLayout,
+      meta: { requiresAuth: true, roles: [OPERATOR] },
+      children: [
+        { path: '', name: 'operator', component: OperatorConsole, meta: { roles: [OPERATOR] } }
+      ]
     },
     {
       path: '/verify',
@@ -73,9 +76,11 @@ const router = createRouter({
     },
     {
       path: '/dev',
-      name: 'dev',
-      component: DevDashboard,
+      component: SupervisorLayout,
       meta: { requiresAuth: true, roles: [DEV] },
+      children: [
+        { path: '', name: 'dev', component: DevDashboard, meta: { roles: [DEV] } }
+      ]
     },
   ],
 })

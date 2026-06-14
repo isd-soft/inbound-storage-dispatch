@@ -85,7 +85,7 @@ public class ProcessExecutionService {
             .orElse(null);
         if (expectedProduct == null) {
             log.warn("Wrong barcode scanned for process {}", processId);
-            throw new InvalidRequestException("Wrong product/SKU barcode");
+            throw new InvalidRequestException("Wrong product Barcode");
         }
 
         stockRepository.findByProductIdAndLocationId(

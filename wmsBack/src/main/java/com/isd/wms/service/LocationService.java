@@ -30,8 +30,10 @@ public class LocationService {
 
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
-        String name = request.name().trim();
         String code = request.barcode().trim();
+        String name = request.name() == null || request.name().isBlank()
+                ? code
+                : request.name().trim();
         if (locationRepository.existsByBarcodeIgnoreCase(code)) {
             throw new DuplicateBarcodeException(code);
         }

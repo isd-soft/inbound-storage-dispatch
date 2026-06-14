@@ -6,6 +6,7 @@
     </div>
 
     <div class="w-full max-w-md mb-8">
+      <img src="/Logo.png" alt="Inbound Storage Dispatch logo" class="mx-auto mb-5 block h-20 max-w-[70vw] object-contain sm:h-24" />
       <h2 class="app-brand text-center text-3xl font-extrabold">
         Inbound Storage Dispatch
       </h2>

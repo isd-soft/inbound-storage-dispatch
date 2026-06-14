@@ -24,4 +24,12 @@ public class StockResponse {
     private Integer availableQuantity;
     private LocalDate manufactureDate;
     private LocalDate expirationDate;
+
+    public String getSku() {
+        return barcode;
+    }
+
+    public String getLocationCode() {
+        return locationBarcode;
+    }
 }

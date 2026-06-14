@@ -58,7 +58,7 @@ VALUES
 INSERT INTO tasks (id, supervisor_id, task_type, requested_quantity, status)
 VALUES
     (1, 2, 'REPLENISHMENT', 20, 'CREATED'),
-    (2, 2, 'PICKING', 2, 'CREATED');
+    (2, 2, 'PICKING_ORDER', 2, 'CREATED');
 
 INSERT INTO replenishments (id, task_id, product_id, requested_quantity, status, destination_location_id)
 VALUES

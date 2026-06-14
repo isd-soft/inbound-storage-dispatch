@@ -20,9 +20,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     boolean existsByCategoryId(Long categoryId);
 
     @Query("""
-            SELECT p.id AS id, p.name AS name, SUM(s.quantity - s.reservedQuantity) AS quantity FROM Product p
+            SELECT p.id AS id, p.name AS name, p.barcode AS barcode, SUM(s.quantity - s.reservedQuantity) AS quantity FROM Product p
             JOIN Stock s ON p = s.product
-            GROUP BY p.id, p.name
+            GROUP BY p.id, p.name, p.barcode
             HAVING SUM(s.quantity - s.reservedQuantity) > 0
             """)
     List<ProductWithQuantityProjection> getProductsWithQuantities();

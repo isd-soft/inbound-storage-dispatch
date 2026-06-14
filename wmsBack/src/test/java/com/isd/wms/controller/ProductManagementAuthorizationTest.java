@@ -62,7 +62,7 @@ class ProductManagementAuthorizationTest {
     @WithMockUser(roles = "SUPERVISOR")
     void supervisorCanCreateProduct() throws Exception {
         when(productService.createProduct(any()))
-                .thenReturn(new ProductResponse(1L, "Milk", "MILK-1", null, 1L, null, null));
+                .thenReturn(new ProductResponse(1L, "Milk", "MILK-1", null, 1L, false, null, null, null, null));
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +88,7 @@ class ProductManagementAuthorizationTest {
     @WithMockUser(roles = "SUPERVISOR")
     void supervisorCanUpdateProduct() throws Exception {
         when(productService.updateProduct(eq(1L), any()))
-                .thenReturn(new ProductResponse(1L, "Updated Milk", "MILK-2", null, 1L, null, null));
+                .thenReturn(new ProductResponse(1L, "Updated Milk", "MILK-2", null, 1L, false, null, null, null, null));
 
         mockMvc.perform(put("/api/products/1")
                         .contentType(MediaType.APPLICATION_JSON)
