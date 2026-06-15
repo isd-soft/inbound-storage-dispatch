@@ -14,8 +14,8 @@ import java.util.Objects;
 public class Allocation extends BaseTimestampEntity{
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "process_gen")
-    @SequenceGenerator(name = "process_gen", sequenceName = "processes_sequence", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "allocation_gen")
+    @SequenceGenerator(name = "allocation_gen", sequenceName = "allocations_sequence", allocationSize = 1)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
