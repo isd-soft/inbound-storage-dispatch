@@ -63,7 +63,7 @@ public class ProcessController {
 
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse completeAssignedProcess(@PathVariable Long id) {
+    public ProcessCompletionResponse completeAssignedProcess(@PathVariable Long id) {
         return processExecutionService.completeProcess(id);
     }
 }

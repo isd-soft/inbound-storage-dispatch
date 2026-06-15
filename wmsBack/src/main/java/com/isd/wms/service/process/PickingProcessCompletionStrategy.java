@@ -1,50 +1,47 @@
 package com.isd.wms.service.process;
 
+import com.isd.wms.dto.process.ProcessCompletionResult;
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.Process;
+import com.isd.wms.entity.OrderLine;
+import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.ProcessCompletionStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
+import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.ProcessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class PickingProcessCompletionStrategy implements ProcessCompletionStrategy {
 
-    private final ProcessRepository processRepository;
     private final OrderLineRepository orderLineRepository;
     private final OrderRepository orderRepository;
 
     @Override
-    public void handle(Process process) {
-        Task task = process.getTask();
+    public boolean updateStatus(Task task) {
+        OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
+            .orElseThrow(() -> new RuntimeException("No order found for task!"));
 
-        List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
-        boolean isTaskFullyCompleted = allProcesses.stream()
-            .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
+        orderLine.setStatus(Status.COMPLETED);
+        orderLineRepository.save(orderLine);
 
-        if (isTaskFullyCompleted) {
-            orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
-                orderLine.setStatus(Status.COMPLETED);
-                orderLineRepository.save(orderLine);
+        return orderRepository.markOrderAsCompleted(orderLine.getOrder()) > 0;
+    }
 
-                Order order = orderLine.getOrder();
-                boolean orderCompleted = order.getOrderLines().stream()
-                    .allMatch(line -> line.getStatus() == Status.COMPLETED);
-
-                if (orderCompleted) {
-                    order.setStatus(OrderStatus.COMPLETED);
-                    orderRepository.save(order);
-                }
-            });
-        }
+    @Override
+    public ProcessCompletionResult result(Task task) {
+        Order order = orderRepository.getOrderByTask(task)
+            .orElseThrow(() -> new RuntimeException("No order found for task with id " + task.getId()));
+        return new ProcessCompletionResult(
+            order.getStatus() == OrderStatus.COMPLETED? ProcessCompletionStatus.COMPLETED : ProcessCompletionStatus.PICKING,
+            TaskType.PICKING_ORDER,
+            order.getId()
+        );
     }
 
     @Override

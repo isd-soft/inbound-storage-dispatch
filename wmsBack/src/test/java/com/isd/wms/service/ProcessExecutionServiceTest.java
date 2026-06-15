@@ -2,6 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
+import com.isd.wms.dto.process.ProcessCompletionResponse;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
@@ -228,7 +229,7 @@ class ProcessExecutionServiceTest {
         when(processRepository.findAllByTaskId(40L)).thenReturn(List.of(process));
         when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
 
-        ProcessExecutionResponse response = processExecutionService.completeProcess(50L);
+        ProcessCompletionResponse response = processExecutionService.completeProcess(50L);
 
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(process.getStatus()).isEqualTo(Status.COMPLETED);
