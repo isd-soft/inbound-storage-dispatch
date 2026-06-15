@@ -4,90 +4,41 @@ import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Process;
-import com.isd.wms.entity.Task;
-import com.isd.wms.entity.User;
-import com.isd.wms.enums.Status;
 import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
-import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
 import lombok.NonNull;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class OrderService {
     private final ExtendedOrderMapper extendedOrderMapper;
     private final OrderMapper orderMapper;
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
-    private final UserRepository userRepository;
     private final ProcessRepository processRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
 
-    @Autowired
-    public OrderService(
-            ExtendedOrderMapper extendedOrderMapper,
-            OrderMapper orderMapper,
-            OrderRepository orderRepository,
-            LocationRepository locationRepository,
-            OrderLineService orderLineService,
-            UserRepository userRepository,
-            ProcessRepository processRepository,
-            TaskRepository taskRepository,
-            OrderLineRepository orderLineRepository
-    ) {
-        this.extendedOrderMapper = extendedOrderMapper;
-        this.orderMapper = orderMapper;
-        this.orderRepository = orderRepository;
-        this.locationRepository = locationRepository;
-        this.orderLineService = orderLineService;
-        this.userRepository = userRepository;
-        this.processRepository = processRepository;
-        this.taskRepository = taskRepository;
-        this.orderLineRepository = orderLineRepository;
-    }
-
-    public OrderService(
-            ExtendedOrderMapper extendedOrderMapper,
-            OrderMapper orderMapper,
-            OrderRepository orderRepository,
-            LocationRepository locationRepository,
-            OrderLineService orderLineService,
-            UserRepository userRepository,
-            ProcessRepository processRepository,
-            TaskRepository taskRepository
-    ) {
-        this(
-                extendedOrderMapper,
-                orderMapper,
-                orderRepository,
-                locationRepository,
-                orderLineService,
-                userRepository,
-                processRepository,
-                taskRepository,
-                null
-        );
-    }
-
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
         Order order = addOrder(request.order());
-        for (OrderLineCreateRequest oRequest: request.lines()) {
+        for (OrderLineCreateRequest oRequest : request.lines()) {
             oRequest = new OrderLineCreateRequest(oRequest, order.getId());
             orderLineService.addOrderLine(order, oRequest);
         }
@@ -121,8 +72,8 @@ public class OrderService {
 
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream()
-                .map(orderMapper::toResponse)
-                .toList();
+            .map(orderMapper::toResponse)
+            .toList();
     }
 
     public OrderResponse getOrderById(@NonNull Long orderId) {
@@ -131,45 +82,30 @@ public class OrderService {
 
     public Order getOrder(@NonNull Long orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
+            .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
-        Order order = getOrder(orderId);
-        User operator = getUser(operatorId);
+        int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
+        if (updated == 0) {
+            throw new OrderNotFoundException(orderId);
+        }
+        log.info("Updated order with id {}", orderId);
 
-        List<Task> tasks = getAllTasksByOrder(order);
-        List<Process> processes = processRepository.findAllByOrder(order);
-        List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
+        int tasksUpdated = taskRepository.updateOperatorByOrderId(orderId, operatorId);
+        log.info("Updated {} tasks for order {}", tasksUpdated, orderId);
 
-        order.setStatus(OrderStatus.ASSIGNED);
-        tasks.forEach((task) -> task.setOperator(operator));
-        processes.forEach((process) -> process.setStatus(Status.ASSIGNED));
-        orderLines.forEach((orderLine) -> orderLine.setStatus(Status.ASSIGNED));
-        orderRepository.save(order);
-        taskRepository.saveAll(tasks);
-        processRepository.saveAll(processes);
-        orderLineRepository.saveAll(orderLines);
-    }
+        int processesUpdated = processRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} processes for order {}", processesUpdated, orderId);
 
-    private List<Task> getAllTasksByOrder(Order order) {
-        return taskRepository.findAllByOrder(order);
-    }
-
-    public Order getOldestOrderAssignedToOperator(User operator) {
-        return orderRepository.findOldestOrderAssignedToOperator(operator.getId())
-            .orElseThrow(() -> new OrderNotFoundException(operator.getId()));
-    }
-
-    private User getUser(Long operatorId) {
-        return userRepository.findById(operatorId)
-            .orElseThrow(() -> new UserNotFoundException(operatorId));
+        int orderLinesUpdated = orderLineRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} order lines for order {}", orderLinesUpdated, orderId);
     }
 
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationNotFoundException(locationId));
+            .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
     public ExtendedOrderResponse getExtendedOrderById(Long id) {
@@ -179,14 +115,14 @@ public class OrderService {
 
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(request.logicId(), request.destinationLocationId(), request.status(), request.createdAt(), request.updatedAt()).stream()
-                .map(orderMapper::toResponse)
-                .toList();
+            .map(orderMapper::toResponse)
+            .toList();
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
         List<Order> orders = orderRepository.findAll();
         return orders.stream()
-                .map(extendedOrderMapper::toResponse)
-                .toList();
+            .map(extendedOrderMapper::toResponse)
+            .toList();
     }
 }

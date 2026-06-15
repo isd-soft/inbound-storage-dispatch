@@ -31,18 +31,20 @@ class OrderServiceTest {
     private UserRepository userRepository;
     private ProcessRepository processRepository;
     private TaskRepository taskRepository;
+    private OrderLineRepository orderLineRepository;
 
     @BeforeEach
     void setUp() {
+        extendedOrderMapper = mock(ExtendedOrderMapper.class);
+        orderMapper = mock(OrderMapper.class);
         orderRepository = mock(OrderRepository.class);
         locationRepository = mock(LocationRepository.class);
-        orderMapper = mock(OrderMapper.class);
-        extendedOrderMapper = mock(ExtendedOrderMapper.class);
         orderLineService = mock(OrderLineService.class);
         userRepository = mock(UserRepository.class);
         processRepository = mock(ProcessRepository.class);
         taskRepository = mock(TaskRepository.class);
-        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, userRepository, processRepository, taskRepository);
+        orderLineRepository = mock(OrderLineRepository.class);
+        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, userRepository, processRepository, taskRepository, orderLineRepository);
     }
 
     private Order orderWithId(Long id, String logicId) {
