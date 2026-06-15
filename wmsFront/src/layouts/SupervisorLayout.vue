@@ -8,17 +8,39 @@
 
       <div class="p-4 border-t border-white/10 flex flex-col gap-3">
         <ThemeToggle show-label class="w-full justify-center" />
-        <Button icon="pi pi-sign-out" label="Logout" severity="danger" text class="w-full justify-start" @click="handleLogout" />
+        <Button
+          icon="pi pi-sign-out"
+          label="Logout"
+          severity="danger"
+          text
+          class="w-full justify-start"
+          @click="handleLogout"
+        />
       </div>
     </aside>
 
-    <div v-if="mobileMenuOpen" class="mobile-sidebar-backdrop md:hidden" @click="closeMobileMenu"></div>
+    <div
+      v-if="mobileMenuOpen"
+      class="mobile-sidebar-backdrop md:hidden"
+      @click="closeMobileMenu"
+    ></div>
 
-    <aside class="app-sidebar mobile-sidebar shadow-xl flex flex-col justify-between md:hidden" :class="{ 'mobile-sidebar--open': mobileMenuOpen }">
+    <aside
+      class="app-sidebar mobile-sidebar shadow-xl flex flex-col justify-between md:hidden"
+      :class="{ 'mobile-sidebar--open': mobileMenuOpen }"
+    >
       <div class="min-h-0">
         <div class="flex items-center justify-between border-b border-white/10">
           <SidebarBrand />
-          <Button icon="pi pi-times" text rounded severity="secondary" aria-label="Close menu" class="mr-3" @click="closeMobileMenu" />
+          <Button
+            icon="pi pi-times"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Close menu"
+            class="mr-3"
+            @click="closeMobileMenu"
+          />
         </div>
         <SidebarNavigation :items="menuItems" @navigate="closeMobileMenu" />
       </div>
@@ -37,12 +59,21 @@
     </aside>
 
     <main class="flex-1 min-w-0 overflow-y-auto">
-      <header class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden">
+      <header
+        class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
+      >
         <div class="flex items-center gap-3">
           <i class="pi pi-box text-xl app-brand"></i>
           <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
         </div>
-        <Button icon="pi pi-bars" text rounded severity="secondary" aria-label="Open menu" @click="openMobileMenu" />
+        <Button
+          icon="pi pi-bars"
+          text
+          rounded
+          severity="secondary"
+          aria-label="Open menu"
+          @click="openMobileMenu"
+        />
       </header>
       <router-view />
     </main>
@@ -67,9 +98,9 @@ const SidebarBrand = defineComponent({
     return () =>
       h('div', { class: 'p-6 flex items-center gap-3' }, [
         h('i', { class: 'pi pi-box text-2xl app-brand' }),
-        h('h1', { class: 'app-title text-xl font-bold tracking-wide' }, 'ISD WMS')
+        h('h1', { class: 'app-title text-xl font-bold tracking-wide' }, 'ISD WMS'),
       ])
-  }
+  },
 })
 
 const SidebarNavigation = defineComponent({
@@ -77,8 +108,8 @@ const SidebarNavigation = defineComponent({
   props: {
     items: {
       type: Array,
-      required: true
-    }
+      required: true,
+    },
   },
   emits: ['navigate'],
   setup(props, { emit }) {
@@ -95,13 +126,13 @@ const SidebarNavigation = defineComponent({
               exactActiveClass: 'app-nav-link-active',
               activeClass: 'app-nav-link-active',
               class: 'app-nav-link p-3 rounded-lg transition flex items-center gap-3',
-              onClick: () => emit('navigate')
+              onClick: () => emit('navigate'),
             },
-            () => [h('i', { class: item.icon }), item.label]
-          )
-        )
+            () => [h('i', { class: item.icon }), item.label],
+          ),
+        ),
       )
-  }
+  },
 })
 
 const menuItems = computed(() => {
@@ -115,6 +146,7 @@ const menuItems = computed(() => {
     { to: '/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
     { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },
     { to: '/supervisor/replenishments', label: 'Replenishments', icon: 'pi pi-sync' },
+    { to: '/supervisor/allocations', label: 'Allocations', icon: 'pi pi-list' },
     { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },
     { to: '/supervisor/products', label: 'Products', icon: 'pi pi-tags' },
     { to: '/supervisor/locations', label: 'Locations', icon: 'pi pi-map-marker' },
@@ -145,7 +177,7 @@ const handleLogout = () => {
 
 watch(
   () => route.fullPath,
-  () => closeMobileMenu()
+  () => closeMobileMenu(),
 )
 </script>
 

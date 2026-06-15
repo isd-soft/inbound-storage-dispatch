@@ -16,6 +16,7 @@ import DevDashboard from '../views/dev/DevDashboard.vue'
 import VerifyEmailView from '../views/auth/VerifyEmailView.vue'
 import OrderForm from '@/views/supervisor/OrderForm.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
+import AllocationsView from '@/views/supervisor/AllocationsView.vue'
 
 const DEV = 'ROLE_DEV'
 const SUPERVISOR = 'ROLE_SUPERVISOR'
@@ -50,7 +51,7 @@ const router = createRouter({
       children: [
         { path: '', alias: '/dashboard', name: 'supervisor-dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'inventory', alias: '/inventory', name: 'inventory', component: InventoryView, meta: { roles: SUPERVISOR_OR_DEV } },
-        // { path: 'tasks', name: 'tasks', component: TasksView, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'allocations', name: 'allocations', component: AllocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'replenishments', name: 'replenishments', component: ReplenishmentsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'products', name: 'products', component: ProductsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'locations', name: 'locations', component: LocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
