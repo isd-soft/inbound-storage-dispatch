@@ -3,7 +3,7 @@ package com.isd.wms.service.process;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
@@ -12,7 +12,7 @@ import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.AllocationRepository  ;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -27,10 +27,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class PickingProcessCompletionStrategyTest {
+class PickingAllocationCompletionStrategyTest {
 
     @Mock
-    private ProcessRepository processRepository;
+    private AllocationRepository  allocationRepository ;
 
     @Mock
     private OrderLineRepository orderLineRepository;
@@ -59,10 +59,10 @@ class PickingProcessCompletionStrategyTest {
         ReflectionTestUtils.setField(orderLine, "status", Status.IN_PROGRESS);
         ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
 
-        Process process = new Process(task, stock, 5, Status.COMPLETED);
+        Allocation allocation = new Allocation(task, stock, 5, Status.COMPLETED);
         ReflectionTestUtils.setField(process, "id", 3L);
 
-        when(processRepository.findAllByTaskId(2L)).thenReturn(List.of(process));
+        when(allocationRepository .findAllByTaskId(2L)).thenReturn(List.of(process));
         when(orderLineRepository.findByTaskId(2L)).thenReturn(Optional.of(orderLine));
 
         strategy.handle(process);

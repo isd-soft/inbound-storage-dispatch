@@ -14,8 +14,8 @@ public record OperatorTaskSummaryResponse(
     Integer totalProcesses,
     Integer completedProcesses,
     boolean readyForCompletion,
-    OperatorProcessSummaryResponse currentProcess,
+    OperatorAllocationSummaryResponse currentProcess,
     List<OperatorOrderLineSummaryResponse> orderLines,
-    List<OperatorProcessSummaryResponse> processes
+    List<OperatorAllocationSummaryResponse> processes
 ) {
 }

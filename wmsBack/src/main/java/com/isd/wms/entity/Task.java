@@ -3,13 +3,11 @@ package com.isd.wms.entity;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.Hibernate;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +49,7 @@ public class Task extends BaseTimestampEntity {
     private TaskStatus status = TaskStatus.CREATED;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Process> processes = new ArrayList<>();
+    private List<Allocation> allocations = new ArrayList<>();
 
     public Optional<User> getOperator() {
         return Optional.ofNullable(operator);

@@ -1,9 +1,9 @@
 package com.isd.wms.repository.projections;
 
-public interface OperatorProcessProjection {
+public interface OperatorAllocationProjection {
     Long getOldestOrderId();
     String getOrderName();
-    Long getProcessId();
+    Long getAllocationId();
     String getProductName();
     String getProductBarcode();
     String getLocationName();

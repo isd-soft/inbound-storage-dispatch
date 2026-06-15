@@ -5,14 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.util.Objects;
-import java.util.Optional;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "processes")
-public class Process extends BaseTimestampEntity{
+@Table(name = "allocations")
+public class Allocation extends BaseTimestampEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "process_gen")
@@ -43,7 +42,7 @@ public class Process extends BaseTimestampEntity{
     @Column(name = "picked_quantity")
     private Integer pickedQuantity;
 
-    public Process(Task task, Stock stock, Integer quantity, Status status) {
+    public Allocation(Task task, Stock stock, Integer quantity, Status status) {
         this.task = task;
         this.stock = stock;
         this.quantity = quantity;
@@ -54,8 +53,8 @@ public class Process extends BaseTimestampEntity{
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-        Process process = (Process) o;
-        return id != null && Objects.equals(id, process.getId());
+        Allocation allocation = (Allocation) o;
+        return id != null && Objects.equals(id, allocation.getId());
     }
 
     @Override

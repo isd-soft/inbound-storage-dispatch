@@ -1,10 +1,10 @@
 package com.isd.wms.service;
 
-import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.AllocationRepository  ;
 import com.isd.wms.repository.StockRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 class WorkflowServiceTest {
 
     @Mock
-    private ProcessRepository processRepository;
+    private AllocationRepository  allocationRepository ;
 
     @Mock
     private StockRepository stockRepository;
@@ -57,7 +57,7 @@ class WorkflowServiceTest {
 
         workflowService.generateProcessesForTask(task, 1L, 50);
 
-        verify(processRepository, times(1)).saveAll(anyList());
+        verify(allocationRepository , times(1)).saveAll(anyList());
         assertThat(stock.getReservedQuantity()).isEqualTo(50);
     }
 
@@ -78,13 +78,13 @@ class WorkflowServiceTest {
 
         workflowService.generateProcessesForTask(task, 1L, 70);
 
-        ArgumentCaptor<List<Process>> captor = ArgumentCaptor.forClass(List.class);
-        verify(processRepository).saveAll(captor.capture());
+        ArgumentCaptor<List<Allocation>> captor = ArgumentCaptor.forClass(List.class);
+        verify(allocationRepository ).saveAll(captor.capture());
 
-        List<Process> capturedProcesses = captor.getValue();
-        assertThat(capturedProcesses).hasSize(2);
-        assertThat(capturedProcesses.get(0).getQuantity()).isEqualTo(50);
-        assertThat(capturedProcesses.get(1).getQuantity()).isEqualTo(20);
+        List<Allocation> capturedAllocations = captor.getValue();
+        assertThat(capturedAllocations).hasSize(2);
+        assertThat(capturedAllocations.get(0).getQuantity()).isEqualTo(50);
+        assertThat(capturedAllocations.get(1).getQuantity()).isEqualTo(20);
 
         assertThat(stock2.getReservedQuantity()).isEqualTo(50);
         assertThat(stock1.getReservedQuantity()).isEqualTo(20);
@@ -104,6 +104,6 @@ class WorkflowServiceTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Insufficient stock");
 
-        verify(processRepository, never()).saveAll(anyList());
+        verify(allocationRepository , never()).saveAll(anyList());
     }
 }

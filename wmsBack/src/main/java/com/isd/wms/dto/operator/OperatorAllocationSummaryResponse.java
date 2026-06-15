@@ -2,8 +2,8 @@ package com.isd.wms.dto.operator;
 
 import com.isd.wms.enums.Status;
 
-public record OperatorProcessSummaryResponse(
-    Long processId,
+public record OperatorAllocationSummaryResponse(
+    Long allocationId,
     Long taskId,
     Long orderLineId,
     Long productId,

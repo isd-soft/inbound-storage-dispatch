@@ -9,7 +9,7 @@ import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
-import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.AllocationRepository  ;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final ProcessRepository processRepository;
+    private final AllocationRepository  allocationRepository ;
     private final ReplenishmentRepository replenishmentRepository;
     private final SecurityFacade securityFacade;
     private final WorkflowService workflowService;
@@ -51,9 +51,9 @@ public class TaskService {
         task.setOperator(operator);
         taskRepository.save(task);
 
-        var processes = processRepository.findAllByTaskId(taskId);
-        processes.forEach((process) -> process.setStatus(Status.ASSIGNED));
-        processRepository.saveAll(processes);
+        var processes = allocationRepository .findAllByTaskId(taskId);
+        processes.forEach((process) -> allocation.setStatus(Status.ASSIGNED));
+        allocationRepository .saveAll(processes);
         replenishmentRepository.findByTaskId(taskId).ifPresent(replenishment -> {
             replenishment.setStatus(Status.ASSIGNED);
             replenishmentRepository.save(replenishment);

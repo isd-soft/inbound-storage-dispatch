@@ -3,7 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
-import com.isd.wms.dto.location.ShortLocationProjection;
+import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.service.LocationService;
 import jakarta.validation.Valid;

@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
             LocationNotFoundException.class,
             OrderLineNotFoundException.class,
             OrderNotFoundException.class,
-            ProcessesNotFoundException.class,
+            AllocationsNotFoundException.class,
             ProductNotFoundException.class,
             ReplenishmentNotFoundException.class,
             StockNotFoundException.class,

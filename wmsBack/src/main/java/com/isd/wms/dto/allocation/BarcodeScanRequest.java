@@ -1,4 +1,4 @@
-package com.isd.wms.dto.process;
+package com.isd.wms.dto.allocation;
 
 import jakarta.validation.constraints.NotBlank;
 

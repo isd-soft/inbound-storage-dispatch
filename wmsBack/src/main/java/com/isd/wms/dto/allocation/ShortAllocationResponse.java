@@ -1,6 +1,6 @@
-package com.isd.wms.dto.process;
+package com.isd.wms.dto.allocation;
 
-public record ShortProcessResponse(
+public record ShortAllocationResponse(
     Long id,
     String productName,
     String productBarcode,

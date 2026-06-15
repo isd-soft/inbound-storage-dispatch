@@ -1,8 +1,8 @@
-package com.isd.wms.dto.process;
+package com.isd.wms.dto.allocation;
 
 import com.isd.wms.enums.Status;
 
-public record ProcessResponse(
+public record AllocationResponse(
         Long id,
         String productName,
         String barcode,
