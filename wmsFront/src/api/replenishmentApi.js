@@ -13,6 +13,9 @@ export const replenishmentApi = {
   update(id, payload) {
     return apiClient.put(`/replenishments/${id}`, payload)
   },
+  assign(taskId, operatorId) {
+    return apiClient.post(`/tasks/${taskId}/operators/${operatorId}`)
+  },
   delete(id) {
     return apiClient.delete(`/replenishments/${id}`)
   },

@@ -63,11 +63,9 @@ const router = createRouter({
     },
     {
       path: '/operator',
-      component: SupervisorLayout,
-      meta: { requiresAuth: true, roles: [OPERATOR] },
-      children: [
-        { path: '', name: 'operator', component: OperatorConsole, meta: { roles: [OPERATOR] } }
-      ]
+      name: 'operator',
+      component: OperatorConsole,
+      meta: { requiresAuth: true, roles: [OPERATOR] }
     },
     {
       path: '/verify',

@@ -44,6 +44,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("operatorId") Long operatorId
     );
 
+    @Query(value = """
+        SELECT DISTINCT o.* FROM orders o
+        JOIN order_lines ol ON o.id = ol.order_id
+        JOIN tasks t ON ol.task_id = t.id
+        WHERE t.operator_id = :operatorId
+          AND o.status = 'PICKED'
+        ORDER BY o.created_at, o.id
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<Order> findOldestPickedOrderAssignedToOperator(
+        @Param("operatorId") Long operatorId
+    );
+
     @Modifying
     @Query("""
             UPDATE Order o
@@ -57,7 +70,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Modifying
     @Query("""
             UPDATE Order o
-                SET o.status = COMPLETED
+                SET o.status = :orderStatus
                 WHERE o = :order
                     AND NOT EXISTS (
                           SELECT 1 FROM OrderLine ol
@@ -66,7 +79,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                       )
         """)
     int markOrderAsCompleted(
-        @Param("order") Order order
+        @Param("order") Order order,
+        @Param("orderStatus") OrderStatus orderStatus
     );
 
     @Query("""

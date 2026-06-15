@@ -21,5 +21,5 @@ export const allocationApi = {
   },
   confirmPickedQuantity(processId, pickedQuantity) {
     return apiClient.post(`/v1/processes/${processId}/confirm-quantity`, { pickedQuantity })
-  },
+  }
 }

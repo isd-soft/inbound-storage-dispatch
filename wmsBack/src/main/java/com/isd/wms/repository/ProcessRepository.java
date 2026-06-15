@@ -23,8 +23,27 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
 
     List<Process> findByStatus(Status status);
 
-    @Query("SELECT p FROM Process p JOIN Task t ON t = p.task WHERE t.operator = :operator AND p.status IN (:statuses)")
+    @Query("""
+        SELECT p FROM Process p
+        JOIN Task t ON t = p.task
+        WHERE t.operator = :operator
+          AND p.status IN (:statuses)
+        ORDER BY p.createdAt, p.id
+    """)
     List<Process> findByOperatorAndStatuses(User operator, List<Status> statuses);
+
+    @Query("""
+        SELECT p FROM Process p
+        JOIN Task t ON t = p.task
+        JOIN User u ON u = t.operator
+        WHERE u.username = :username
+          AND p.status IN (:statuses)
+        ORDER BY p.createdAt, p.id
+    """)
+    List<Process> findByOperatorUsernameAndStatuses(
+        @Param("username") String username,
+        @Param("statuses") List<Status> statuses
+    );
 
     @Query(value = """
         with oldest_process as (select p.id as process_id from processes p
@@ -51,7 +70,7 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
         JOIN OrderLine o ON o.task.id = p.task.id
         WHERE o.order = :order
         GROUP BY p, o.order.id
-        ORDER BY p.createdAt
+        ORDER BY p.createdAt, p.id
     """)
     List<Process> findAllByOrder(
         @Param("order") Order order
@@ -110,16 +129,15 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     );
 
     @Modifying
-    @Query(value = """
-        WITH p_by_order AS (
-            SELECT DISTINCT p.* FROM processes p
-            JOIN order_lines o ON o.task_id = p.task_id
-            WHERE o.order_id = :orderId)
-
-        UPDATE processes p
-            SET status = :status
-            WHERE p.id = ANY(SELECT * FROM p_by_order)
-    """, nativeQuery = true)
+    @Query("""
+        UPDATE Process p
+        SET p.status = :status
+        WHERE p.task.id IN (
+            SELECT ol.task.id
+            FROM OrderLine ol
+            WHERE ol.order.id = :orderId
+        )
+    """)
     int updateStatusByOrderId(
         @Param("orderId") Long orderId,
         @Param("status") Status status);

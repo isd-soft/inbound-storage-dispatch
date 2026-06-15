@@ -3,6 +3,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.process.BarcodeScanRequest;
 import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.process.ProcessCompletionResponse;
+import com.isd.wms.dto.process.ProcessCompletionResult;
 import com.isd.wms.dto.process.ProcessExecutionResponse;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
@@ -17,9 +18,11 @@ import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.repository.UserRepository;
+import com.isd.wms.service.validation.SecurityFacade;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -38,6 +42,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,13 +65,22 @@ class ProcessExecutionServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private TaskRepository taskRepository;
+    private ReplenishmentRepository replenishmentRepository;
 
     @Mock
     private UserRepository userRepository;
 
     @Mock
     private InventoryService inventoryService;
+
+    @Mock
+    private SecurityFacade securityFacade;
+
+    @Mock
+    private WorkflowService workflowService;
+
+    @Spy
+    private PickingFlowService pickingFlowService;
 
     @InjectMocks
     private ProcessExecutionService processExecutionService;
@@ -78,6 +92,7 @@ class ProcessExecutionServiceTest {
     private Task task;
     private OrderLine orderLine;
     private Order order;
+    private Process nextProcessSameLocation;
 
     @BeforeEach
     void setUp() {
@@ -90,9 +105,16 @@ class ProcessExecutionServiceTest {
         stock = new Stock(30L, product, location, 50, 10, null, null, null);
         task = task(40L, TaskStatus.CREATED);
         process = process(50L, operator, task, stock, 10, Status.ASSIGNED);
-        order = order(60L, Status.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
+        order = order(60L, OrderStatus.IN_PROGRESS);
         orderLine = orderLine(70L, order, task, product, Status.IN_PROGRESS);
         ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
+
+        Task nextTask = new Task(null, TaskType.PICKING_ORDER, 4);
+        ReflectionTestUtils.setField(nextTask, "id", 41L);
+        nextTask.setOperator(operator);
+        nextProcessSameLocation = process(51L, operator, nextTask, stock, 4, Status.ASSIGNED);
+        ReflectionTestUtils.setField(nextProcessSameLocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 1));
 
         Authentication authentication = mock(Authentication.class);
         SecurityContext securityContext = mock(SecurityContext.class);
@@ -100,6 +122,8 @@ class ProcessExecutionServiceTest {
         lenient().when(authentication.getName()).thenReturn("operator");
         SecurityContextHolder.setContext(securityContext);
         lenient().when(userRepository.findByUsername("operator")).thenReturn(Optional.of(operator));
+        lenient().when(securityFacade.getCurrentUsername()).thenReturn("operator");
+        lenient().when(securityFacade.getCurrentUser()).thenReturn(operator);
     }
 
     @AfterEach
@@ -183,7 +207,7 @@ class ProcessExecutionServiceTest {
 
         assertThatThrownBy(() -> processExecutionService.scanProduct(50L, new BarcodeScanRequest("WRONG")))
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Wrong product/SKU barcode");
+                .hasMessage("Wrong product barcode");
     }
 
     @Test
@@ -226,32 +250,25 @@ class ProcessExecutionServiceTest {
         prepareProcessForCompletion();
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
         when(processRepository.save(process)).thenReturn(process);
-        when(processRepository.findAllByTaskId(40L)).thenReturn(List.of(process));
-        when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
 
         ProcessCompletionResponse response = processExecutionService.completeProcess(50L);
 
-        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(response.status()).isEqualTo(ProcessCompletionStatus.COMPLETED);
         assertThat(process.getStatus()).isEqualTo(Status.COMPLETED);
-        assertThat(task.getStatus()).isEqualTo(TaskStatus.COMPLETED);
-        assertThat(orderLine.getStatus()).isEqualTo(Status.COMPLETED);
-        assertThat(order.getStatus()).isEqualTo(Status.COMPLETED);
+        verify(workflowService).executeProcessCompletion(process);
     }
 
     @Test
     void completeProcessDecreasesStockQuantityAndReservedQuantity() {
         prepareProcessForCompletion();
+        ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
         when(processRepository.save(process)).thenReturn(process);
-        when(processRepository.findAllByTaskId(40L)).thenReturn(List.of(process));
-        when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.empty());
 
         processExecutionService.completeProcess(50L);
 
-        ArgumentCaptor<Stock> stockCaptor = ArgumentCaptor.forClass(Stock.class);
-        verify(stockRepository).save(stockCaptor.capture());
-        assertThat(stockCaptor.getValue().getQuantity()).isEqualTo(40);
-        assertThat(stockCaptor.getValue().getReservedQuantity()).isZero();
+        assertThat(stock.getQuantity()).isEqualTo(40);
+        assertThat(stock.getReservedQuantity()).isZero();
     }
 
     @Test
@@ -259,12 +276,56 @@ class ProcessExecutionServiceTest {
         prepareProcessForCompletion();
         when(processRepository.findById(50L)).thenReturn(Optional.of(process));
         when(processRepository.save(process)).thenReturn(process);
-        when(processRepository.findAllByTaskId(40L)).thenReturn(List.of(process));
-        when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.empty());
 
         processExecutionService.completeProcess(50L);
 
         verify(inventoryService).recordPickingHistory(stock, 10, operator);
+    }
+
+    @Test
+    void completeProcessAutoStartsNextProductInSameLocationWithoutRescan() {
+        ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
+        prepareProcessForCompletion();
+        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+        when(processRepository.save(process)).thenReturn(process);
+        when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process, nextProcessSameLocation));
+
+        processExecutionService.completeProcess(50L);
+
+        assertThat(nextProcessSameLocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(nextProcessSameLocation.isSourceLocationScanned()).isTrue();
+        verify(processRepository).save(nextProcessSameLocation);
+    }
+
+    @Test
+    void startProcessMovesAssignedPickingOrderToInProgress() {
+        ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
+        ReflectionTestUtils.setField(orderLine, "status", Status.ASSIGNED);
+        ReflectionTestUtils.setField(order, "status", OrderStatus.ASSIGNED);
+
+        when(processRepository.findOldestAssignedProcessId("operator")).thenReturn(Optional.of(50L));
+        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+        when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
+
+        Long processId = processExecutionService.startProcess();
+
+        assertThat(processId).isEqualTo(50L);
+        assertThat(orderLine.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.IN_PROGRESS);
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void failWhenPickingQuantityDoesNotMatchRequiredForPickingTask() {
+        ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
+        setStatus(Status.IN_PROGRESS);
+        ReflectionTestUtils.setField(process, "productScanned", true);
+        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+
+        assertThatThrownBy(() -> processExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(9)))
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Picked quantity must match required quantity for picking tasks");
     }
 
     @Test
@@ -303,6 +364,10 @@ class ProcessExecutionServiceTest {
         ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
         ReflectionTestUtils.setField(process, "productScanned", true);
         ReflectionTestUtils.setField(process, "pickedQuantity", 10);
+        doAnswer(invocation -> {
+            stock.removeQuantity(process.getPickedQuantity());
+            return new ProcessCompletionResult(ProcessCompletionStatus.COMPLETED, task.getTaskType(), process.getId());
+        }).when(workflowService).executeProcessCompletion(process);
     }
 
     private User user(Long id, String username) {
@@ -326,17 +391,18 @@ class ProcessExecutionServiceTest {
     private Task task(Long id, TaskStatus status) {
         Task task = new Task(null, TaskType.REPLENISHMENT, 0);
         ReflectionTestUtils.setField(task, "id", id);
+        ReflectionTestUtils.setField(task, "status", status);
         return task;
     }
 
     private Process process(Long id, User operator, Task task, Stock stock, Integer quantity, Status status) {
         Process process = new Process(task, stock, quantity, status);
         ReflectionTestUtils.setField(process, "id", id);
-        ReflectionTestUtils.setField(process, "operator", operator);
+        task.setOperator(operator);
         return process;
     }
 
-    private Order order(Long id, Status status) {
+    private Order order(Long id, OrderStatus status) {
         Order order = new Order("ORDER-" + id);
         ReflectionTestUtils.setField(order, "id", id);
         ReflectionTestUtils.setField(order, "status", status);
