@@ -1,749 +1,663 @@
 <template>
-  <div class="app-shell font-sans">
-    <!-- Header -->
+  <div class="app-shell font-sans min-h-screen">
     <header class="app-header flex justify-between items-center px-4 py-3 shadow-md">
       <div class="flex items-center gap-3">
         <i class="pi pi-box text-2xl app-warm"></i>
-        <h1 class="text-xl font-bold tracking-wide app-title">Operator</h1>
+        <h1 class="text-xl font-bold tracking-wide app-title">Operator Console</h1>
       </div>
       <div class="flex items-center gap-2">
         <ThemeToggle />
+        <Button icon="pi pi-refresh" text rounded :loading="loading" @click="loadCurrentTask()" />
         <Button icon="pi pi-sign-out" severity="danger" text rounded @click="handleLogout" />
       </div>
     </header>
 
-    <!-- ══════════════════════════════════════
-         IDLE
-    ══════════════════════════════════════ -->
-    <main
-      v-if="screen === 'idle'"
-      class="p-4 max-w-md mx-auto mt-16 flex flex-col items-center gap-6"
+    <main class="max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-4">
+      <Toast />
+
+      <div v-if="loading" class="app-card rounded-2xl p-8 text-center">
+        <ProgressSpinner strokeWidth="4" style="width: 3rem; height: 3rem" />
+        <p class="app-subtitle mt-4">Loading assigned task...</p>
+      </div>
+
+      <Message v-else-if="loadError" severity="error" :closable="false">
+        {{ loadError }}
+      </Message>
+
+      <div v-else-if="isEmpty" class="app-card rounded-2xl p-8 text-center">
+        <i class="pi pi-inbox text-5xl app-muted"></i>
+        <h2 class="app-title text-2xl font-semibold mt-4">No assigned tasks</h2>
+        <p class="app-subtitle mt-2">You do not have active tasks right now.</p>
+        <Button class="mt-5" icon="pi pi-refresh" label="Refresh" @click="loadCurrentTask()" />
+      </div>
+
+      <template v-else-if="summary">
+        <Card class="rounded-2xl">
+          <template #title>
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div class="text-xl app-title font-semibold">{{ taskExecutionTitle }}</div>
+              </div>
+            </div>
+          </template>
+          <template #content>
+            <div class="flex flex-col gap-4">
+              <Message v-if="actionError" severity="error" :closable="false">
+                {{ actionError }}
+              </Message>
+
+              <template v-if="currentProcess">
+                <div class="app-card-muted rounded-xl p-4 flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <div class="text-sm app-muted">Current item</div>
+                    <div class="text-lg font-semibold app-title">{{ currentProcess.productName }}</div>
+                    <div class="text-sm app-muted font-mono">{{ currentProcess.productBarcode || 'No barcode' }}</div>
+                  </div>
+                  <div class="text-right flex flex-col gap-1">
+                    <div>
+                      <div class="text-sm app-muted">Required quantity</div>
+                      <div class="text-lg font-semibold app-warm">{{ currentProcess.requiredQuantity }}</div>
+                    </div>
+                    <div v-if="isReplenishmentTask" class="text-sm">
+                      <div class="app-muted">Move</div>
+                      <div class="font-mono app-title">{{ currentProcess.sourceLocationBarcode }} → {{ currentProcess.destinationLocationBarcode }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="isAwaitingStart" class="app-card rounded-2xl p-6 flex flex-col gap-4">
+                  <Message severity="info" :closable="false">
+                    The task is assigned. Press Start Task to begin execution.
+                  </Message>
+                  <div class="flex justify-end">
+                    <Button
+                      label="Start Task"
+                      icon="pi pi-play"
+                      :loading="actionLoading"
+                      @click="startTask"
+                    />
+                  </div>
+                </div>
+
+                <Stepper v-else :value="activeStep" linear>
+                  <StepList>
+                    <Step
+                      v-for="step in stepDefinitions"
+                      :key="step.value"
+                      :value="step.value"
+                    >
+                      {{ step.label }}
+                    </Step>
+                  </StepList>
+                  <StepPanels>
+                    <StepPanel
+                      v-for="step in stepDefinitions"
+                      :key="`panel-${step.value}`"
+                      :value="step.value"
+                    >
+                      <div v-if="step.type === 'location'" class="app-card rounded-2xl p-5 flex flex-col gap-4">
+                        <div>
+                          <div class="text-sm app-muted">Scan source location</div>
+                          <div class="font-mono font-semibold app-brand text-2xl mt-1">
+                            {{ step.locationBarcode }}
+                          </div>
+                        </div>
+                        <ScanSection
+                          v-model="barcodeInput"
+                          :loading="actionLoading"
+                          submit-label="Verify Source"
+                          placeholder="Scan or enter source barcode"
+                          @submit="submitBarcodeStep"
+                        />
+                      </div>
+
+                      <div v-else-if="step.type === 'product'" class="app-card rounded-2xl p-5 flex flex-col gap-4">
+                        <div>
+                          <div class="text-sm app-muted">Scan product barcode</div>
+                          <div class="font-mono font-semibold app-warm text-2xl mt-1">
+                            {{ step.process.productBarcode || 'No barcode' }}
+                          </div>
+                          <div class="text-sm app-muted mt-2">{{ step.process.productName }}</div>
+                        </div>
+                        <ScanSection
+                          v-model="barcodeInput"
+                          :loading="actionLoading"
+                          submit-label="Verify Product"
+                          placeholder="Scan or enter product barcode"
+                          @submit="submitBarcodeStep"
+                        />
+                      </div>
+
+                      <div v-else-if="step.type === 'quantity'" class="app-card rounded-2xl p-5 flex flex-col gap-4">
+                        <div>
+                          <div class="text-sm app-muted">Confirm picked quantity</div>
+                          <div class="font-semibold app-title mt-1">
+                            {{ step.process.productName }} · Required: {{ step.process.requiredQuantity }}
+                          </div>
+                        </div>
+                        <InputNumber
+                          v-model="pickedQuantity"
+                          :min="1"
+                          :max="step.process.requiredQuantity"
+                          showButtons
+                          fluid
+                        />
+                        <div class="flex justify-end">
+                          <Button
+                            label="Confirm Quantity"
+                            icon="pi pi-check-circle"
+                            :loading="actionLoading"
+                            @click="confirmQuantity"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-else-if="step.type === 'complete-move'" class="app-card rounded-2xl p-5 flex flex-col gap-4">
+                        <div class="grid md:grid-cols-2 gap-3">
+                          <div class="app-card-muted rounded-xl p-4">
+                            <div class="text-xs app-muted">Source</div>
+                            <div class="font-mono font-semibold app-brand mt-1">
+                              {{ step.process.sourceLocationBarcode }}
+                            </div>
+                          </div>
+                          <div class="app-card-muted rounded-xl p-4">
+                            <div class="text-xs app-muted">Destination</div>
+                            <div class="font-mono font-semibold app-success mt-1">
+                              {{ step.process.destinationLocationBarcode }}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="app-card-muted rounded-xl p-4">
+                          <div class="text-xs app-muted">Confirmed quantity</div>
+                          <div class="font-semibold app-title mt-1">
+                            {{ step.process.pickedQuantity }} / {{ step.process.requiredQuantity }}
+                          </div>
+                        </div>
+                        <div class="flex justify-end">
+                          <Button
+                            label="Complete Move"
+                            icon="pi pi-check"
+                            severity="success"
+                            :loading="actionLoading"
+                            @click="completeProcess"
+                          />
+                        </div>
+                      </div>
+
+                    </StepPanel>
+                  </StepPanels>
+                </Stepper>
+              </template>
+
+            </div>
+          </template>
+        </Card>
+      </template>
+    </main>
+
+    <Dialog
+      v-model:visible="summaryDialogVisible"
+      modal
+      :header="completionSummaryHeader"
+      :style="{ width: 'min(960px, 96vw)' }"
     >
-      <div class="text-center">
-        <div
-          class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-          style="
-            background: color-mix(in srgb, var(--brand-warm) 12%, transparent);
-            border: 2px solid color-mix(in srgb, var(--brand-warm) 30%, transparent);
-          "
+      <div v-if="completionSummary" class="flex flex-col gap-4">
+        <DataTable
+          :value="completionRows"
+          stripedRows
+          responsiveLayout="scroll"
+          class="p-datatable-sm"
+          dataKey="rowKey"
+          emptyMessage="No summary rows found."
         >
-          <i class="pi pi-box text-4xl app-warm"></i>
-        </div>
-        <h2 class="app-title text-2xl font-bold">Ready for Work</h2>
-        <p class="app-subtitle mt-1 text-sm">Press Start to receive your next process</p>
+          <Column field="productName" header="Product" />
+          <Column field="productBarcode" header="Barcode" />
+          <Column field="movedQuantity" :header="completionSummary?.taskType === 'REPLENISHMENT' ? 'Moved' : 'Picked'" />
+          <Column field="requiredQuantity" header="Required" />
+          <Column field="sourceLocation" header="Source" />
+          <Column field="destinationLocation" header="Destination" />
+        </DataTable>
       </div>
 
-      <Button
-        label="Start"
-        icon="pi pi-play"
-        iconPos="right"
-        size="large"
-        raised
-        class="w-full"
-        :loading="starting"
-        @click="startNext"
-      />
-      <Button
-        label="Report Issue"
-        icon="pi pi-exclamation-triangle"
-        severity="danger"
-        outlined
-        class="w-full"
-      />
-
-      <Message v-if="startError" severity="error" :closable="false" class="w-full">{{
-        startError
-      }}</Message>
-    </main>
-
-    <!-- ══════════════════════════════════════
-         EXECUTE — REPLENISHMENT
-    ══════════════════════════════════════ -->
-    <main v-else-if="screen === 'replenishment'" class="p-4 max-w-md mx-auto mt-4">
-      <!-- Task info bar -->
-      <div class="app-muted-panel rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
-          <div>
-            <span class="app-muted text-xs font-mono">Process #{{ activeProcess.id }}</span>
-          <p class="font-semibold text-sm app-title">{{ activeProcess.productName || activeProcess.product?.name }}</p>
-          <p class="text-xs app-muted font-mono">{{ activeProcess.productSku || activeProcess.sku || activeProcess.product?.barcode || activeProcess.product?.sku || activeProcess.product?.code }}</p>
-          <p class="text-xs app-muted">{{ activeProcess.quantity }} units</p>
-        </div>
-        <Tag value="Replenishment" severity="info" />
-      </div>
-
-      <!-- Steps: source → product → dest → done -->
-      <StepBar
-        :steps="['Source', 'Product', 'Destination', 'Done']"
-        :current="replStep"
-        class="mb-5"
-      />
-
-      <!-- Step 0: scan source -->
-      <div v-if="replStep === 0" class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div>
-            <p class="app-subtitle text-sm mb-1">Go to source location and scan:</p>
-          <p class="text-2xl font-bold font-mono app-brand">{{ activeProcess.locationCode || activeProcess.location?.barcode || activeProcess.location?.locationCode || activeProcess.location?.code }}</p>
-          </div>
-        <ScanInput :key="'r0'" @submit="onReplSource" :error="stepError" :loading="stepLoading" />
-      </div>
-
-      <!-- Step 1: scan product -->
-      <div v-else-if="replStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div>
-            <p class="app-subtitle text-sm mb-1">Scan product Barcode:</p>
-          <p class="text-xl font-bold font-mono app-warm">{{ activeProcess.productSku || activeProcess.sku || activeProcess.product?.barcode || activeProcess.product?.sku || activeProcess.product?.code }}</p>
-          <p class="text-xs app-muted mt-1">Qty: {{ activeProcess.quantity }} units</p>
-          </div>
-        <ScanInput :key="'r1'" @submit="onReplProduct" :error="stepError" :loading="stepLoading" />
-      </div>
-
-      <!-- Step 2: confirm qty + scan destination -->
-      <div v-else-if="replStep === 2" class="app-card rounded-xl p-5 flex flex-col gap-4">
-        <div>
-          <p class="app-subtitle text-sm mb-1">Confirm quantity picked:</p>
-          <p class="app-warm font-bold">Required: {{ activeProcess.quantity }} units</p>
-        </div>
-        <div class="flex flex-col gap-2">
-          <label class="text-xs app-muted">Picked quantity</label>
-          <InputNumber
-            v-model="pickedQty"
-            :min="1"
-            :max="activeProcess.quantity"
-            showButtons
-            class="w-full"
-          />
-        </div>
-        <Divider />
-        <div>
-          <p class="app-subtitle text-sm mb-1">Scan destination location:</p>
-          <p class="text-2xl font-bold font-mono app-success">{{ replDestCode }}</p>
-        </div>
-        <ScanInput
-          :key="'r2'"
-          @submit="onReplDestination"
-          :error="stepError"
-          :loading="stepLoading"
-        />
-      </div>
-
-      <!-- Step 3: complete -->
-      <div
-        v-else-if="replStep === 3"
-        class="app-card rounded-xl p-5 flex flex-col items-center gap-4"
-      >
-        <div
-          class="w-16 h-16 rounded-full flex items-center justify-center"
-          style="
-            background: color-mix(in srgb, var(--status-success) 15%, transparent);
-            border: 2px solid var(--status-success);
-          "
-        >
-          <i class="pi pi-check text-3xl app-success" />
-        </div>
-        <div class="text-center">
-          <p class="font-bold text-lg app-success">All verified!</p>
-          <p class="app-subtitle text-sm mt-1">
-            Picked {{ pickedQty }} of {{ activeProcess.quantity }} units
-          </p>
-        </div>
-          <div class="w-full app-muted-panel rounded-lg p-3 text-sm flex flex-col gap-1.5">
-          <div class="flex justify-between">
-            <span class="app-muted">Product</span>
-            <span class="font-semibold">{{ activeProcess.productName || activeProcess.product?.name }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="app-muted">From</span>
-            <span class="font-mono app-brand">{{ activeProcess.locationCode || activeProcess.location?.barcode || activeProcess.location?.locationCode || activeProcess.location?.code }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="app-muted">To</span>
-            <span class="font-mono app-success">{{ replDestCode }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="app-muted">Quantity</span>
-            <span class="font-bold app-warm">{{ pickedQty }} units</span>
-          </div>
-        </div>
-        <Button
-          label="Complete Process"
-          icon="pi pi-flag-fill"
-          severity="success"
-          raised
-          class="w-full"
-          :loading="stepLoading"
-          @click="onReplComplete"
-        />
-      </div>
-    </main>
-
-    <!-- ══════════════════════════════════════
-         EXECUTE — PICKING ORDER
-    ══════════════════════════════════════ -->
-    <main v-else-if="screen === 'order'" class="p-4 max-w-md mx-auto mt-4">
-      <!-- Order info bar -->
-      <div class="app-muted-panel rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
-        <div>
-          <span class="app-muted text-xs font-mono">{{ orderLogicalId || `Process #${activeProcess.id}` }}</span>
-          <p class="font-semibold text-sm app-title">Picking Order</p>
-          <p class="text-xs app-muted">{{ orderTotalProcesses }} items total</p>
-        </div>
-        <Tag value="Order" severity="warn" />
-      </div>
-
-      <!-- All lines done → scan dispatch -->
-      <template v-if="orderAllLinesDone">
-        <StepBar :steps="['Items', 'Dispatch']" :current="1" class="mb-5" />
-        <div class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div class="flex flex-col items-center gap-2 text-center mb-2">
-            <i class="pi pi-send text-4xl app-success" />
-            <p class="font-bold app-title">All items picked!</p>
-            <p class="app-subtitle text-sm">Scan the dispatch destination</p>
-          </div>
-          <div>
-            <p class="app-subtitle text-sm mb-1">Expected destination:</p>
-            <p class="text-2xl font-bold font-mono app-success">{{ orderDestCode }}</p>
-          </div>
-          <ScanInput
-            :key="'od'"
-            @submit="onOrderDestination"
-            :error="stepError"
-            :loading="stepLoading"
-          />
-        </div>
+      <template #footer>
+        <Button label="Done" severity="secondary" outlined @click="closeCompletionSummary" />
       </template>
-
-      <!-- Final complete screen -->
-      <template v-else-if="orderDone">
-        <StepBar :steps="['Items', 'Dispatch', 'Done']" :current="2" class="mb-5" />
-        <div class="app-card rounded-xl p-5 flex flex-col items-center gap-4">
-          <div
-            class="w-16 h-16 rounded-full flex items-center justify-center"
-            style="
-              background: color-mix(in srgb, var(--status-success) 15%, transparent);
-              border: 2px solid var(--status-success);
-            "
-          >
-            <i class="pi pi-check text-3xl app-success" />
-          </div>
-          <p class="font-bold text-lg app-success">Order ready for dispatch!</p>
-          <div class="w-full app-muted-panel rounded-lg p-3 text-sm flex flex-col gap-1">
-            <div
-              v-for="p in orderProcesses"
-              :key="p.id"
-              class="flex justify-between py-1.5 border-b border-[var(--border-subtle)] last:border-0"
-            >
-              <span class="app-title text-xs">{{ p.productName }}</span>
-              <span class="app-warm font-bold text-xs">{{ p.quantity }} u</span>
-            </div>
-            <div class="flex justify-between pt-2">
-              <span class="app-muted">Destination</span>
-              <span class="font-mono app-success">{{ orderDestCode }}</span>
-            </div>
-          </div>
-          <Button
-            label="Complete Order"
-            icon="pi pi-flag-fill"
-            severity="success"
-            raised
-            class="w-full"
-            :loading="stepLoading"
-            @click="onOrderComplete"
-          />
-        </div>
-      </template>
-
-      <!-- Per-line loop -->
-      <template v-else>
-        <!-- Line progress dots -->
-        <div
-          class="app-muted-panel rounded-xl px-4 py-2 mb-3 flex items-center justify-between text-sm"
-        >
-          <span class="app-subtitle"
-            >Item {{ orderCurrentIndex }} of {{ orderTotalProcesses }}</span
-          >
-          <div class="flex gap-1.5">
-            <span
-              v-for="i in orderTotalProcesses"
-              :key="i"
-              class="w-2.5 h-2.5 rounded-full transition-all"
-              :class="
-                i < orderCurrentIndex
-                  ? 'bg-[var(--status-success)]'
-                  : i === orderCurrentIndex
-                    ? 'bg-[var(--brand-warm)]'
-                    : 'bg-[var(--border-strong)]'
-              "
-            />
-          </div>
-        </div>
-
-        <!-- Current line info -->
-        <div class="app-card rounded-xl px-4 py-3 mb-4">
-          <p class="app-muted text-xs mb-0.5">Current item</p>
-          <p class="font-semibold app-title">{{ currentOrderProc?.productName }}</p>
-          <p class="text-xs app-muted font-mono">{{ currentOrderProc?.productSku || currentOrderProc?.sku || currentOrderProc?.product?.barcode || currentOrderProc?.product?.sku || currentOrderProc?.product?.code }}</p>
-          <div class="flex gap-4 mt-1">
-            <span class="text-sm app-warm font-bold">{{ currentOrderProc?.quantity }} units</span>
-            <span class="text-xs app-muted font-mono">{{ currentOrderProc?.locationCode || currentOrderProc?.location?.barcode || currentOrderProc?.location?.locationCode || currentOrderProc?.location?.code }}</span>
-          </div>
-        </div>
-
-        <!-- Per-line steps -->
-        <StepBar :steps="['Source', 'Product', 'Qty']" :current="orderLineStep" class="mb-5" />
-
-        <!-- Line step 0: source -->
-        <div v-if="orderLineStep === 0" class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div>
-            <p class="app-subtitle text-sm mb-1">Scan source location:</p>
-            <p class="text-2xl font-bold font-mono app-brand">
-              {{ currentOrderProc?.locationCode || currentOrderProc?.location?.barcode || currentOrderProc?.location?.locationCode || currentOrderProc?.location?.code }}
-            </p>
-          </div>
-          <ScanInput
-            :key="'ol0-' + orderLoopIdx"
-            @submit="onOrderSource"
-            :error="stepError"
-            :loading="stepLoading"
-          />
-        </div>
-
-        <!-- Line step 1: product -->
-        <div v-else-if="orderLineStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div>
-            <p class="app-subtitle text-sm mb-1">Scan product Barcode:</p>
-            <p class="text-xl font-bold font-mono app-warm">{{ currentOrderProc?.productSku || currentOrderProc?.sku || currentOrderProc?.product?.barcode || currentOrderProc?.product?.sku || currentOrderProc?.product?.code }}</p>
-          </div>
-          <ScanInput
-            :key="'ol1-' + orderLoopIdx"
-            @submit="onOrderProduct"
-            :error="stepError"
-            :loading="stepLoading"
-          />
-        </div>
-
-        <!-- Line step 2: qty -->
-        <div v-else-if="orderLineStep === 2" class="app-card rounded-xl p-5 flex flex-col gap-4">
-          <div>
-            <p class="app-subtitle text-sm mb-1">Confirm picked quantity:</p>
-            <p class="app-warm font-bold">Required: {{ currentOrderProc?.quantity }} units</p>
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-xs app-muted">Picked quantity</label>
-            <InputNumber
-              v-model="pickedQty"
-              :min="1"
-              :max="currentOrderProc?.quantity"
-              showButtons
-              class="w-full"
-            />
-            <Message v-if="stepError" severity="error" :closable="false">{{ stepError }}</Message>
-            <Button
-              label="Confirm & Next"
-              icon="pi pi-arrow-right"
-              iconPos="right"
-              class="w-full"
-              :loading="stepLoading"
-              @click="onOrderConfirmQty"
-            />
-          </div>
-        </div>
-      </template>
-    </main>
-
-    <Toast />
+    </Dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, defineComponent, h } from 'vue'
+import { computed, defineComponent, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'primevue/usetoast'
-import apiClient from '@/api/index.js'
+import { useAuthStore } from '@/stores/auth'
+import { processApi } from '@/api/processApi'
 import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-
 import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
-import InputText from 'primevue/inputtext'
+import Card from 'primevue/card'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
-import Divider from 'primevue/divider'
+import InputText from 'primevue/inputtext'
+import Message from 'primevue/message'
+import ProgressSpinner from 'primevue/progressspinner'
+import Step from 'primevue/step'
+import StepList from 'primevue/steplist'
+import StepPanel from 'primevue/steppanel'
+import StepPanels from 'primevue/steppanels'
+import Stepper from 'primevue/stepper'
 import Toast from 'primevue/toast'
-import 'primeicons/primeicons.css'
 
-// ─── StepBar component ────────────────────────────────────────────────────────
-const StepBar = defineComponent({
-  props: { steps: Array, current: Number },
-  setup(props) {
-    return () =>
-      h(
-        'div',
-        { class: 'flex items-center gap-1' },
-        props.steps.flatMap((s, idx) => {
-          const done = idx < props.current
-          const active = idx === props.current
-          const circleClass = done
-            ? 'border-[var(--status-success)] bg-[color-mix(in_srgb,var(--status-success)_15%,transparent)] text-[var(--status-success)]'
-            : active
-              ? 'border-[var(--brand-warm)] bg-[color-mix(in_srgb,var(--brand-warm)_15%,transparent)] text-[var(--brand-warm)]'
-              : 'border-[var(--border-strong)] bg-[var(--surface-card-muted)] text-[var(--text-muted)]'
-          const labelClass = done ? 'app-success' : active ? 'app-warm font-medium' : 'app-muted'
-          const nodes = [
-            h('div', { class: 'flex flex-col items-center flex-1 gap-1' }, [
-              h(
-                'div',
-                {
-                  class: `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${circleClass}`,
-                },
-                done ? [h('i', { class: 'pi pi-check text-xs' })] : [`${idx + 1}`],
-              ),
-              h('span', { class: `text-xs text-center leading-tight ${labelClass}` }, s),
-            ]),
-          ]
-          if (idx < props.steps.length - 1) {
-            nodes.push(
-              h('div', {
-                class: `h-0.5 flex-1 mb-4 rounded transition-all ${done ? 'bg-[var(--status-success)]' : 'bg-[var(--border-subtle)]'}`,
-              }),
-            )
-          }
-          return nodes
-        }),
-      )
+const ScanSection = defineComponent({
+  name: 'ScanSection',
+  props: {
+    modelValue: { type: String, default: '' },
+    loading: { type: Boolean, default: false },
+    submitLabel: { type: String, required: true },
+    placeholder: { type: String, required: true }
   },
-})
-
-// ─── ScanInput component ──────────────────────────────────────────────────────
-const ScanInput = defineComponent({
-  props: { error: String, loading: Boolean },
-  emits: ['submit'],
+  emits: ['update:modelValue', 'submit'],
   setup(props, { emit }) {
-    const manual = ref('')
-    const scannerOpen = ref(false)
-    const submit = (val) => {
-      if (val?.trim()) {
-        scannerOpen.value = false
-        emit('submit', val.trim())
-      }
-    }
     return () =>
       h('div', { class: 'flex flex-col gap-3' }, [
-        h('div', { class: 'flex gap-2' }, [
+        h('div', { class: 'flex flex-col gap-2' }, [
           h(InputText, {
-            modelValue: manual.value,
-            'onUpdate:modelValue': (v) => (manual.value = v),
-            placeholder: 'Enter Barcode manually...',
-            class: 'flex-1',
-            disabled: props.loading,
-            onKeyup: (e) => {
-              if (e.key === 'Enter') submit(manual.value)
-            },
+            modelValue: props.modelValue,
+            'onUpdate:modelValue': (value) => emit('update:modelValue', value),
+            placeholder: props.placeholder,
+            onKeyup: (event) => {
+              if (event.key === 'Enter') emit('submit')
+            }
           }),
           h(Button, {
-            icon: 'pi pi-arrow-right',
+            label: props.submitLabel,
+            icon: 'pi pi-check',
             loading: props.loading,
-            onClick: () => submit(manual.value),
-          }),
+            onClick: () => emit('submit')
+          })
         ]),
-        h(Button, {
-          label: scannerOpen.value ? 'Close Camera' : 'Scan with Camera',
-          icon: scannerOpen.value ? 'pi pi-times' : 'pi pi-camera',
-          severity: scannerOpen.value ? 'secondary' : 'info',
-          outlined: true,
-          class: 'w-full',
-          disabled: props.loading,
-          onClick: () => (scannerOpen.value = !scannerOpen.value),
-        }),
-        scannerOpen.value ? h(BarcodeScanner, { onDetected: (val) => submit(val) }) : null,
-        props.error ? h(Message, { severity: 'error', closable: false }, () => props.error) : null,
+        h(BarcodeScanner, {
+          onDetected: (value) => {
+            emit('update:modelValue', value)
+            emit('submit')
+          }
+        })
       ])
-  },
+  }
 })
 
-// ─── State ────────────────────────────────────────────────────────────────────
 const router = useRouter()
-const authStore = useAuthStore()
 const toast = useToast()
+const authStore = useAuthStore()
 
-const screen = ref('idle') // idle | replenishment | order
-const starting = ref(false)
-const startError = ref('')
+const loading = ref(true)
+const actionLoading = ref(false)
+const loadError = ref('')
+const actionError = ref('')
+const summary = ref(null)
+const completionSummary = ref(null)
+const pendingCompletionSummary = ref(null)
+const nextSummaryAfterCompletion = ref(null)
+const barcodeInput = ref('')
+const pickedQuantity = ref(1)
+const summaryDialogVisible = ref(false)
 
-const activeProcess = ref(null) // ProcessResponse (primul process din FIFO)
-const replStep = ref(0) // 0=source 1=product 2=dest+qty 3=done
-const replDestCode = ref('')
-
-const orderProcesses = ref([]) // toate procesele din același task
-const orderLoopIdx = ref(0)
-const orderTotalProcesses = ref(1)
-const orderCurrentIndex = ref(1)
-const orderLogicalId = ref('')
-const orderLineStep = ref(0) // 0=source 1=product 2=qty
-const orderAllLinesDone = ref(false)
-const orderDone = ref(false)
-const orderDestCode = ref('DISP-01')
-
-const stepError = ref('')
-const stepLoading = ref(false)
-const pickedQty = ref(1)
-
-const currentOrderProc = computed(() => orderProcesses.value[orderLoopIdx.value] ?? null)
-
-const normalizeLocationCode = (location) => {
-  return location?.locationCode || location?.barcode || location?.code || location?.location || ''
-}
-
-const normalizeProductSku = (process) => {
-  return process?.productSku || process?.sku || process?.productBarcode || process?.product?.barcode || process?.product?.sku || process?.product?.code || process?.productCode || ''
-}
-
-const normalizeProcess = (process) => ({
-  ...process,
-  productName: process?.productName || process?.product?.name || '',
-  productSku: normalizeProductSku(process),
-  locationCode: process?.locationCode || process?.locationBarcode || normalizeLocationCode(process?.location)
+const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value)
+const currentProcess = computed(() => summary.value?.currentProcess || null)
+const orderedProcesses = computed(() => summary.value?.processes || [])
+const isPickingTask = computed(() => summary.value?.taskType === 'PICKING_ORDER')
+const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT')
+const taskExecutionTitle = computed(() => {
+  if (isReplenishmentTask.value) return 'Replenishment Task Execution'
+  return 'Picking Task Execution'
 })
+const completionSummaryHeader = computed(() => {
+  if (completionSummary.value?.taskType === 'REPLENISHMENT') return 'Replenishment'
+  return 'Picking Order'
+})
+const completionRows = computed(() => {
+  if (!completionSummary.value) return []
 
-// ─── API ──────────────────────────────────────────────────────────────────────
-const api = {
-  getOperatorProcess: () => apiClient.get('/v1/processes/operators'),
-  start: () => apiClient.post('/v1/processes/start'),
-  scanLocation: (id, barcode) => apiClient.post(`/v1/processes/${id}/location`, { barcode }),
-  scanProduct: (id, barcode) => apiClient.post(`/v1/processes/${id}/product`, { barcode }),
-  confirmQty: (id, pickedQuantity) =>
-    apiClient.post(`/v1/processes/${id}/confirm-quantity`, { pickedQuantity }),
-  complete: (id) => apiClient.post(`/v1/processes/${id}/complete`),
-}
-
-const loadStartedProcess = async () => {
-  await api.start()
-  const operatorRes = await api.getOperatorProcess()
-  const response = operatorRes.data || {}
-  const process = normalizeProcess(response.processes || response)
-  if (!process?.id) {
-    throw new Error('No assigned process returned by backend.')
+  if (completionSummary.value.taskType === 'REPLENISHMENT') {
+    return (completionSummary.value.processes || []).map((process) => ({
+      rowKey: process.processId,
+      productName: process.productName || 'N/A',
+      productBarcode: process.productBarcode || 'N/A',
+      movedQuantity: process.pickedQuantity ?? process.requiredQuantity ?? 0,
+      requiredQuantity: process.requiredQuantity ?? 0,
+      sourceLocation: process.sourceLocationBarcode || 'N/A',
+      destinationLocation: process.destinationLocationBarcode || 'N/A'
+    }))
   }
-  return { response, process }
-}
 
-// ─── START — FIFO logic ───────────────────────────────────────────────────────
-const startNext = async () => {
-  starting.value = true
-  startError.value = ''
-  stepError.value = ''
+  return (completionSummary.value.orderLines || []).map((line) => ({
+    rowKey: line.orderLineId,
+    productName: line.productName || 'N/A',
+    productBarcode: line.productBarcode || 'N/A',
+    movedQuantity: line.pickedQuantity ?? 0,
+    requiredQuantity: line.requiredQuantity ?? 0,
+    sourceLocation: (line.sourceLocationBarcodes || []).join(', ') || 'N/A',
+    destinationLocation: line.destinationLocationBarcode || 'N/A'
+  }))
+})
+const isAwaitingStart = computed(() => currentProcess.value?.status === 'ASSIGNED')
+const stepDefinitions = computed(() => {
+  if (isReplenishmentTask.value) {
+    if (!currentProcess.value) return []
+    return [
+      {
+        value: 1,
+        type: 'location',
+        label: `Source ${currentProcess.value.sourceLocationBarcode}`,
+        processId: currentProcess.value.processId,
+        locationBarcode: currentProcess.value.sourceLocationBarcode
+      },
+      {
+        value: 2,
+        type: 'product',
+        label: currentProcess.value.productName || 'Product',
+        processId: currentProcess.value.processId,
+        process: currentProcess.value
+      },
+      {
+        value: 3,
+        type: 'quantity',
+        label: `Qty ${currentProcess.value.productName || ''}`.trim(),
+        processId: currentProcess.value.processId,
+        process: currentProcess.value
+      },
+      {
+        value: 4,
+        type: 'complete-move',
+        label: 'Complete Move',
+        processId: currentProcess.value.processId,
+        process: currentProcess.value
+      }
+    ]
+  }
 
-  try {
-    const { response, process } = await loadStartedProcess()
+  const processes = orderedProcesses.value
+  const steps = []
+  let value = 1
+  let previousLocation = null
 
-    activeProcess.value = process
-    pickedQty.value = process.quantity || 1
-    if (response.taskType === 'PICKING_ORDER') {
-      orderProcesses.value = [process]
-      orderLoopIdx.value = 0
-      orderTotalProcesses.value = response.totalOfProcess || 1
-      orderCurrentIndex.value = response.currentIndexOfProcess || 1
-      orderLogicalId.value = response.orderLogicalId || ''
-      orderLineStep.value = 0
-      orderAllLinesDone.value = false
-      orderDone.value = false
-      orderDestCode.value = response.destinationLocationBarcode || 'DISP-01'
-      screen.value = 'order'
-    } else {
-      replStep.value = 0
-      replDestCode.value = response.destinationLocationBarcode || ''
-      screen.value = 'replenishment'
+  for (const process of processes) {
+    const currentLocation = process.sourceLocationBarcode
+    if (currentLocation !== previousLocation) {
+      steps.push({
+        value: value++,
+        type: 'location',
+        label: `Location ${currentLocation}`,
+        processId: process.processId,
+        locationBarcode: currentLocation
+      })
+      previousLocation = currentLocation
     }
-  } catch (e) {
-    startError.value = e.response?.data?.message || e.message || 'Failed to start process'
-  } finally {
-    starting.value = false
-  }
-}
 
-// ─── REPLENISHMENT steps ──────────────────────────────────────────────────────
-const onReplSource = async (barcode) => {
-  stepError.value = ''
-  stepLoading.value = true
-  try {
-    await api.scanLocation(activeProcess.value.id, barcode)
-    replStep.value = 1
-    toast.add({ severity: 'success', summary: 'Source location ✓', life: 1500 })
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Wrong location barcode'
-  } finally {
-    stepLoading.value = false
-  }
-}
-
-const onReplProduct = async (barcode) => {
-  stepError.value = ''
-  stepLoading.value = true
-  try {
-    await api.scanProduct(activeProcess.value.id, barcode)
-    replStep.value = 2
-    toast.add({ severity: 'success', summary: 'Product ✓', life: 1500 })
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Wrong product barcode'
-  } finally {
-    stepLoading.value = false
-  }
-}
-
-const onReplDestination = async (barcode) => {
-  stepError.value = ''
-  if (!pickedQty.value || pickedQty.value <= 0) {
-    stepError.value = 'Set picked quantity first'
-    return
-  }
-  // Validăm destination pe frontend — backend nu are endpoint pentru asta
-  if (barcode.trim().toUpperCase() !== replDestCode.value.toUpperCase()) {
-    stepError.value = `Wrong destination. Expected: ${replDestCode.value}`
-    return
-  }
-  stepLoading.value = true
-  try {
-    await api.confirmQty(activeProcess.value.id, pickedQty.value)
-    replStep.value = 3
-    toast.add({ severity: 'success', summary: 'Destination ✓', life: 1500 })
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Failed to confirm quantity'
-  } finally {
-    stepLoading.value = false
-  }
-}
-
-const onReplComplete = async () => {
-  stepLoading.value = true
-  try {
-    await api.complete(activeProcess.value.id)
-    toast.add({ severity: 'success', summary: 'Process completed! 🎉', life: 3000 })
-    resetToIdle()
-  } catch (e) {
-    toast.add({
-      severity: 'error',
-      summary: e.response?.data?.message || 'Failed to complete',
-      life: 4000,
+    steps.push({
+      value: value++,
+      type: 'product',
+      label: process.productName || 'Product',
+      processId: process.processId,
+      process
     })
-  } finally {
-    stepLoading.value = false
+    steps.push({
+      value: value++,
+      type: 'quantity',
+      label: `Qty ${process.productName || ''}`.trim(),
+      processId: process.processId,
+      process
+    })
+  }
+
+  return steps
+})
+const activeStep = computed(() => {
+  if (isReplenishmentTask.value) {
+    if (!currentProcess.value) return 1
+    if (!currentProcess.value.sourceLocationScanned) return 1
+    if (!currentProcess.value.productScanned) return 2
+    if (currentProcess.value.pickedQuantity == null) return 3
+    return 4
+  }
+  if (!currentProcess.value) return 1
+
+  const processId = currentProcess.value.processId
+  if (!currentProcess.value.sourceLocationScanned) {
+    return stepDefinitions.value.find((step) => step.processId === processId && step.type === 'location')?.value || 1
+  }
+  if (!currentProcess.value.productScanned) {
+    return stepDefinitions.value.find((step) => step.processId === processId && step.type === 'product')?.value || 1
+  }
+  if (currentProcess.value.pickedQuantity == null) {
+    return stepDefinitions.value.find((step) => step.processId === processId && step.type === 'quantity')?.value || 1
+  }
+  return stepDefinitions.value.find((step) => step.processId === processId && step.type === 'quantity')?.value || 1
+})
+const getErrorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback
+
+const cloneSummary = (payload) => JSON.parse(JSON.stringify(payload))
+
+const buildFinalSummarySnapshot = () => {
+  if (!summary.value) return null
+
+  const snapshot = cloneSummary(summary.value)
+
+  if (snapshot.taskType === 'PICKING_ORDER') {
+    snapshot.orderStatus = 'COMPLETED'
+    snapshot.readyForCompletion = true
+    snapshot.completedProcesses = snapshot.totalProcesses
+    snapshot.currentProcess = snapshot.currentProcess
+      ? {
+          ...snapshot.currentProcess,
+          status: 'COMPLETED',
+          pickedQuantity: snapshot.currentProcess.requiredQuantity ?? snapshot.currentProcess.pickedQuantity
+        }
+      : null
+    snapshot.orderLines = (snapshot.orderLines || []).map((line) => ({
+      ...line,
+      pickedQuantity: line.requiredQuantity ?? line.pickedQuantity ?? 0,
+      status: 'COMPLETED'
+    }))
+    snapshot.processes = (snapshot.processes || []).map((process) => ({
+      ...process,
+      pickedQuantity: process.requiredQuantity ?? process.pickedQuantity ?? 0,
+      status: 'COMPLETED'
+    }))
+    return snapshot
+  }
+
+  snapshot.completedProcesses = snapshot.totalProcesses
+  snapshot.currentProcess = snapshot.currentProcess
+    ? {
+        ...snapshot.currentProcess,
+        status: 'COMPLETED',
+        pickedQuantity: snapshot.currentProcess.requiredQuantity ?? snapshot.currentProcess.pickedQuantity
+      }
+    : null
+  snapshot.processes = (snapshot.processes || []).map((process) => ({
+    ...process,
+    pickedQuantity: process.requiredQuantity ?? process.pickedQuantity ?? 0,
+    status: 'COMPLETED'
+  }))
+
+  return snapshot
+}
+
+const queueCompletionSummary = () => {
+  if (summary.value) {
+    pendingCompletionSummary.value = buildFinalSummarySnapshot()
   }
 }
 
-// ─── ORDER steps — per-line loop ──────────────────────────────────────────────
-const onOrderSource = async (barcode) => {
-  stepError.value = ''
-  stepLoading.value = true
-  try {
-    await api.scanLocation(currentOrderProc.value.id, barcode)
-    orderLineStep.value = 1
-    toast.add({ severity: 'success', summary: 'Source ✓', life: 1500 })
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Wrong location barcode'
-  } finally {
-    stepLoading.value = false
-  }
-}
+const closeCompletionSummary = async () => {
+  const nextSummary = nextSummaryAfterCompletion.value
+  completionSummary.value = null
+  pendingCompletionSummary.value = null
+  nextSummaryAfterCompletion.value = null
+  summaryDialogVisible.value = false
 
-const onOrderProduct = async (barcode) => {
-  stepError.value = ''
-  stepLoading.value = true
-  try {
-    await api.scanProduct(currentOrderProc.value.id, barcode)
-    orderLineStep.value = 2
-    pickedQty.value = currentOrderProc.value.quantity
-    toast.add({ severity: 'success', summary: 'Product ✓', life: 1500 })
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Wrong product barcode'
-  } finally {
-    stepLoading.value = false
-  }
-}
-
-const onOrderConfirmQty = async () => {
-  stepError.value = ''
-  if (!pickedQty.value || pickedQty.value <= 0) {
-    stepError.value = 'Quantity must be greater than 0'
+  if (nextSummary) {
+    hydrateState(nextSummary)
     return
   }
-  stepLoading.value = true
-  try {
-    await api.confirmQty(currentOrderProc.value.id, pickedQty.value)
-    await api.complete(currentOrderProc.value.id)
 
-    const isLast = orderCurrentIndex.value >= orderTotalProcesses.value
-    if (isLast) {
-      orderAllLinesDone.value = true
-      toast.add({ severity: 'info', summary: 'All items picked! Scan destination.', life: 2000 })
-    } else {
-      const { response, process } = await loadStartedProcess()
-      activeProcess.value = process
-      orderProcesses.value = [process]
-      orderLoopIdx.value = 0
-      orderTotalProcesses.value = response.totalOfProcess || orderTotalProcesses.value
-      orderCurrentIndex.value = response.currentIndexOfProcess || orderCurrentIndex.value + 1
-      orderLogicalId.value = response.orderLogicalId || orderLogicalId.value
-      orderDestCode.value = response.destinationLocationBarcode || orderDestCode.value
-      orderLineStep.value = 0
-      pickedQty.value = process.quantity || 1
-      stepError.value = ''
-      toast.add({ severity: 'info', summary: `Item ${orderCurrentIndex.value - 1} done. Next!`, life: 1500 })
+  await loadCurrentTask()
+}
+
+const hydrateState = (payload) => {
+  summary.value = payload
+  actionError.value = ''
+  barcodeInput.value = ''
+  pickedQuantity.value = payload?.currentProcess?.pickedQuantity ?? payload?.currentProcess?.requiredQuantity ?? 1
+}
+
+const loadCurrentTask = async () => {
+  loading.value = true
+  loadError.value = ''
+
+  try {
+    const response = await processApi.getCurrentTaskSummary()
+    if (response.status === 204 || !response.data) {
+      summary.value = null
+      if (pendingCompletionSummary.value) {
+        completionSummary.value = pendingCompletionSummary.value
+        pendingCompletionSummary.value = null
+        summaryDialogVisible.value = true
+      } else if (!completionSummary.value) {
+        summaryDialogVisible.value = false
+      }
+      nextSummaryAfterCompletion.value = null
+      return
     }
-  } catch (e) {
-    stepError.value = e.response?.data?.message || 'Failed to confirm quantity'
+
+    if (pendingCompletionSummary.value) {
+      completionSummary.value = pendingCompletionSummary.value
+      nextSummaryAfterCompletion.value = cloneSummary(response.data)
+      pendingCompletionSummary.value = null
+      summary.value = null
+      summaryDialogVisible.value = true
+      return
+    }
+
+    hydrateState(response.data)
+    pendingCompletionSummary.value = null
+    nextSummaryAfterCompletion.value = null
+  } catch (error) {
+    if (error?.response?.status === 204) {
+      summary.value = null
+      if (pendingCompletionSummary.value) {
+        completionSummary.value = pendingCompletionSummary.value
+        pendingCompletionSummary.value = null
+        summaryDialogVisible.value = true
+      } else if (!completionSummary.value) {
+        summaryDialogVisible.value = false
+      }
+      nextSummaryAfterCompletion.value = null
+      return
+    }
+    loadError.value = getErrorMessage(error, 'Failed to load operator task.')
+    summary.value = null
   } finally {
-    stepLoading.value = false
+    loading.value = false
   }
 }
 
-const onOrderDestination = (barcode) => {
-  if (barcode.trim().toUpperCase() !== orderDestCode.value.toUpperCase()) {
-    stepError.value = `Wrong destination. Expected: ${orderDestCode.value}`
+const startTask = async () => {
+  actionLoading.value = true
+  actionError.value = ''
+
+  try {
+    const response = await processApi.startCurrentTask()
+    hydrateState(response.data)
+    toast.add({ severity: 'success', summary: 'Task started', life: 2500 })
+  } catch (error) {
+    actionError.value = getErrorMessage(error, 'Failed to start task.')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const submitBarcodeStep = async () => {
+  if (!currentProcess.value || !barcodeInput.value?.trim()) {
+    actionError.value = 'Barcode is required.'
     return
   }
-  stepError.value = ''
-  orderAllLinesDone.value = false
-  orderDone.value = true
-  toast.add({ severity: 'success', summary: 'Destination ✓', life: 1500 })
-}
 
-const onOrderComplete = async () => {
-  stepLoading.value = true
+  actionLoading.value = true
+  actionError.value = ''
+
   try {
-    toast.add({ severity: 'success', summary: 'Order completed! 🎉', life: 3000 })
-    resetToIdle()
-  } catch (e) {
-    toast.add({
-      severity: 'error',
-      summary: e.response?.data?.message || 'Failed to complete',
-      life: 4000,
-    })
+    if (!currentProcess.value.sourceLocationScanned) {
+      await processApi.scanSourceLocation(currentProcess.value.processId, barcodeInput.value.trim())
+      toast.add({ severity: 'success', summary: 'Source verified', life: 2500 })
+    } else if (!currentProcess.value.productScanned) {
+      await processApi.scanProduct(currentProcess.value.processId, barcodeInput.value.trim())
+      toast.add({ severity: 'success', summary: 'Product verified', life: 2500 })
+    }
+
+    await loadCurrentTask()
+  } catch (error) {
+    actionError.value = getErrorMessage(error, 'Barcode validation failed.')
   } finally {
-    stepLoading.value = false
+    actionLoading.value = false
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const resetToIdle = () => {
-  screen.value = 'idle'
-  activeProcess.value = null
-  replStep.value = 0
-  replDestCode.value = ''
-  orderProcesses.value = []
-  orderLoopIdx.value = 0
-  orderTotalProcesses.value = 1
-  orderCurrentIndex.value = 1
-  orderLogicalId.value = ''
-  orderLineStep.value = 0
-  orderAllLinesDone.value = false
-  orderDone.value = false
-  stepError.value = ''
-  startError.value = ''
-  pickedQty.value = 1
+const confirmQuantity = async () => {
+  if (!currentProcess.value) return
+
+  actionLoading.value = true
+  actionError.value = ''
+
+  try {
+    const processId = currentProcess.value.processId
+    await processApi.confirmPickedQuantity(processId, pickedQuantity.value)
+    if (isPickingTask.value) {
+      const completionResponse = await processApi.completeAssignedProcess(processId)
+      if (completionResponse.data?.status === 'COMPLETED') {
+        queueCompletionSummary()
+      }
+      toast.add({ severity: 'success', summary: 'Product confirmed', life: 2500 })
+    } else {
+      toast.add({ severity: 'success', summary: 'Quantity confirmed', life: 2500 })
+    }
+    await loadCurrentTask()
+  } catch (error) {
+    actionError.value = getErrorMessage(error, 'Invalid picked quantity.')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const completeProcess = async () => {
+  if (!currentProcess.value) return
+
+  actionLoading.value = true
+  actionError.value = ''
+
+  try {
+    const completionResponse = await processApi.completeAssignedProcess(currentProcess.value.processId)
+    if (isReplenishmentTask.value || completionResponse.data?.status === 'COMPLETED') {
+      queueCompletionSummary()
+    }
+    toast.add({ severity: 'success', summary: isReplenishmentTask.value ? 'Move completed' : 'Process completed', life: 2500 })
+    await loadCurrentTask()
+  } catch (error) {
+    actionError.value = getErrorMessage(error, 'Failed to complete process.')
+  } finally {
+    actionLoading.value = false
+  }
 }
 
 const handleLogout = () => {
   authStore.logout()
   router.push({ name: 'login', query: { loggedOut: '1' } })
 }
+
+onMounted(() => {
+  loadCurrentTask()
+})
 </script>

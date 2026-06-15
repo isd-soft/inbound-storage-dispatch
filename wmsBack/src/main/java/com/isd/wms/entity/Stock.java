@@ -79,7 +79,7 @@ public class Stock extends BaseTimestampEntity {
 
     public void removeQuantity(int quantityToMove) {
         this.quantity -= quantityToMove;
-        this.reservedQuantity += quantityToMove;
+        this.reservedQuantity = Math.max(0, this.reservedQuantity - quantityToMove);
     }
 
     public void addQuantity(int quantity) {

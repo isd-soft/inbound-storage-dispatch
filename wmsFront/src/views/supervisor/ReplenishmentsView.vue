@@ -48,6 +48,22 @@
             </template>
           </Column>
 
+          <Column field="assignedOperatorId" header="Assigned Operator">
+            <template #body="slotProps">
+              <Dropdown
+                v-model="assignmentByTaskId[slotProps.data.taskId]"
+                :options="operators"
+                optionLabel="username"
+                optionValue="id"
+                placeholder="Select operator"
+                filter
+                class="w-full"
+                :disabled="isAssignmentLocked(slotProps.data)"
+                @change="assignReplenishment(slotProps.data.taskId, assignmentByTaskId[slotProps.data.taskId])"
+              />
+            </template>
+          </Column>
+
           <Column field="createdAt" header="Created" sortable filter>
             <template #body="slotProps">
               <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
@@ -131,6 +147,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 
 import { replenishmentApi } from '@/api/replenishmentApi'
 import { inventoryApi } from '@/api/inventoryApi'
+import { userApi } from '@/api/userApi'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -139,6 +156,7 @@ const replenishments = ref([])
 const selectedReplenishments = ref([])
 const products = ref([])
 const locations = ref([])
+const operators = ref([])
 const statuses = ref(['CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'])
 
 const loading = ref(false)
@@ -149,6 +167,7 @@ const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 const deletableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => task.status === 'CREATED'))
+const assignmentByTaskId = ref({})
 const replenishmentFilterFields = [
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
@@ -167,6 +186,7 @@ const isCreateFormValid = computed(() => {
 const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 const getProductName = (id) => products.value.find(p => p.id === id)?.name || `Product #${id}`
 const getLocationName = (id) => locations.value.find(l => l.id === id)?.barcode || `Location #${id}`
+const getOperatorName = (id) => operators.value.find((operator) => operator.id === id)?.username || ''
 const formatDate = (ts) => {
   if (!ts) return '-'
   return new Intl.DateTimeFormat(undefined, {
@@ -185,15 +205,19 @@ const getStatusSeverity = (status) => {
   }
 }
 
+const isAssignmentLocked = (task) => ['COMPLETED', 'CANCELED', 'CANCELLED'].includes(task.status)
+
 const loadData = async () => {
   loading.value = true
   try {
-    const [productsRes, locsRes] = await Promise.all([
+    const [productsRes, locsRes, usersRes] = await Promise.all([
       inventoryApi.getProducts(),
-      inventoryApi.getLocations()
+      inventoryApi.getLocations(),
+      userApi.getAll()
     ])
     products.value = productsRes.data
     locations.value = locsRes.data.filter(l => l.available !== false && l.zone === 'PICKING')
+    operators.value = (usersRes.data || []).filter((user) => user.userRole === 'ROLE_OPERATOR')
 
     await applyFilters()
   } catch (error) {
@@ -212,8 +236,12 @@ const applyFilters = async () => {
     replenishments.value = res.data.map(task => ({
       ...task,
       productName: getProductName(task.productId),
-      locationName: getLocationName(task.destinationLocationId)
+      locationName: getLocationName(task.destinationLocationId),
+      assignedOperatorName: getOperatorName(task.assignedOperatorId)
     }))
+    assignmentByTaskId.value = Object.fromEntries(
+      replenishments.value.map((task) => [task.taskId, task.assignedOperatorId || null])
+    )
 
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
@@ -271,6 +299,21 @@ const handleUpdate = async () => {
     await applyFilters()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Update Failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const assignReplenishment = async (taskId, operatorId) => {
+  if (!operatorId) return
+
+  actionLoading.value = true
+  try {
+    await replenishmentApi.assign(taskId, operatorId)
+    toast.add({ severity: 'success', summary: 'Assigned', detail: `Task #${taskId} assigned to operator.`, life: 3000 })
+    await applyFilters()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }

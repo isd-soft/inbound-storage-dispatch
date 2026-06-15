@@ -30,7 +30,7 @@ public class PickingProcessCompletionStrategy implements ProcessCompletionStrate
         orderLine.setStatus(Status.COMPLETED);
         orderLineRepository.save(orderLine);
 
-        return orderRepository.markOrderAsCompleted(orderLine.getOrder()) > 0;
+        return orderRepository.markOrderAsCompleted(orderLine.getOrder(), OrderStatus.COMPLETED) > 0;
     }
 
     @Override
