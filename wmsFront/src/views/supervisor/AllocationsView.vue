@@ -145,7 +145,6 @@ const loadAllocations = async () => {
     const response = await allocationApi.getSupervisorAllocations()
     allocations.value = response.data
 
-    console.log('Allocations:', allocations.value)
   } catch (error) {
     toast.add({
       severity: 'error',
