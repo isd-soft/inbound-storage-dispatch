@@ -14,14 +14,14 @@ import java.util.Optional;
 @Service
 public class PickingFlowService {
 
-    public List<Allocation> orderProcessesBySourceLocation(List<Allocation> allocations) {
+    public List<Allocation> orderAllocationsBySourceLocation(List<Allocation> allocations) {
         List<Allocation> sortedAllocations = new ArrayList<>(allocations);
         sortedAllocations.sort(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId));
 
         Map<Long, List<Allocation>> groupedByLocation = new LinkedHashMap<>();
         for (Allocation allocation : sortedAllocations) {
             Long locationId = allocation.getStock().getLocation().getId();
-            groupedByLocation.computeIfAbsent(locationId, ignored -> new ArrayList<>()).add(process);
+            groupedByLocation.computeIfAbsent(locationId, ignored -> new ArrayList<>()).add(allocation);
         }
 
         return groupedByLocation.values().stream()
@@ -29,24 +29,24 @@ public class PickingFlowService {
             .toList();
     }
 
-    public Optional<Allocation> findCurrentExecutableProcess(List<Allocation> allocations) {
-        return orderProcessesBySourceLocation(allocations).stream()
-            .filter(process -> allocation.getStatus() == Status.ASSIGNED || allocation.getStatus() == Status.IN_PROGRESS)
+    public Optional<Allocation> findCurrentExecutableAllocation(List<Allocation> allocations) {
+        return orderAllocationsBySourceLocation(allocations).stream()
+            .filter(allocation -> allocation.getStatus() == Status.ASSIGNED || allocation.getStatus() == Status.IN_PROGRESS)
             .findFirst();
     }
 
-    public Optional<Allocation> findNextExecutableProcessAfter(List<Allocation> allocations, Allocation completedAllocation) {
-        List<Allocation> orderedAllocations = orderProcessesBySourceLocation(allocations);
+    public Optional<Allocation> findNextExecutableAllocationAfter(List<Allocation> allocations, Allocation completedAllocation) {
+        List<Allocation> orderedAllocations = orderAllocationsBySourceLocation(allocations);
         int completedIndex = orderedAllocations.indexOf(completedAllocation);
 
         if (completedIndex < 0) {
-            return findCurrentExecutableProcess(allocations);
+            return findCurrentExecutableAllocation(allocations);
         }
 
         for (int index = completedIndex + 1; index < orderedAllocations.size(); index++) {
             Allocation allocation = orderedAllocations.get(index);
             if (allocation.getStatus() == Status.ASSIGNED || allocation.getStatus() == Status.IN_PROGRESS) {
-                return Optional.of(process);
+                return Optional.of(allocation);
             }
         }
 

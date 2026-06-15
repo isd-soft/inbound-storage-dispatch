@@ -138,7 +138,7 @@
 //
 //        @Bean
 //        public AllocationExecutionService allocationExecutionService() {
-//            return mock(allocationExecutionService .class);
+//            return mock(allocationExecutionService.class);
 //        }
 //
 //        @Bean

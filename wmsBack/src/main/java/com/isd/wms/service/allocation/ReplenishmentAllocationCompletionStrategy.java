@@ -1,8 +1,7 @@
-package com.isd.wms.service.process;
+package com.isd.wms.service.allocation;
 
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.*;
-import com.isd.wms.entity.Allocation;
 import com.isd.wms.enums.AllocationCompletionStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ReplenishmentProcessCompletionStrategy implements ProcessCompletionStrategy {
+public class ReplenishmentAllocationCompletionStrategy implements AllocationCompletionStrategy {
 
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
@@ -53,7 +52,7 @@ public class ReplenishmentProcessCompletionStrategy implements ProcessCompletion
         Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
         return new AllocationCompletionResult(
-            replenishment.getStatus() == Status.COMPLETED? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.IN_PROGRESS,
+            replenishment.getStatus() == Status.COMPLETED ? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.IN_PROGRESS,
             TaskType.REPLENISHMENT,
             replenishment.getId()
         );

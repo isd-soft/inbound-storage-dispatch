@@ -6,12 +6,12 @@ import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.AllocationRepository  ;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.service.allocation.AllocationCompletionStrategy;
 import com.isd.wms.service.allocation.StockAllocationStrategy;
-import com.isd.wms.service.allocation.ProcessCompletionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,16 +24,16 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class WorkflowService {
-    private final AllocationRepository  allocationRepository ;
+    private final AllocationRepository allocationRepository;
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
 
-    private final List<AllocationCompletionStrategy> processCompletionStrategies;
+    private final List<AllocationCompletionStrategy> allocationCompletionStrategies;
     private final List<StockAllocationStrategy> allocationStrategies;
 
     @Transactional
-    public void generateProcessesForTask(Task task, Long productId, int remainingQuantity) {
+    public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
         StockAllocationStrategy strategy = allocationStrategies.stream()
             .filter(s -> s.support(task.getTaskType()))
             .findFirst()
@@ -51,13 +51,13 @@ public class WorkflowService {
 
         strategy.sortStocks(availableStocks);
 
-        List<Allocation> processesToSave = allocateStockToProcesses(task, availableStocks, remainingQuantity, productId, strategy.getSourceZone().name());
+        List<Allocation> allocationsToSave = allocateStockToAllocations(task, availableStocks, remainingQuantity, productId, strategy.getSourceZone().name());
 
-        allocationRepository .saveAll(processesToSave);
+        allocationRepository.saveAll(allocationsToSave);
         stockRepository.saveAll(availableStocks);
     }
 
-    private List<Allocation> allocateStockToProcesses(Task task, List<Stock> availableStocks, int quantityNeeded, Long productId, String zoneName) {
+    private List<Allocation> allocateStockToAllocations(Task task, List<Stock> availableStocks, int quantityNeeded, Long productId, String zoneName) {
         List<Allocation> allocations = new ArrayList<>();
         int qtyNeeded = quantityNeeded;
 
@@ -70,7 +70,7 @@ public class WorkflowService {
             int quantityToTake = Math.min(available, qtyNeeded);
 
             Allocation allocation = new Allocation(task, stock, quantityToTake, Status.CREATED);
-            allocations.add(process);
+            allocations.add(allocation);
 
             stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
             qtyNeeded -= quantityToTake;
@@ -87,12 +87,12 @@ public class WorkflowService {
 
     @Transactional
     public void updateTask(Task task, Long productId, Integer requestedQuantity) {
-        allocationRepository .deleteByTaskId(task.getId());
-        generateProcessesForTask(task, productId, requestedQuantity);
+        allocationRepository.deleteByTaskId(task.getId());
+        generateAllocationsForTask(task, productId, requestedQuantity);
     }
 
     @Transactional
-    public AllocationCompletionResult executeProcessCompletion(Allocation allocation) {
+    public AllocationCompletionResult executeAllocationCompletion(Allocation allocation) {
         Stock sourceStock = allocation.getStock();
 
         int quantityToMove = allocation.getPickedQuantity() != null ? allocation.getPickedQuantity() : allocation.getQuantity();
@@ -102,7 +102,7 @@ public class WorkflowService {
 
         Task task = allocation.getTask();
 
-        ProcessCompletionStrategy strategy = processCompletionStrategies.stream()
+        AllocationCompletionStrategy strategy = allocationCompletionStrategies.stream()
             .filter(s -> s.support(task.getTaskType()))
             .findFirst()
             .orElseThrow(() ->
@@ -110,11 +110,11 @@ public class WorkflowService {
                     "No completion strategy found for task type: " + task.getTaskType()
                 ));
 
-        strategy.handle(process);
+        strategy.handle(allocation);
 
-        int taskFullyCompleted = taskRepository.markTaskAsCompleted(allocation.getTask().getId());
+        int taskFullyCompletedCount = taskRepository.markTaskAsCompleted(allocation.getTask().getId());
 
-        if (taskFullyCompleted != 0) {
+        if (taskFullyCompletedCount != 0) {
             strategy.updateStatus(task);
         }
         return strategy.result(task);

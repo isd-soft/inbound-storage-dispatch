@@ -4,7 +4,6 @@ import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.enums.Status;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.TaskRepository;
@@ -32,7 +31,7 @@ public class TaskService {
         Task task = new Task(supervisor, type, requestedQuantity);
         task = taskRepository.save(task);
 
-        workflowService.generateProcessesForTask(task, productId, requestedQuantity);
+        workflowService.generateAllocationsForTask(task, productId, requestedQuantity);
 
         return task;
     }
@@ -51,9 +50,9 @@ public class TaskService {
         task.setOperator(operator);
         taskRepository.save(task);
 
-        var processes = allocationRepository .findAllByTaskId(taskId);
-        processes.forEach((process) -> allocation.setStatus(Status.ASSIGNED));
-        allocationRepository .saveAll(processes);
+        var allocations = allocationRepository.findAllByTaskId(taskId);
+        allocations.forEach((allocation) -> allocation.setStatus(Status.ASSIGNED));
+        allocationRepository.saveAll(allocations);
         replenishmentRepository.findByTaskId(taskId).ifPresent(replenishment -> {
             replenishment.setStatus(Status.ASSIGNED);
             replenishmentRepository.save(replenishment);

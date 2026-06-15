@@ -96,8 +96,8 @@ public class OrderService {
         int tasksUpdated = taskRepository.updateOperatorByOrderId(orderId, operatorId);
         log.info("Updated {} tasks for order {}", tasksUpdated, orderId);
 
-        int processesUpdated = allocationRepository .updateStatusByOrderId(orderId, Status.ASSIGNED);
-        log.info("Updated {} processes for order {}", processesUpdated, orderId);
+        int allocationsUpdated = allocationRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} allocations for order {}", allocationsUpdated, orderId);
 
         int orderLinesUpdated = orderLineRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
         log.info("Updated {} order lines for order {}", orderLinesUpdated, orderId);

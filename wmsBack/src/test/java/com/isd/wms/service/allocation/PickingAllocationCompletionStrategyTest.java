@@ -1,4 +1,4 @@
-package com.isd.wms.service.process;
+package com.isd.wms.service.allocation;
 
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
@@ -15,6 +15,7 @@ import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.AllocationRepository  ;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,7 +40,7 @@ class PickingAllocationCompletionStrategyTest {
     private OrderRepository orderRepository;
 
     @InjectMocks
-    private PickingProcessCompletionStrategy strategy;
+    private PickingAllocationCompletionStrategy strategy;
 
     @Test
     void handleMarksOrderPickedInsteadOfCompleted() {
@@ -60,12 +61,12 @@ class PickingAllocationCompletionStrategyTest {
         ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
 
         Allocation allocation = new Allocation(task, stock, 5, Status.COMPLETED);
-        ReflectionTestUtils.setField(process, "id", 3L);
+        ReflectionTestUtils.setField(allocation, "id", 3L);
 
-        when(allocationRepository .findAllByTaskId(2L)).thenReturn(List.of(process));
+        when(allocationRepository.findAllByTaskId(2L)).thenReturn(List.of(allocation));
         when(orderLineRepository.findByTaskId(2L)).thenReturn(Optional.of(orderLine));
 
-        strategy.handle(process);
+        strategy.handle(allocation);
 
         assertThat(orderLine.getStatus()).isEqualTo(Status.COMPLETED);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED);

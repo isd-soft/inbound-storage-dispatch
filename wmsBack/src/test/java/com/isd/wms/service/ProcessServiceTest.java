@@ -85,7 +85,7 @@
 //
 //    @Test
 //    void getAvailableProcesses_ShouldReturnList() {
-//        when(allocationRepository .findByStatus(Status.CREATED)).thenReturn(List.of(process));
+//        when(allocationRepository.findByStatus(Status.CREATED)).thenReturn(List.of(process));
 //
 //        List<ProcessOperatorResponse> result = allocationService.getAvailableProcesses();
 //
@@ -97,8 +97,8 @@
 //
 //    @Test
 //    void assignProcess_WhenStatusCreated_ShouldAssignToOperator() {
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-//        when(allocationRepository .save(any(allocation.class))).thenReturn(process);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.save(any(allocation.class))).thenReturn(process);
 //
 //        ProcessOperatorResponse result = allocationService.assignProcess(50L);
 //
@@ -111,7 +111,7 @@
 //    @Test
 //    void assignProcess_WhenStatusAlreadyAssigned_ShouldThrowException() {
 //        allocation.setStatus(Status.ASSIGNED);
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
 //
 //        assertThrows(InvalidRequestException.class, () -> allocationService.assignProcess(50L));
 //        verify(allocationRepository , never()).save(any());
@@ -122,8 +122,8 @@
 //        allocation.setStatus(Status.ASSIGNED);
 //        allocation.setOperator(operator);
 //
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-//        when(allocationRepository .save(any(allocation.class))).thenReturn(process);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.save(any(allocation.class))).thenReturn(process);
 //
 //        ProcessOperatorResponse result = allocationService.completeProcess(50L);
 //
@@ -141,7 +141,7 @@
 //        allocation.setStatus(Status.ASSIGNED);
 //        allocation.setOperator(anotherOperator);
 //
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
 //
 //        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> allocationService.completeProcess(50L));
 //        assertEquals("You can only complete your own processes", exception.getMessage());

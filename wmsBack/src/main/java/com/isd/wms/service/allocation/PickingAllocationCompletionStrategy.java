@@ -1,11 +1,11 @@
-package com.isd.wms.service.process;
+package com.isd.wms.service.allocation;
 
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Task;
-import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.AllocationCompletionStatus;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.OrderLineRepository;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class PickingProcessCompletionStrategy implements ProcessCompletionStrategy {
+public class PickingAllocationCompletionStrategy implements AllocationCompletionStrategy {
 
     private final OrderLineRepository orderLineRepository;
     private final OrderRepository orderRepository;
@@ -36,7 +36,7 @@ public class PickingProcessCompletionStrategy implements ProcessCompletionStrate
         Order order = orderRepository.getOrderByTask(task)
             .orElseThrow(() -> new RuntimeException("No order found for task with id " + task.getId()));
         return new AllocationCompletionResult(
-            order.getStatus() == OrderStatus.COMPLETED? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.PICKING,
+            order.getStatus() == OrderStatus.COMPLETED ? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.PICKING,
             TaskType.PICKING_ORDER,
             order.getId()
         );

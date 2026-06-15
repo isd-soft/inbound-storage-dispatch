@@ -103,8 +103,8 @@ class allocationExecutionServiceTest {
 
         stock = new Stock(30L, product, location, 50, 10, null, null, null);
         task = task(40L, TaskStatus.CREATED);
-        process = process(50L, operator, task, stock, 10, Status.ASSIGNED);
-        ReflectionTestUtils.setField(process, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
+        allocation = allocation(50L, operator, task, stock, 10, Status.ASSIGNED);
+        ReflectionTestUtils.setField(allocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
         order = order(60L, OrderStatus.IN_PROGRESS);
         orderLine = orderLine(70L, order, task, product, Status.IN_PROGRESS);
         ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
@@ -112,7 +112,7 @@ class allocationExecutionServiceTest {
         Task nextTask = new Task(null, TaskType.PICKING_ORDER, 4);
         ReflectionTestUtils.setField(nextTask, "id", 41L);
         nextTask.setOperator(operator);
-        nextAllocationSameLocation = process(51L, operator, nextTask, stock, 4, Status.ASSIGNED);
+        nextAllocationSameLocation = allocation(51L, operator, nextTask, stock, 4, Status.ASSIGNED);
         ReflectionTestUtils.setField(nextAllocationSameLocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 1));
 
         Authentication authentication = mock(Authentication.class);
@@ -131,45 +131,45 @@ class allocationExecutionServiceTest {
     }
 
     @Test
-    void getAssignedProcessesSuccessfully() {
-        when(allocationRepository .findByOperatorAndStatuses(operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
-                .thenReturn(List.of(process));
+    void getAssignedAllocationsSuccessfully() {
+        when(allocationRepository.findByOperatorAndStatuses(operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+                .thenReturn(List.of(allocation));
 
-        List<AllocationExecutionResponse> responses = allocationExecutionService .getAssignedProcesses();
+        List<AllocationExecutionResponse> responses = allocationExecutionService.getAssignedAllocations();
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).processId()).isEqualTo(50L);
+        assertThat(responses.get(0).allocationId()).isEqualTo(50L);
         assertThat(responses.get(0).requiredQuantity()).isEqualTo(10);
     }
 
 //    @Test
-//    void startAssignedProcessSuccessfully() {
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-//        when(allocationRepository .save(process)).thenReturn(process);
+//    void startAssignedAllocationsSuccessfully() {
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+//        when(allocationRepository.save(allocation)).thenReturn(allocation);
 //
-//        AllocationExecutionResponse response = allocationExecutionService .startAllocation(50L);
+//        AllocationExecutionResponse response = allocationExecutionService.startAllocation(50L);
 //
 //        assertThat(allocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
 //        assertThat(response.status()).isEqualTo("IN_PROGRESS");
 //    }
 //
 //    @Test
-//    void failWhenProcessIsNotAssignedToCurrentOperator() {
-//        ReflectionTestUtils.setField(process, "operator", otherOperator);
-//        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+//    void failWhenAllocationIsNotAssignedToCurrentOperator() {
+//        ReflectionTestUtils.setField(allocation, "operator", otherOperator);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 //
-//        assertThatThrownBy(() -> allocationExecutionService .startAllocation(50L))
+//        assertThatThrownBy(() -> allocationExecutionService.startAllocation(50L))
 //                .isInstanceOf(InvalidRequestException.class)
-//                .hasMessage("Process is not assigned to current operator");
+//                .hasMessage("Allocation is not assigned to current operator");
 //    }
 
     @Test
     void scanCorrectSourceLocation() {
         setStatus(Status.IN_PROGRESS);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        allocationExecutionService .scanSourceLocation(50L, new BarcodeScanRequest("PICK-01"));
+        allocationExecutionService.scanSourceLocation(50L, new BarcodeScanRequest("PICK-01"));
 
         assertThat(allocation.isSourceLocationScanned()).isTrue();
     }
@@ -177,9 +177,9 @@ class allocationExecutionServiceTest {
     @Test
     void failWhenSourceLocationBarcodeIsWrong() {
         setStatus(Status.IN_PROGRESS);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .scanSourceLocation(50L, new BarcodeScanRequest("WRONG")))
+        assertThatThrownBy(() -> allocationExecutionService.scanSourceLocation(50L, new BarcodeScanRequest("WRONG")))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Wrong source location barcode");
     }
@@ -187,13 +187,13 @@ class allocationExecutionServiceTest {
     @Test
     void scanCorrectProductSkuBarcode() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        ReflectionTestUtils.setField(allocation, "sourceLocationScanned", true);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
         when(stockRepository.findByProductIdAndLocationId(10L, 20L))
                 .thenReturn(Optional.of(stock));
-        when(allocationRepository .save(process)).thenReturn(process);
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        allocationExecutionService .scanProduct(50L, new BarcodeScanRequest("SKU-001"));
+        allocationExecutionService.scanProduct(50L, new BarcodeScanRequest("SKU-001"));
 
         assertThat(allocation.isProductScanned()).isTrue();
     }
@@ -201,10 +201,10 @@ class allocationExecutionServiceTest {
     @Test
     void failWhenProductBarcodeIsWrong() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        ReflectionTestUtils.setField(allocation, "sourceLocationScanned", true);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .scanProduct(50L, new BarcodeScanRequest("WRONG")))
+        assertThatThrownBy(() -> allocationExecutionService.scanProduct(50L, new BarcodeScanRequest("WRONG")))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Wrong product barcode");
     }
@@ -212,11 +212,11 @@ class allocationExecutionServiceTest {
     @Test
     void confirmPickedQuantitySuccessfully() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "productScanned", true);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+        ReflectionTestUtils.setField(allocation, "productScanned", true);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        allocationExecutionService .confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10));
+        allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10));
 
         assertThat(allocation.getPickedQuantity()).isEqualTo(10);
     }
@@ -224,10 +224,10 @@ class allocationExecutionServiceTest {
     @Test
     void failWhenPickedQuantityIsGreaterThanRequiredQuantity() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "productScanned", true);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        ReflectionTestUtils.setField(allocation, "productScanned", true);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(11)))
+        assertThatThrownBy(() -> allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(11)))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Picked quantity cannot exceed required quantity");
     }
@@ -235,62 +235,62 @@ class allocationExecutionServiceTest {
     @Test
     void failWhenStockQuantityIsNotEnough() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "productScanned", true);
+        ReflectionTestUtils.setField(allocation, "productScanned", true);
         ReflectionTestUtils.setField(stock, "quantity", 5);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10)))
+        assertThatThrownBy(() -> allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10)))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Not enough stock available");
     }
 
     @Test
-    void completeProcessSuccessfullyAndUpdatesParents() {
-        prepareProcessForCompletion();
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+    void completeAllocationSuccessfullyAndUpdatesParents() {
+        prepareAllocationForCompletion();
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        AllocationCompletionResponse response = allocationExecutionService .completeProcess(50L);
+        AllocationCompletionResponse response = allocationExecutionService.completeAllocation(50L);
 
         assertThat(response.status()).isEqualTo(AllocationCompletionStatus.COMPLETED);
         assertThat(allocation.getStatus()).isEqualTo(Status.COMPLETED);
-        verify(workflowService).executeProcessCompletion(process);
+        verify(workflowService).executeAllocationCompletion(allocation);
     }
 
     @Test
-    void completeProcessDecreasesStockQuantityAndReservedQuantity() {
-        prepareProcessForCompletion();
+    void completeAllocationDecreasesStockQuantityAndReservedQuantity() {
+        prepareAllocationForCompletion();
         ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        allocationExecutionService .completeProcess(50L);
+        allocationExecutionService.completeAllocation(50L);
 
         assertThat(stock.getQuantity()).isEqualTo(40);
         assertThat(stock.getReservedQuantity()).isZero();
     }
 
     @Test
-    void completeProcessCreatesInventoryHistory() {
-        prepareProcessForCompletion();
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+    void completeAllocationCreatesInventoryHistory() {
+        prepareAllocationForCompletion();
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
 
-        allocationExecutionService .completeProcess(50L);
+        allocationExecutionService.completeAllocation(50L);
 
         verify(inventoryService).recordPickingHistory(stock, 10, operator);
     }
 
     @Test
-    void completeProcessAutoStartsNextProductInSameLocationWithoutRescan() {
+    void completeAllocationAutoStartsNextProductInSameLocationWithoutRescan() {
         ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
-        prepareProcessForCompletion();
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
-        when(allocationRepository .save(process)).thenReturn(process);
+        prepareAllocationForCompletion();
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
         when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process, nextAllocationSameLocation));
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation, nextAllocationSameLocation));
 
-        allocationExecutionService .completeProcess(50L);
+        allocationExecutionService.completeAllocation(50L);
 
         assertThat(nextAllocationSameLocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(nextAllocationSameLocation.isSourceLocationScanned()).isTrue();
@@ -303,13 +303,13 @@ class allocationExecutionServiceTest {
         ReflectionTestUtils.setField(orderLine, "status", Status.ASSIGNED);
         ReflectionTestUtils.setField(order, "status", OrderStatus.ASSIGNED);
 
-        when(allocationRepository .findOldestAssignedAllocationId("operator")).thenReturn(Optional.of(50L));
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findOldestAssignedAllocationId("operator")).thenReturn(Optional.of(50L));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
         when(orderLineRepository.findByTaskId(40L)).thenReturn(Optional.of(orderLine));
 
-        Long processId = allocationExecutionService .startAllocation();
+        Long allocationId = allocationExecutionService.startAllocation();
 
-        assertThat(processId).isEqualTo(50L);
+        assertThat(allocationId).isEqualTo(50L);
         assertThat(orderLine.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.IN_PROGRESS);
         verify(orderRepository).save(order);
@@ -319,54 +319,54 @@ class allocationExecutionServiceTest {
     void failWhenPickingQuantityDoesNotMatchRequiredForPickingTask() {
         ReflectionTestUtils.setField(task, "taskType", TaskType.PICKING_ORDER);
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "productScanned", true);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        ReflectionTestUtils.setField(allocation, "productScanned", true);
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(9)))
+        assertThatThrownBy(() -> allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(9)))
             .isInstanceOf(InvalidRequestException.class)
             .hasMessage("Picked quantity must match required quantity for picking tasks");
     }
 
     @Test
-    void failWhenTryingToCompleteProcessWithoutScans() {
+    void failWhenTryingToCompleteAllocationWithoutScans() {
         setStatus(Status.IN_PROGRESS);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .completeProcess(50L))
+        assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Source location must be scanned first");
         verify(stockRepository, never()).save(any());
     }
 
     @Test
-    void failWhenProcessIsAlreadyCompleted() {
+    void failWhenAllocationIsAlreadyCompleted() {
         setStatus(Status.COMPLETED);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .completeProcess(50L))
+        assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Process is already completed");
+                .hasMessage("Allocation is already completed");
     }
 
     @Test
-    void failWhenProcessIsCancelled() {
+    void failWhenAllocationIsCancelled() {
         setStatus(Status.CANCELED);
-        when(allocationRepository .findById(50L)).thenReturn(Optional.of(process));
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
-        assertThatThrownBy(() -> allocationExecutionService .completeProcess(50L))
+        assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Process is cancelled");
+                .hasMessage("Allocation is cancelled");
     }
 
-    private void prepareProcessForCompletion() {
+    private void prepareAllocationForCompletion() {
         setStatus(Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(process, "sourceLocationScanned", true);
-        ReflectionTestUtils.setField(process, "productScanned", true);
-        ReflectionTestUtils.setField(process, "pickedQuantity", 10);
+        ReflectionTestUtils.setField(allocation, "sourceLocationScanned", true);
+        ReflectionTestUtils.setField(allocation, "productScanned", true);
+        ReflectionTestUtils.setField(allocation, "pickedQuantity", 10);
         doAnswer(invocation -> {
             stock.removeQuantity(allocation.getPickedQuantity());
             return new AllocationCompletionResult(AllocationCompletionStatus.COMPLETED, task.getTaskType(), allocation.getId());
-        }).when(workflowService).executeProcessCompletion(process);
+        }).when(workflowService).executeAllocationCompletion(allocation);
     }
 
     private User user(Long id, String username) {
@@ -396,9 +396,9 @@ class allocationExecutionServiceTest {
 
     private Allocation allocation(Long id, User operator, Task task, Stock stock, Integer quantity, Status status) {
         Allocation allocation = new Allocation(task, stock, quantity, status);
-        ReflectionTestUtils.setField(process, "id", id);
+        ReflectionTestUtils.setField(allocation, "id", id);
         task.setOperator(operator);
-        return process;
+        return allocation;
     }
 
     private Order order(Long id, OrderStatus status) {
@@ -416,6 +416,6 @@ class allocationExecutionServiceTest {
     }
 
     private void setStatus(Status status) {
-        ReflectionTestUtils.setField(process, "status", status);
+        ReflectionTestUtils.setField(allocation, "status", status);
     }
 }

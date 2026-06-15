@@ -93,19 +93,19 @@ public class AllocationExecutionService {
             throw new InvalidRequestException("All order lines must be completed before final confirmation");
         }
 
-        List<Allocation> allocations = allocationRepository .findAllByOrder(order);
-        boolean allProcessesCompleted = allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.COMPLETED);
-        if (!allProcessesCompleted) {
-            throw new InvalidRequestException("All processes must be completed before final confirmation");
+        List<Allocation> allocations = allocationRepository.findAllByOrder(order);
+        boolean allAllocationsCompleted = allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.COMPLETED);
+        if (!allAllocationsCompleted) {
+            throw new InvalidRequestException("All allocations must be completed before final confirmation");
         }
 
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
     }
 
-    public List<AllocationExecutionResponse> getAssignedProcesses() {
+    public List<AllocationExecutionResponse> getAssignedAllocations() {
         User operator = securityFacade.getCurrentUser();
-        return allocationRepository .findByOperatorAndStatuses(
+        return allocationRepository.findByOperatorAndStatuses(
                 operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
             .stream()
             .map(this::toResponse)
@@ -115,10 +115,10 @@ public class AllocationExecutionService {
     @Transactional
     public Long startAllocation() {
         String currentUsername = securityFacade.getCurrentUsername();
-        Long allocationId = allocationRepository .findOldestAssignedAllocationId(currentUsername)
+        Long allocationId = allocationRepository.findOldestAssignedAllocationId(currentUsername)
             .orElseThrow(() -> new AllocationsNotFoundException(currentUsername));
 
-        Allocation allocation = allocationRepository .findById(allocationId)
+        Allocation allocation = allocationRepository.findById(allocationId)
             .orElseThrow(() -> new InvalidRequestException("Allocation not found"));
 
         orderLineRepository.findByTaskId(allocation.getTask().getId()).ifPresent(orderLine -> {
@@ -137,7 +137,7 @@ public class AllocationExecutionService {
 
     @Transactional
     public AllocationExecutionResponse scanSourceLocation(Long allocationId, BarcodeScanRequest request) {
-        Allocation allocation = getAssignedProcessInProgress(allocationId);
+        Allocation allocation = getAssignedAllocationInProgress(allocationId);
         String barcode = request.barcode().trim();
         String expectedBarcode = allocation.getStock().getLocation().getBarcode();
 
@@ -148,12 +148,12 @@ public class AllocationExecutionService {
 
         allocation.setSourceLocationScanned(true);
         log.info("Source location scanned successfully for allocation {}", allocationId);
-        return toResponse(allocationRepository .save(allocation));
+        return toResponse(allocationRepository.save(allocation));
     }
 
     @Transactional
     public AllocationExecutionResponse scanProduct(Long allocationId, BarcodeScanRequest request) {
-        Allocation allocation = getAssignedProcessInProgress(allocationId);
+        Allocation allocation = getAssignedAllocationInProgress(allocationId);
         if (!allocation.isSourceLocationScanned()) {
             throw new InvalidRequestException("Source location must be scanned first");
         }
@@ -174,28 +174,28 @@ public class AllocationExecutionService {
             .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
 
         allocation.setProductScanned(true);
-        log.info("Product barcode scanned successfully for process {}", allocationId);
-        return toResponse(allocationRepository .save(allocation));
+        log.info("Product barcode scanned successfully for allocation {}", allocationId);
+        return toResponse(allocationRepository.save(allocation));
     }
 
     @Transactional
     public AllocationExecutionResponse confirmPickedQuantity(Long allocationId, ConfirmPickedQuantityRequest request) {
-        Allocation allocation = getAssignedProcessInProgress(allocationId);
+        Allocation allocation = getAssignedAllocationInProgress(allocationId);
         if (!allocation.isProductScanned()) {
             throw new InvalidRequestException("Product barcode must be scanned first");
         }
 
         Integer pickedQuantity = request.pickedQuantity();
-        validatePickedQuantityForProcess(allocation, pickedQuantity);
+        validatePickedQuantityForAllocation(allocation, pickedQuantity);
 
         allocation.setPickedQuantity(pickedQuantity);
-        log.info("Picked quantity {} confirmed for process {}", pickedQuantity, allocationId);
-        return toResponse(allocationRepository .save(allocation));
+        log.info("Picked quantity {} confirmed for allocation {}", pickedQuantity, allocationId);
+        return toResponse(allocationRepository.save(allocation));
     }
 
     @Transactional
-    public AllocationCompletionResponse completeProcess(Long allocationId) {
-        Allocation allocation = getAssignedProcessInProgress(allocationId);
+    public AllocationCompletionResponse completeAllocation(Long allocationId) {
+        Allocation allocation = getAssignedAllocationInProgress(allocationId);
         User operator = securityFacade.getCurrentUser();
 
         if (!allocation.isSourceLocationScanned()) {
@@ -208,12 +208,12 @@ public class AllocationExecutionService {
             throw new InvalidRequestException("Picked quantity must be confirmed before completion");
         }
 
-        validatePickedQuantityForProcess(allocation, allocation.getPickedQuantity());
+        validatePickedQuantityForAllocation(allocation, allocation.getPickedQuantity());
 
         allocation.setStatus(Status.COMPLETED);
-        Allocation savedAllocation = allocationRepository .save(allocation);
+        Allocation savedAllocation = allocationRepository.save(allocation);
 
-        AllocationCompletionResult result = workflowService.executeProcessCompletion(savedAllocation);
+        AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
         inventoryService.recordPickingHistory(savedAllocation.getStock(), savedAllocation.getPickedQuantity(), operator);
         autoAdvanceGroupedPickingFlow(savedAllocation);
 
@@ -223,7 +223,7 @@ public class AllocationExecutionService {
 
     @Transactional
     public AllocationCompletionResponse completeAssignedAllocation(Long allocationId) {
-        return completeProcess(allocationId);
+        return completeAllocation(allocationId);
     }
 
     private Optional<Order> findPickedOrderAwaitingCompletion(User operator) {
@@ -231,7 +231,7 @@ public class AllocationExecutionService {
     }
 
     private Optional<CurrentAssignment> findCurrentAssignment(String username) {
-        List<Allocation> activeAllocations = allocationRepository .findByOperatorUsernameAndStatuses(
+        List<Allocation> activeAllocations = allocationRepository.findByOperatorUsernameAndStatuses(
             username,
             List.of(Status.ASSIGNED, Status.IN_PROGRESS)
         );
@@ -245,8 +245,8 @@ public class AllocationExecutionService {
                 .map(OrderLine::getOrder)
                 .orElseThrow(() -> new InvalidRequestException("Order not found for picking task"));
 
-            List<Allocation> orderedAllocations = pickingFlowService.orderProcessesBySourceLocation(allocationRepository .findAllByOrder(order));
-            Optional<Allocation> currentAllocation = pickingFlowService.findCurrentExecutableProcess(orderedAllocations);
+            List<Allocation> orderedAllocations = pickingFlowService.orderAllocationsBySourceLocation(allocationRepository.findAllByOrder(order));
+            Optional<Allocation> currentAllocation = pickingFlowService.findCurrentExecutableAllocation(orderedAllocations);
             if (currentAllocation.isEmpty()) {
                 return Optional.empty();
             }
@@ -288,16 +288,16 @@ public class AllocationExecutionService {
 
     private OperatorTaskSummaryResponse toPickingSummary(Order order) {
         List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
-        List<Allocation> orderedAllocations = pickingFlowService.orderProcessesBySourceLocation(allocationRepository .findAllByOrder(order));
+        List<Allocation> orderedAllocations = pickingFlowService.orderAllocationsBySourceLocation(allocationRepository.findAllByOrder(order));
 
-        Allocation currentAllocation = pickingFlowService.findCurrentExecutableProcess(orderedAllocations).orElse(null);
+        Allocation currentAllocation = pickingFlowService.findCurrentExecutableAllocation(orderedAllocations).orElse(null);
 
         List<OperatorOrderLineSummaryResponse> lineSummaries = orderLines.stream()
             .sorted(Comparator.comparing(OrderLine::getCreatedAt).thenComparing(OrderLine::getId))
             .map(orderLine -> toLineSummary(order, orderLine, orderedAllocations))
             .toList();
 
-        long completedProcessCount = orderedAllocations.stream()
+        long completedAllocationCount = orderedAllocations.stream()
             .filter(allocation -> allocation.getStatus() == Status.COMPLETED)
             .count();
 
@@ -312,7 +312,7 @@ public class AllocationExecutionService {
             TaskType.PICKING_ORDER.name(),
             order.getDestinationLocation().getBarcode(),
             orderedAllocations.size(),
-            Math.toIntExact(completedProcessCount),
+            Math.toIntExact(completedAllocationCount),
             readyForCompletion,
             currentAllocation != null ? toAllocationSummary(currentAllocation, order) : null,
             lineSummaries,
@@ -324,7 +324,7 @@ public class AllocationExecutionService {
         Replenishment replenishment = replenishmentRepository.findByTaskId(currentAllocation.getTask().getId())
             .orElseThrow(() -> new InvalidRequestException("Replenishment task not found"));
 
-        List<Allocation> taskAllocations = allocationRepository .findAllByTaskId(currentAllocation.getTask().getId()).stream()
+        List<Allocation> taskAllocations = allocationRepository.findAllByTaskId(currentAllocation.getTask().getId()).stream()
             .sorted(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId))
             .toList();
 
@@ -405,8 +405,8 @@ public class AllocationExecutionService {
     private record CurrentAssignment(Allocation allocation, TaskType taskType, Order order) {
     }
 
-    private Allocation getAssignedProcessInProgress(Long allocationId) {
-        Allocation allocation = getAssignedProcess(allocationId);
+    private Allocation getAssignedAllocationInProgress(Long allocationId) {
+        Allocation allocation = getAssignedAllocation(allocationId);
         if (allocation.getStatus() == Status.COMPLETED) {
             throw new InvalidRequestException("Allocation is already completed");
         }
@@ -419,8 +419,8 @@ public class AllocationExecutionService {
         return allocation;
     }
 
-    private Allocation getAssignedProcess(Long allocationId) {
-        Allocation allocation = allocationRepository .findById(allocationId)
+    private Allocation getAssignedAllocation(Long allocationId) {
+        Allocation allocation = allocationRepository.findById(allocationId)
             .orElseThrow(() -> new InvalidRequestException("Allocation not found"));
         User operator = securityFacade.getCurrentUser();
         if (allocation.getTask().getOperator().filter(operator::equals).isEmpty()) {
@@ -429,7 +429,7 @@ public class AllocationExecutionService {
         return allocation;
     }
 
-    private void validatePickedQuantityForProcess(Allocation allocation, Integer pickedQuantity) {
+    private void validatePickedQuantityForAllocation(Allocation allocation, Integer pickedQuantity) {
         if (pickedQuantity == null || pickedQuantity < 1) {
             throw new InvalidRequestException("Picked quantity must be greater than 0");
         }
@@ -450,8 +450,8 @@ public class AllocationExecutionService {
         }
 
         orderLineRepository.findByTaskId(completedAllocation.getTask().getId()).ifPresent(orderLine -> {
-            List<Allocation> orderAllocations = allocationRepository .findAllByOrder(orderLine.getOrder());
-            pickingFlowService.findNextExecutableProcessAfter(orderAllocations, completedAllocation)
+            List<Allocation> orderAllocations = allocationRepository.findAllByOrder(orderLine.getOrder());
+            pickingFlowService.findNextExecutableAllocationAfter(orderAllocations, completedAllocation)
                 .ifPresent(nextAllocation -> {
                     if (nextAllocation.getStatus() == Status.ASSIGNED) {
                         nextAllocation.setStatus(Status.IN_PROGRESS);
@@ -464,7 +464,7 @@ public class AllocationExecutionService {
                         nextAllocation.setSourceLocationScanned(true);
                     }
 
-                    allocationRepository .save(nextAllocation);
+                    allocationRepository.save(nextAllocation);
                 });
         });
     }

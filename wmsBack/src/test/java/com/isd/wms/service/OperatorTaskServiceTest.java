@@ -105,9 +105,9 @@ class OperatorTaskServiceTest {
         stock.setQuantity(20);
         stock.setReservedQuantity(5);
 
-        process = new Allocation(task, stock, 5, Status.ASSIGNED);
-        ReflectionTestUtils.setField(process, "id", 700L);
-        ReflectionTestUtils.setField(process, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
+        allocation = new Allocation(task, stock, 5, Status.ASSIGNED);
+        ReflectionTestUtils.setField(allocation, "id", 700L);
+        ReflectionTestUtils.setField(allocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
 
         Task secondTask = new Task(null, TaskType.PICKING_ORDER, 3);
         ReflectionTestUtils.setField(secondTask, "id", 401L);
@@ -135,68 +135,68 @@ class OperatorTaskServiceTest {
 
     @Test
     void getCurrentSummaryReturnsAssignedPickingTask() {
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process));
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
-            .thenReturn(List.of(process));
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation));
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(allocation));
         when(orderLineRepository.findByTaskId(400L)).thenReturn(Optional.of(orderLine));
 
-        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService .getCurrentSummary();
+        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService.getCurrentSummary();
 
         assertThat(summary).isPresent();
         assertThat(summary.get().taskType()).isEqualTo(TaskType.PICKING_ORDER.name());
-        assertThat(summary.get().currentProcess()).isNotNull();
-        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("PICK-01");
+        assertThat(summary.get().currentAllocation()).isNotNull();
+        assertThat(summary.get().currentAllocation().sourceLocationBarcode()).isEqualTo("PICK-01");
         assertThat(summary.get().orderLines()).hasSize(1);
-        assertThat(summary.get().processes()).hasSize(1);
+        assertThat(summary.get().allocations()).hasSize(1);
         assertThat(summary.get().readyForCompletion()).isFalse();
     }
 
     @Test
-    void startCurrentTaskMovesAssignedProcessAndOrderToInProgress() {
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process, secondAllocation));
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
-            .thenReturn(List.of(process, secondAllocation));
+    void startCurrentTaskMovesAssignedAllocationAndOrderToInProgress() {
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation, secondAllocation));
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(allocation, secondAllocation));
         when(orderLineRepository.findByTaskId(400L)).thenReturn(Optional.of(orderLine));
 
-        OperatorTaskSummaryResponse response = allocationExecutionService .startCurrentTask();
+        OperatorTaskSummaryResponse response = allocationExecutionService.startCurrentTask();
 
         assertThat(allocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(orderLine.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.IN_PROGRESS);
-        assertThat(response.currentProcess()).isNotNull();
-        assertThat(response.currentProcess().status()).isEqualTo(Status.IN_PROGRESS);
-        assertThat(response.processes()).hasSize(2);
+        assertThat(response.currentAllocation()).isNotNull();
+        assertThat(response.currentAllocation().status()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(response.allocations()).hasSize(2);
         verify(orderRepository).save(order);
     }
 
     @Test
     void getCurrentSummaryMarksOrderReadyForCompletionWhenPicked() {
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process));
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation));
         when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
 
         ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
         ReflectionTestUtils.setField(orderLine, "status", Status.COMPLETED);
-        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
-        ReflectionTestUtils.setField(process, "pickedQuantity", 5);
+        ReflectionTestUtils.setField(allocation, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(allocation, "pickedQuantity", 5);
 
-        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService .getCurrentSummary();
+        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService.getCurrentSummary();
 
         assertThat(summary).isPresent();
         assertThat(summary.get().readyForCompletion()).isTrue();
-        assertThat(summary.get().currentProcess()).isNull();
+        assertThat(summary.get().currentAllocation()).isNull();
         assertThat(summary.get().orderLines().getFirst().pickedQuantity()).isEqualTo(5);
     }
 
     @Test
     void completeCurrentOrderFinalizesPickedOrder() {
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process));
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation));
         when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
 
         ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
         ReflectionTestUtils.setField(orderLine, "status", Status.COMPLETED);
-        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(allocation, "status", Status.COMPLETED);
 
-        allocationExecutionService .completeCurrentOrder();
+        allocationExecutionService.completeCurrentOrder();
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
         verify(orderRepository).save(order);
@@ -208,9 +208,9 @@ class OperatorTaskServiceTest {
 
         ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
         ReflectionTestUtils.setField(orderLine, "status", Status.ASSIGNED);
-        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(allocation, "status", Status.COMPLETED);
 
-        assertThatThrownBy(() -> allocationExecutionService .completeCurrentOrder())
+        assertThatThrownBy(() -> allocationExecutionService.completeCurrentOrder())
             .hasMessage("All order lines must be completed before final confirmation");
     }
 
@@ -239,19 +239,19 @@ class OperatorTaskServiceTest {
         ReflectionTestUtils.setField(thirdAllocation, "id", 702L);
         ReflectionTestUtils.setField(thirdAllocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 1));
 
-        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
-        ReflectionTestUtils.setField(process, "pickedQuantity", 5);
-        when(allocationRepository .findAllByOrder(order)).thenReturn(List.of(process, thirdAllocation, secondAllocation));
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+        ReflectionTestUtils.setField(allocation, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(allocation, "pickedQuantity", 5);
+        when(allocationRepository.findAllByOrder(order)).thenReturn(List.of(allocation, thirdAllocation, secondAllocation));
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
             .thenReturn(List.of(thirdAllocation, secondAllocation));
         when(orderLineRepository.findByTaskId(402L)).thenReturn(Optional.of(thirdOrderLine));
 
-        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService .getCurrentSummary();
+        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService.getCurrentSummary();
 
         assertThat(summary).isPresent();
-        assertThat(summary.get().currentProcess()).isNotNull();
-        assertThat(summary.get().currentProcess().processId()).isEqualTo(701L);
-        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("PICK-01");
+        assertThat(summary.get().currentAllocation()).isNotNull();
+        assertThat(summary.get().currentAllocation().allocationId()).isEqualTo(701L);
+        assertThat(summary.get().currentAllocation().sourceLocationBarcode()).isEqualTo("PICK-01");
     }
 
     @Test
@@ -280,19 +280,19 @@ class OperatorTaskServiceTest {
         Replenishment replenishment = new Replenishment(replenishmentTask, replenishmentProduct, 4, replenishmentDestination);
         ReflectionTestUtils.setField(replenishment, "id", 800L);
 
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
             .thenReturn(List.of(replenishmentAllocation));
-        when(allocationRepository .findAllByTaskId(450L)).thenReturn(List.of(replenishmentAllocation));
+        when(allocationRepository.findAllByTaskId(450L)).thenReturn(List.of(replenishmentAllocation));
         when(replenishmentRepository.findByTaskId(450L)).thenReturn(Optional.of(replenishment));
 
-        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService .getCurrentSummary();
+        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService.getCurrentSummary();
 
         assertThat(summary).isPresent();
         assertThat(summary.get().taskType()).isEqualTo(TaskType.REPLENISHMENT.name());
         assertThat(summary.get().destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
-        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("BULK-01");
-        assertThat(summary.get().currentProcess().destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
-        assertThat(summary.get().totalProcesses()).isEqualTo(1);
+        assertThat(summary.get().currentAllocation().sourceLocationBarcode()).isEqualTo("BULK-01");
+        assertThat(summary.get().currentAllocation().destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
+        assertThat(summary.get().totalAllocations()).isEqualTo(1);
     }
 
     @Test
@@ -322,16 +322,16 @@ class OperatorTaskServiceTest {
         ReflectionTestUtils.setField(replenishment, "id", 801L);
         ReflectionTestUtils.setField(replenishment, "status", Status.ASSIGNED);
 
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
             .thenReturn(List.of(replenishmentAllocation));
-        when(allocationRepository .findAllByTaskId(451L)).thenReturn(List.of(replenishmentAllocation));
+        when(allocationRepository.findAllByTaskId(451L)).thenReturn(List.of(replenishmentAllocation));
         when(replenishmentRepository.findByTaskId(451L)).thenReturn(Optional.of(replenishment));
 
-        OperatorTaskSummaryResponse response = allocationExecutionService .startCurrentTask();
+        OperatorTaskSummaryResponse response = allocationExecutionService.startCurrentTask();
 
         assertThat(replenishmentAllocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(replenishment.getStatus()).isEqualTo(Status.IN_PROGRESS);
-        assertThat(response.currentProcess().status()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(response.currentAllocation().status()).isEqualTo(Status.IN_PROGRESS);
         assertThat(response.destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
     }
 
@@ -361,16 +361,16 @@ class OperatorTaskServiceTest {
         Replenishment replenishment = new Replenishment(replenishmentTask, replenishmentProduct, 4, replenishmentDestination);
         ReflectionTestUtils.setField(replenishment, "id", 801L);
 
-        when(allocationRepository .findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
-            .thenReturn(List.of(replenishmentAllocation, process));
-        when(allocationRepository .findAllByTaskId(451L)).thenReturn(List.of(replenishmentAllocation));
+        when(allocationRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(replenishmentAllocation, allocation));
+        when(allocationRepository.findAllByTaskId(451L)).thenReturn(List.of(replenishmentAllocation));
         when(replenishmentRepository.findByTaskId(451L)).thenReturn(Optional.of(replenishment));
 
-        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService .getCurrentSummary();
+        Optional<OperatorTaskSummaryResponse> summary = allocationExecutionService.getCurrentSummary();
 
         assertThat(summary).isPresent();
         assertThat(summary.get().taskType()).isEqualTo(TaskType.REPLENISHMENT.name());
         assertThat(summary.get().taskId()).isEqualTo(451L);
-        assertThat(summary.get().currentProcess().processId()).isEqualTo(704L);
+        assertThat(summary.get().currentAllocation().allocationId()).isEqualTo(704L);
     }
 }

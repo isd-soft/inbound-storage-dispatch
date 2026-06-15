@@ -39,7 +39,7 @@ class OrderServiceTest {
         orderRepository = mock(OrderRepository.class);
         locationRepository = mock(LocationRepository.class);
         orderLineService = mock(OrderLineService.class);
-        AllocationRepository  = mock(allocationRepository .class);
+        allocationRepository  = mock(AllocationRepository.class);
         taskRepository = mock(TaskRepository.class);
         orderLineRepository = mock(OrderLineRepository.class);
         orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, allocationRepository , taskRepository, orderLineRepository);

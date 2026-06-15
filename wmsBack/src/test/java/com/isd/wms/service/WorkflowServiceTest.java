@@ -46,7 +46,7 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void generateProcessesForTask_success_createsOneProcess() {
+    void generateAllocationsForTask_success_createsOneAllocation() {
         Stock stock = new Stock();
         stock.setId(10L);
         stock.setQuantity(100);
@@ -55,14 +55,14 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 
-        workflowService.generateProcessesForTask(task, 1L, 50);
+        workflowService.generateAllocationsForTask(task, 1L, 50);
 
         verify(allocationRepository , times(1)).saveAll(anyList());
         assertThat(stock.getReservedQuantity()).isEqualTo(50);
     }
 
     @Test
-    void generateProcessesForTask_splitProcesses_createsTwoProcesses() {
+    void generateAllocationsForTask_splitAllocations_createsTwoAllocations() {
         Stock stock1 = new Stock();
         stock1.setId(10L);
         stock1.setQuantity(50);
@@ -76,7 +76,7 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock1, stock2)));
 
-        workflowService.generateProcessesForTask(task, 1L, 70);
+        workflowService.generateAllocationsForTask(task, 1L, 70);
 
         ArgumentCaptor<List<Allocation>> captor = ArgumentCaptor.forClass(List.class);
         verify(allocationRepository ).saveAll(captor.capture());
@@ -91,7 +91,7 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void generateProcessesForTask_insufficientStock_throwsException() {
+    void generateAllocationsForTask_insufficientStock_throwsException() {
         Stock stock = new Stock();
         stock.setId(10L);
         stock.setQuantity(10);
@@ -100,7 +100,7 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 
-        assertThatThrownBy(() -> workflowService.generateProcessesForTask(task, 1L, 50))
+        assertThatThrownBy(() -> workflowService.generateAllocationsForTask(task, 1L, 50))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Insufficient stock");
 

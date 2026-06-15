@@ -1,11 +1,11 @@
-package com.isd.wms.service.process;
+package com.isd.wms.service.allocation;
 
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.TaskType;
 
-public interface ProcessCompletionStrategy {
+public interface AllocationCompletionStrategy {
 
     default void handle(Allocation allocation) {}
 

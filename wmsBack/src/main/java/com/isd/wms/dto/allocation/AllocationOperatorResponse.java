@@ -6,5 +6,5 @@ public record AllocationOperatorResponse(
     String orderLogicalId,
     String taskType,
     String destinationLocationBarcode,
-    ShortAllocationResponse processes) {
+    ShortAllocationResponse allocations) {
 }

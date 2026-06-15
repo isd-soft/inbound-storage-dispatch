@@ -24,7 +24,7 @@ public class AllocationController {
     @GetMapping
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public List<AllocationSupervisorProjection> getAllAllocations() {
-        return allocationService.getAllProcesses();
+        return allocationService.getAllAllocations();
     }
 
     @GetMapping("/operators")
@@ -36,7 +36,7 @@ public class AllocationController {
     @GetMapping("/operator/current/summary")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<OperatorTaskSummaryResponse> getCurrentSummary() {
-        return allocationExecutionService .getCurrentSummary()
+        return allocationExecutionService.getCurrentSummary()
             .map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
@@ -44,49 +44,43 @@ public class AllocationController {
     @PostMapping("/operator/current/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<OperatorTaskSummaryResponse> startCurrentTask() {
-        return ResponseEntity.ok(allocationExecutionService .startCurrentTask());
+        return ResponseEntity.ok(allocationExecutionService.startCurrentTask());
     }
 
     @PostMapping("/operator/current/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<Void> completeCurrentOrder() {
-        allocationExecutionService .completeCurrentOrder();
+        allocationExecutionService.completeCurrentOrder();
         return ResponseEntity.noContent().build();
     }
-
-//    @GetMapping("/my")
-//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-//    public AllocationResponse completeProcess(@PathVariable Long id) {
-//        return allocationService.completeProcess(id);
-//    }
 
     @PostMapping("/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<String> startAllocation() {
-        return ResponseEntity.ok("Process started with id: " + allocationExecutionService .startAllocation());
+        return ResponseEntity.ok("Allocation started with id: " + allocationExecutionService.startAllocation());
     }
 
     @PostMapping("/{id}/location")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public AllocationExecutionResponse scanSourceLocation(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
-        return allocationExecutionService .scanSourceLocation(id, request);
+    public ResponseEntity<AllocationExecutionResponse> scanSourceLocation(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
+        return ResponseEntity.ok(allocationExecutionService.scanSourceLocation(id, request));
     }
 
     @PostMapping("/{id}/product")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public AllocationExecutionResponse scanProduct(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
-        return allocationExecutionService .scanProduct(id, request);
+    public ResponseEntity<AllocationExecutionResponse> scanProduct(@PathVariable Long id, @Valid @RequestBody BarcodeScanRequest request) {
+        return ResponseEntity.ok(allocationExecutionService.scanProduct(id, request));
     }
 
     @PostMapping("/{id}/confirm-quantity")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public AllocationExecutionResponse confirmPickedQuantity(@PathVariable Long id, @Valid @RequestBody ConfirmPickedQuantityRequest request) {
-        return allocationExecutionService .confirmPickedQuantity(id, request);
+        return allocationExecutionService.confirmPickedQuantity(id, request);
     }
 
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public AllocationCompletionResponse completeAssignedAllocation(@PathVariable Long id) {
-        return allocationExecutionService .completeAssignedAllocation(id);
+        return allocationExecutionService.completeAssignedAllocation(id);
     }
 }

@@ -11,11 +11,11 @@ public record OperatorTaskSummaryResponse(
     OrderStatus orderStatus,
     String taskType,
     String destinationLocationBarcode,
-    Integer totalProcesses,
-    Integer completedProcesses,
+    Integer totalAllocations,
+    Integer completedAllocations,
     boolean readyForCompletion,
-    OperatorAllocationSummaryResponse currentProcess,
+    OperatorAllocationSummaryResponse currentAllocation,
     List<OperatorOrderLineSummaryResponse> orderLines,
-    List<OperatorAllocationSummaryResponse> processes
+    List<OperatorAllocationSummaryResponse> allocations
 ) {
 }
