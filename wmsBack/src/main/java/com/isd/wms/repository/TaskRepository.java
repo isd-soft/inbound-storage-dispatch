@@ -24,13 +24,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Modifying
     @Query(value = """
             WITH t_by_o AS (
-                SELECT DISTINCT t.* FROM tasks t
+                SELECT DISTINCT t.id as task_id FROM tasks t
                 JOIN order_lines ol ON ol.task_id = t.id
                 WHERE ol.order_id = :orderId)
 
             UPDATE tasks t
                 SET operator_id = :operatorId
-                WHERE id = ANY(SELECT * FROM t_by_o)
+                WHERE id = ANY(SELECT task_id FROM t_by_o)
         """, nativeQuery = true)
     int updateOperatorByOrderId(
         @Param("orderId") Long orderId,

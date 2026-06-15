@@ -19,23 +19,23 @@ public class ProcessController {
     private final ProcessService processService;
     private final ProcessExecutionService processExecutionService;
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public List<ProcessSupervisorProjection> getAllProcesses() {
+        return processService.getAllProcesses();
+    }
+
     @GetMapping("/operators")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessOperatorResponse getAllProcesses() {
+    public ProcessOperatorResponse getProcessesOperator() {
         return processService.getProcessesOperator();
     }
 
-//    @GetMapping("/my")
+//    @PatchMapping("/{id}/complete")
 //    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-//    public List<ProcessOperatorResponse> getMyProcesses() {
-//        return processService.getMyProcesses();
+//    public ProcessResponse completeProcess(@PathVariable Long id) {
+//        return processService.completeProcess(id);
 //    }
-
-    @PatchMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessResponse completeProcess(@PathVariable Long id) {
-        return processService.completeProcess(id);
-    }
 
     @PostMapping("/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")

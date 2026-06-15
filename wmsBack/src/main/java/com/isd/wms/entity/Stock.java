@@ -19,17 +19,6 @@ import java.util.Optional;
 @NoArgsConstructor
 public class Stock extends BaseTimestampEntity {
 
-    public Stock(Long id, Product product, Location location, Integer quantity, Integer reservedQuantity, LocalDate manufactureDate, LocalDate expirationDate, Long version) {
-        this.id = id;
-        this.product = product;
-        this.location = location;
-        this.quantity = quantity;
-        this.reservedQuantity = reservedQuantity;
-        this.manufactureDate = manufactureDate;
-        this.expirationDate = expirationDate;
-        this.version = version;
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stock_seq")
     @SequenceGenerator(name = "stock_seq", sequenceName = "stocks_sequence", allocationSize = 1)
@@ -71,6 +60,17 @@ public class Stock extends BaseTimestampEntity {
         this.quantity = quantity;
         this.manufactureDate = manufactureDate;
         this.expirationDate = expirationDate;
+    }
+
+    public Stock(Long id, Product product, Location location, Integer quantity, Integer reservedQuantity, LocalDate manufactureDate, LocalDate expirationDate, Long version) {
+        this.id = id;
+        this.product = product;
+        this.location = location;
+        this.quantity = quantity;
+        this.reservedQuantity = reservedQuantity;
+        this.manufactureDate = manufactureDate;
+        this.expirationDate = expirationDate;
+        this.version = version;
     }
 
     public Optional<Product> getProduct() {

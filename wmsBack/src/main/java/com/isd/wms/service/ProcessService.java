@@ -1,8 +1,6 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.process.ProcessOperatorResponse;
-import com.isd.wms.dto.process.ProcessResponse;
-import com.isd.wms.dto.process.ShortProcessResponse;
+import com.isd.wms.dto.process.*;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Process;
@@ -23,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,6 +35,10 @@ public class ProcessService {
     private final ProcessMapper processMapper;
     private final OrderLineRepository orderLineRepository;
     private final ReplenishmentRepository replenishmentRepository;
+
+    public List<ProcessSupervisorProjection> getAllProcesses() {
+        return processRepository.getAllProcessesSupervisor(securityFacade.getCurrentUsername());
+    }
 
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
