@@ -1,5 +1,6 @@
 package com.isd.wms.repository;
 
+import com.isd.wms.dto.process.ProcessSupervisorProjection;
 import com.isd.wms.repository.projections.OperatorProcessProjection;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Process;
@@ -140,4 +141,29 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     int updateStatusByOrderId(
         @Param("orderId") Long orderId,
         @Param("status") Status status);
+
+    @Query("""
+        SELECT
+            p.id AS processId,
+            r.id AS replenishmentId,
+            ol.order.id AS orderId,
+            t.taskType AS type,
+            p.stock.id AS stockId,
+            p.stock.product.name AS productName,
+            p.stock.location.name AS locationName,
+            p.quantity AS quantity,
+            p.status AS status,
+            p.sourceLocationScanned AS sourceLocationScanned,
+            p.productScanned AS productScanned,
+            p.pickedQuantity AS pickedQuantity
+        FROM Process p
+        JOIN Task t ON p.task = t
+        JOIN User u ON u = t.supervisor
+        LEFT JOIN OrderLine ol ON ol.task = p.task
+        LEFT JOIN Replenishment r ON r.task = p.task
+        WHERE u.username = :username
+        """)
+    List<ProcessSupervisorProjection> getAllProcessesSupervisor(
+        @Param("username") String username
+    );
 }

@@ -1,13 +1,16 @@
 import apiClient from './index'
 
-export const processApi = {
+export const allocationApi = {
   getCurrentTaskSummary() {
     return apiClient.get('/v1/processes/operator/current/summary')
+  },
+  getSupervisorAllocations() {
+    return apiClient.get('/v1/processes')
   },
   startCurrentTask() {
     return apiClient.post('/v1/processes/operator/current/start')
   },
-  completeAssignedProcess(processId) {
+  completeAssignedAllocation(processId) {
     return apiClient.post(`/v1/processes/${processId}/complete`)
   },
   scanSourceLocation(processId, barcode) {
