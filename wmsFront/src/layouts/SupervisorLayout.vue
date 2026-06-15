@@ -144,7 +144,7 @@ const menuItems = computed(() => {
 
   const items = [
     { to: '/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
-    { to: '/supervisor/order-form', label: 'Order', icon: 'pi pi-cart-arrow-down' },
+    { to: '/supervisor/orders', label: 'Order', icon: 'pi pi-cart-arrow-down' },
     { to: '/supervisor/replenishments', label: 'Replenishments', icon: 'pi pi-sync' },
     { to: '/supervisor/allocations', label: 'Allocations', icon: 'pi pi-list' },
     { to: '/supervisor/inventory', label: 'Inventory', icon: 'pi pi-table' },

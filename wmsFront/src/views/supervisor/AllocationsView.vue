@@ -30,11 +30,11 @@
 
       <Column header="Reference">
         <template #body="{ data }">
-          <span v-if="data.orderId"> Order #{{ data.orderId }} </span>
-
-          <span v-else-if="data.replenishmentId"> Replenishment #{{ data.replenishmentId }} </span>
-
-          <span v-else>-</span>
+          <AllocationReferenceLink
+            :type="data.type"
+            :order-id="data.orderId"
+            :replenishment-id="data.replenishmentId"
+          />
         </template>
       </Column>
 
@@ -107,6 +107,7 @@ import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 
 import { allocationApi } from '@/api/allocationApi.js'
+import AllocationReferenceLink from '@/components/AllocationReferenceLink.vue'
 
 const toast = useToast()
 

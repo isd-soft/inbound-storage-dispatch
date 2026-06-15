@@ -57,7 +57,7 @@ const router = createRouter({
         { path: 'locations', name: 'locations', component: LocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'order-form', name: 'order-form', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'orders', name: 'orders', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
       ]
     },
