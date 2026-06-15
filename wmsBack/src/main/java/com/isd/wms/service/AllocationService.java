@@ -1,14 +1,11 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.allocation.AllocationResponse;
 import com.isd.wms.dto.allocation.AllocationOperatorResponse;
 import com.isd.wms.dto.allocation.ShortAllocationResponse;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.AllocationsNotFoundException;
-import com.isd.wms.mapper.AllocationMapper;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
@@ -28,40 +25,12 @@ import java.util.List;
 public class AllocationService {
 
     private final AllocationRepository allocationRepository;
-    private final WorkflowService workflowService;
     private final SecurityFacade securityFacade;
-    private final AllocationMapper AllocationMapper;
     private final OrderLineRepository orderLineRepository;
     private final ReplenishmentRepository replenishmentRepository;
 
     public List<AllocationSupervisorProjection> getAllAllocations() {
         return allocationRepository.getAllAllocationsSupervisor(securityFacade.getCurrentUsername());
-    }
-
-    @Transactional
-    public AllocationResponse completeAllocation(Long allocationId) {
-        Allocation allocation = getAllocationById(allocationId);
-        User operator = securityFacade.getCurrentUser();
-
-        if (allocation.getTask().getOperator().filter(operator::equals).isEmpty()) {
-            throw new InvalidRequestException("You can only complete your own allocations");
-        }
-
-        if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
-            throw new InvalidRequestException("Allocation is already completed or canceled");
-        }
-
-        allocation.setStatus(Status.COMPLETED);
-        allocation = allocationRepository.save( allocation);
-
-        workflowService.executeAllocationCompletion(allocation);
-
-        return AllocationMapper.toResponse(allocation);
-    }
-
-    private Allocation getAllocationById(Long allocationId) {
-        return allocationRepository.findById(allocationId)
-            .orElseThrow(() -> new RuntimeException("Allocation not found with id: " + allocationId));
     }
 
     public AllocationOperatorResponse getAllocationsOperator() {
