@@ -1,0 +1,376 @@
+package com.isd.wms.service;
+
+import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
+import com.isd.wms.entity.Location;
+import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
+import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Product;
+import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.Stock;
+import com.isd.wms.entity.Task;
+import com.isd.wms.entity.User;
+import com.isd.wms.enums.OrderStatus;
+import com.isd.wms.enums.Role;
+import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
+import com.isd.wms.repository.OrderLineRepository;
+import com.isd.wms.repository.OrderRepository;
+import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.service.validation.SecurityFacade;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class OperatorTaskServiceTest {
+
+    @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
+    private com.isd.wms.repository.StockRepository stockRepository;
+
+    @Mock
+    private OrderLineRepository orderLineRepository;
+
+    @Mock
+    private ProcessRepository processRepository;
+
+    @Mock
+    private com.isd.wms.repository.ReplenishmentRepository replenishmentRepository;
+
+    @Mock
+    private InventoryService inventoryService;
+
+    @Mock
+    private SecurityFacade securityFacade;
+
+    @Mock
+    private WorkflowService workflowService;
+
+    @Spy
+    private PickingFlowService pickingFlowService;
+
+    @InjectMocks
+    private ProcessExecutionService processExecutionService;
+
+    private User operator;
+    private Order order;
+    private OrderLine orderLine;
+    private Process process;
+    private Process secondProcess;
+
+    @BeforeEach
+    void setUp() {
+        operator = new User("operator", "operator@example.com", "pass", Role.ROLE_OPERATOR, false, null, null);
+        ReflectionTestUtils.setField(operator, "id", 10L);
+
+        Location destination = new Location("Dispatch", "DISP-01", null, null, true);
+        ReflectionTestUtils.setField(destination, "id", 100L);
+
+        Product product = new Product("Widget", "WGT-01", null, null);
+        ReflectionTestUtils.setField(product, "id", 200L);
+
+        order = new Order("ORD-1", destination);
+        ReflectionTestUtils.setField(order, "id", 300L);
+        ReflectionTestUtils.setField(order, "status", OrderStatus.ASSIGNED);
+
+        Task task = new Task(null, TaskType.PICKING_ORDER, 5);
+        ReflectionTestUtils.setField(task, "id", 400L);
+        task.setOperator(operator);
+
+        orderLine = new OrderLine(order, task, product, 5);
+        ReflectionTestUtils.setField(orderLine, "id", 500L);
+        ReflectionTestUtils.setField(orderLine, "status", Status.ASSIGNED);
+
+        Location source = new Location("Pick", "PICK-01", null, null, true);
+        ReflectionTestUtils.setField(source, "id", 101L);
+        Stock stock = new Stock(product, source);
+        ReflectionTestUtils.setField(stock, "id", 600L);
+        stock.setQuantity(20);
+        stock.setReservedQuantity(5);
+
+        process = new Process(task, stock, 5, Status.ASSIGNED);
+        ReflectionTestUtils.setField(process, "id", 700L);
+        ReflectionTestUtils.setField(process, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
+
+        Task secondTask = new Task(null, TaskType.PICKING_ORDER, 3);
+        ReflectionTestUtils.setField(secondTask, "id", 401L);
+        secondTask.setOperator(operator);
+
+        OrderLine secondOrderLine = new OrderLine(order, secondTask, product, 3);
+        ReflectionTestUtils.setField(secondOrderLine, "id", 501L);
+        ReflectionTestUtils.setField(secondOrderLine, "status", Status.ASSIGNED);
+
+        Stock secondStock = new Stock(product, source);
+        ReflectionTestUtils.setField(secondStock, "id", 601L);
+        secondStock.setQuantity(20);
+        secondStock.setReservedQuantity(3);
+
+        secondProcess = new Process(secondTask, secondStock, 3, Status.ASSIGNED);
+        ReflectionTestUtils.setField(secondProcess, "id", 701L);
+        ReflectionTestUtils.setField(secondProcess, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 2));
+
+        lenient().when(securityFacade.getCurrentUser()).thenReturn(operator);
+        lenient().when(securityFacade.getCurrentUsername()).thenReturn("operator");
+        lenient().when(orderRepository.findOldestOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
+        lenient().when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.empty());
+        lenient().when(orderLineRepository.findAllByOrderId(300L)).thenReturn(List.of(orderLine));
+    }
+
+    @Test
+    void getCurrentSummaryReturnsAssignedPickingTask() {
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process));
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(process));
+        when(orderLineRepository.findByTaskId(400L)).thenReturn(Optional.of(orderLine));
+
+        Optional<OperatorTaskSummaryResponse> summary = processExecutionService.getCurrentSummary();
+
+        assertThat(summary).isPresent();
+        assertThat(summary.get().taskType()).isEqualTo(TaskType.PICKING_ORDER.name());
+        assertThat(summary.get().currentProcess()).isNotNull();
+        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("PICK-01");
+        assertThat(summary.get().orderLines()).hasSize(1);
+        assertThat(summary.get().processes()).hasSize(1);
+        assertThat(summary.get().readyForCompletion()).isFalse();
+    }
+
+    @Test
+    void startCurrentTaskMovesAssignedProcessAndOrderToInProgress() {
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process, secondProcess));
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(process, secondProcess));
+        when(orderLineRepository.findByTaskId(400L)).thenReturn(Optional.of(orderLine));
+
+        OperatorTaskSummaryResponse response = processExecutionService.startCurrentTask();
+
+        assertThat(process.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(orderLine.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.IN_PROGRESS);
+        assertThat(response.currentProcess()).isNotNull();
+        assertThat(response.currentProcess().status()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(response.processes()).hasSize(2);
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void getCurrentSummaryMarksOrderReadyForCompletionWhenPicked() {
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process));
+        when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
+
+        ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
+        ReflectionTestUtils.setField(orderLine, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(process, "pickedQuantity", 5);
+
+        Optional<OperatorTaskSummaryResponse> summary = processExecutionService.getCurrentSummary();
+
+        assertThat(summary).isPresent();
+        assertThat(summary.get().readyForCompletion()).isTrue();
+        assertThat(summary.get().currentProcess()).isNull();
+        assertThat(summary.get().orderLines().getFirst().pickedQuantity()).isEqualTo(5);
+    }
+
+    @Test
+    void completeCurrentOrderFinalizesPickedOrder() {
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process));
+        when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
+
+        ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
+        ReflectionTestUtils.setField(orderLine, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+
+        processExecutionService.completeCurrentOrder();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void completeCurrentOrderRejectsIncompleteOrder() {
+        when(orderRepository.findOldestPickedOrderAssignedToOperator(10L)).thenReturn(Optional.of(order));
+
+        ReflectionTestUtils.setField(order, "status", OrderStatus.PICKED);
+        ReflectionTestUtils.setField(orderLine, "status", Status.ASSIGNED);
+        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+
+        assertThatThrownBy(() -> processExecutionService.completeCurrentOrder())
+            .hasMessage("All order lines must be completed before final confirmation");
+    }
+
+    @Test
+    void getCurrentSummaryKeepsOperatorInSameLocationUntilLocationIsCompleted() {
+        Location otherLocation = new Location("Pick B", "PICK-02", null, null, true);
+        ReflectionTestUtils.setField(otherLocation, "id", 102L);
+
+        Product otherProduct = new Product("Widget B", "WGT-02", null, null);
+        ReflectionTestUtils.setField(otherProduct, "id", 201L);
+
+        Task thirdTask = new Task(null, TaskType.PICKING_ORDER, 2);
+        ReflectionTestUtils.setField(thirdTask, "id", 402L);
+        thirdTask.setOperator(operator);
+
+        OrderLine thirdOrderLine = new OrderLine(order, thirdTask, otherProduct, 2);
+        ReflectionTestUtils.setField(thirdOrderLine, "id", 502L);
+        ReflectionTestUtils.setField(thirdOrderLine, "status", Status.ASSIGNED);
+
+        Stock thirdStock = new Stock(otherProduct, otherLocation);
+        ReflectionTestUtils.setField(thirdStock, "id", 602L);
+        thirdStock.setQuantity(20);
+        thirdStock.setReservedQuantity(2);
+
+        Process thirdProcess = new Process(thirdTask, thirdStock, 2, Status.ASSIGNED);
+        ReflectionTestUtils.setField(thirdProcess, "id", 702L);
+        ReflectionTestUtils.setField(thirdProcess, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 1));
+
+        ReflectionTestUtils.setField(process, "status", Status.COMPLETED);
+        ReflectionTestUtils.setField(process, "pickedQuantity", 5);
+        when(processRepository.findAllByOrder(order)).thenReturn(List.of(process, thirdProcess, secondProcess));
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(thirdProcess, secondProcess));
+        when(orderLineRepository.findByTaskId(402L)).thenReturn(Optional.of(thirdOrderLine));
+
+        Optional<OperatorTaskSummaryResponse> summary = processExecutionService.getCurrentSummary();
+
+        assertThat(summary).isPresent();
+        assertThat(summary.get().currentProcess()).isNotNull();
+        assertThat(summary.get().currentProcess().processId()).isEqualTo(701L);
+        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("PICK-01");
+    }
+
+    @Test
+    void getCurrentSummaryReturnsReplenishmentDestinationForAssignedOperator() {
+        Location replenishmentDestination = new Location("Pick Face", "PICK-FACE-01", null, null, true);
+        ReflectionTestUtils.setField(replenishmentDestination, "id", 103L);
+
+        Task replenishmentTask = new Task(null, TaskType.REPLENISHMENT, 4);
+        ReflectionTestUtils.setField(replenishmentTask, "id", 450L);
+        replenishmentTask.setOperator(operator);
+
+        Product replenishmentProduct = new Product("Refill Widget", "REF-01", null, null);
+        ReflectionTestUtils.setField(replenishmentProduct, "id", 202L);
+
+        Location source = new Location("Bulk", "BULK-01", null, null, true);
+        ReflectionTestUtils.setField(source, "id", 104L);
+        Stock replenishmentStock = new Stock(replenishmentProduct, source);
+        ReflectionTestUtils.setField(replenishmentStock, "id", 603L);
+        replenishmentStock.setQuantity(10);
+        replenishmentStock.setReservedQuantity(4);
+
+        Process replenishmentProcess = new Process(replenishmentTask, replenishmentStock, 4, Status.ASSIGNED);
+        ReflectionTestUtils.setField(replenishmentProcess, "id", 703L);
+        ReflectionTestUtils.setField(replenishmentProcess, "createdAt", LocalDateTime.of(2026, 6, 15, 10, 0));
+
+        Replenishment replenishment = new Replenishment(replenishmentTask, replenishmentProduct, 4, replenishmentDestination);
+        ReflectionTestUtils.setField(replenishment, "id", 800L);
+
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(replenishmentProcess));
+        when(processRepository.findAllByTaskId(450L)).thenReturn(List.of(replenishmentProcess));
+        when(replenishmentRepository.findByTaskId(450L)).thenReturn(Optional.of(replenishment));
+
+        Optional<OperatorTaskSummaryResponse> summary = processExecutionService.getCurrentSummary();
+
+        assertThat(summary).isPresent();
+        assertThat(summary.get().taskType()).isEqualTo(TaskType.REPLENISHMENT.name());
+        assertThat(summary.get().destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
+        assertThat(summary.get().currentProcess().sourceLocationBarcode()).isEqualTo("BULK-01");
+        assertThat(summary.get().currentProcess().destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
+        assertThat(summary.get().totalProcesses()).isEqualTo(1);
+    }
+
+    @Test
+    void startCurrentTaskMovesAssignedReplenishmentToInProgress() {
+        Location replenishmentDestination = new Location("Pick Face", "PICK-FACE-01", null, null, true);
+        ReflectionTestUtils.setField(replenishmentDestination, "id", 103L);
+
+        Task replenishmentTask = new Task(null, TaskType.REPLENISHMENT, 4);
+        ReflectionTestUtils.setField(replenishmentTask, "id", 451L);
+        replenishmentTask.setOperator(operator);
+
+        Product replenishmentProduct = new Product("Refill Widget", "REF-01", null, null);
+        ReflectionTestUtils.setField(replenishmentProduct, "id", 202L);
+
+        Location source = new Location("Bulk", "BULK-01", null, null, true);
+        ReflectionTestUtils.setField(source, "id", 104L);
+        Stock replenishmentStock = new Stock(replenishmentProduct, source);
+        ReflectionTestUtils.setField(replenishmentStock, "id", 603L);
+        replenishmentStock.setQuantity(10);
+        replenishmentStock.setReservedQuantity(4);
+
+        Process replenishmentProcess = new Process(replenishmentTask, replenishmentStock, 4, Status.ASSIGNED);
+        ReflectionTestUtils.setField(replenishmentProcess, "id", 704L);
+        ReflectionTestUtils.setField(replenishmentProcess, "createdAt", LocalDateTime.of(2026, 6, 15, 10, 0));
+
+        Replenishment replenishment = new Replenishment(replenishmentTask, replenishmentProduct, 4, replenishmentDestination);
+        ReflectionTestUtils.setField(replenishment, "id", 801L);
+        ReflectionTestUtils.setField(replenishment, "status", Status.ASSIGNED);
+
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(replenishmentProcess));
+        when(processRepository.findAllByTaskId(451L)).thenReturn(List.of(replenishmentProcess));
+        when(replenishmentRepository.findByTaskId(451L)).thenReturn(Optional.of(replenishment));
+
+        OperatorTaskSummaryResponse response = processExecutionService.startCurrentTask();
+
+        assertThat(replenishmentProcess.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(replenishment.getStatus()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(response.currentProcess().status()).isEqualTo(Status.IN_PROGRESS);
+        assertThat(response.destinationLocationBarcode()).isEqualTo("PICK-FACE-01");
+    }
+
+    @Test
+    void getCurrentSummaryKeepsGlobalFifoAcrossReplenishmentAndOrders() {
+        Location replenishmentDestination = new Location("Pick Face", "PICK-FACE-01", null, null, true);
+        ReflectionTestUtils.setField(replenishmentDestination, "id", 103L);
+
+        Task replenishmentTask = new Task(null, TaskType.REPLENISHMENT, 4);
+        ReflectionTestUtils.setField(replenishmentTask, "id", 451L);
+        replenishmentTask.setOperator(operator);
+
+        Product replenishmentProduct = new Product("Refill Widget", "REF-01", null, null);
+        ReflectionTestUtils.setField(replenishmentProduct, "id", 202L);
+
+        Location bulkLocation = new Location("Bulk", "BULK-01", null, null, true);
+        ReflectionTestUtils.setField(bulkLocation, "id", 104L);
+        Stock replenishmentStock = new Stock(replenishmentProduct, bulkLocation);
+        ReflectionTestUtils.setField(replenishmentStock, "id", 603L);
+        replenishmentStock.setQuantity(10);
+        replenishmentStock.setReservedQuantity(4);
+
+        Process replenishmentProcess = new Process(replenishmentTask, replenishmentStock, 4, Status.ASSIGNED);
+        ReflectionTestUtils.setField(replenishmentProcess, "id", 704L);
+        ReflectionTestUtils.setField(replenishmentProcess, "createdAt", LocalDateTime.of(2026, 6, 15, 8, 55));
+
+        Replenishment replenishment = new Replenishment(replenishmentTask, replenishmentProduct, 4, replenishmentDestination);
+        ReflectionTestUtils.setField(replenishment, "id", 801L);
+
+        when(processRepository.findByOperatorUsernameAndStatuses("operator", List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
+            .thenReturn(List.of(replenishmentProcess, process));
+        when(processRepository.findAllByTaskId(451L)).thenReturn(List.of(replenishmentProcess));
+        when(replenishmentRepository.findByTaskId(451L)).thenReturn(Optional.of(replenishment));
+
+        Optional<OperatorTaskSummaryResponse> summary = processExecutionService.getCurrentSummary();
+
+        assertThat(summary).isPresent();
+        assertThat(summary.get().taskType()).isEqualTo(TaskType.REPLENISHMENT.name());
+        assertThat(summary.get().taskId()).isEqualTo(451L);
+        assertThat(summary.get().currentProcess().processId()).isEqualTo(704L);
+    }
+}
