@@ -19,8 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -36,36 +34,42 @@ class ReplenishmentServiceTest {
     @Mock
     private ReplenishmentRepository replenishmentRepository;
     @Mock
-    private TaskRepository taskRepository;
-    @Mock
     private ProductRepository productRepository;
     @Mock
-    private UserRepository userRepository;
-    @Mock
     private LocationRepository locationRepository;
+    @Mock
+    private StockRepository stockRepository;
     @Mock
     private ReplenishmentMapper replenishmentMapper;
     @Mock
     private WorkflowService workflowService;
+    @Mock
+    private TaskService taskService;
 
     @InjectMocks
     private ReplenishmentService replenishmentService;
 
     private Product product;
     private Location destinationLocation;
-    private User supervisor;
     private Task task;
     private Replenishment replenishment;
     private ReplenishmentResponse response;
 
     @BeforeEach
     void setUp() {
-        product = mock(Product.class);
-        destinationLocation = mock(Location.class);
-        supervisor = mock(User.class);
-        task = mock(Task.class);
-        replenishment = mock(Replenishment.class);
-        response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, LocalDateTime.from(Instant.now()));
+        product = new Product("Widget", "WGT-01", null, null);
+        org.springframework.test.util.ReflectionTestUtils.setField(product, "id", 1L);
+
+        destinationLocation = new Location("Pick Face", "PICK-01", null, null, true);
+        org.springframework.test.util.ReflectionTestUtils.setField(destinationLocation, "id", 3L);
+
+        task = new Task(null, com.isd.wms.enums.TaskType.REPLENISHMENT, 10);
+        org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 1L);
+
+        replenishment = new Replenishment(task, product, 10, destinationLocation);
+        org.springframework.test.util.ReflectionTestUtils.setField(replenishment, "id", 1L);
+
+        response = new ReplenishmentResponse(1L, 1L, 2L, 10, Status.CREATED, 3L, LocalDateTime.now());
     }
 
     @AfterEach
@@ -83,24 +87,20 @@ class ReplenishmentServiceTest {
 
     @Test
     void createReplenishment_validRequest_returnsResponse() {
-        mockSecurityContext("supervisor");
         ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(1L, 10, 3L);
 
-        when(product.getId()).thenReturn(1L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(destinationLocation));
-        when(userRepository.findByUsername("supervisor")).thenReturn(Optional.of(supervisor));
-        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        when(replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(eq(1L), eq(3L), any())).thenReturn(false);
+        when(taskService.createTask(com.isd.wms.enums.TaskType.REPLENISHMENT, 10, 1L)).thenReturn(task);
         when(replenishmentRepository.save(any(Replenishment.class))).thenReturn(replenishment);
         when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
-        doNothing().when(workflowService).generateProcessesForTask(any(Task.class), eq(1L), eq(10));
 
         ReplenishmentResponse result = replenishmentService.createReplenishment(request);
 
         assertThat(result).isEqualTo(response);
-        verify(taskRepository).save(any(Task.class));
+        verify(taskService).createTask(com.isd.wms.enums.TaskType.REPLENISHMENT, 10, 1L);
         verify(replenishmentRepository).save(any(Replenishment.class));
-        verify(workflowService).generateProcessesForTask(task, 1L, 10);
     }
 
     @Test
@@ -116,10 +116,10 @@ class ReplenishmentServiceTest {
         ReplenishmentResponse result = replenishmentService.updateReplenishment(1L, request);
 
         assertThat(result).isEqualTo(response);
-        verify(replenishment).setProduct(product);
-        verify(replenishment).setRequestedQuantity(20);
-        verify(replenishment).setStatus(Status.COMPLETED);
-        verify(replenishment).setDestinationLocation(destinationLocation);
+        assertThat(replenishment.getProduct()).isEqualTo(product);
+        assertThat(replenishment.getRequestedQuantity()).isEqualTo(20);
+        assertThat(replenishment.getStatus()).isEqualTo(Status.COMPLETED);
+        assertThat(replenishment.getDestinationLocation()).isEqualTo(destinationLocation);
     }
 
     @Test

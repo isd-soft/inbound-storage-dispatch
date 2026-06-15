@@ -1,20 +1,14 @@
 import apiClient from './index'
 
 export const processApi = {
-  getAvailable() {
-    return apiClient.get('/v1/processes/operators')
+  getCurrentTaskSummary() {
+    return apiClient.get('/v1/processes/operator/current/summary')
   },
-  getMy() {
-    return apiClient.get('/v1/processes/operators')
+  startCurrentTask() {
+    return apiClient.post('/v1/processes/operator/current/start')
   },
-  getAssignedExecutions() {
-    return apiClient.get('/v1/processes/operators')
-  },
-  assign(processId) {
-    return apiClient.post('/v1/processes/start')
-  },
-  start() {
-    return apiClient.post('/v1/processes/start')
+  completeAssignedProcess(processId) {
+    return apiClient.post(`/v1/processes/${processId}/complete`)
   },
   scanSourceLocation(processId, barcode) {
     return apiClient.post(`/v1/processes/${processId}/location`, { barcode })
@@ -24,8 +18,5 @@ export const processApi = {
   },
   confirmPickedQuantity(processId, pickedQuantity) {
     return apiClient.post(`/v1/processes/${processId}/confirm-quantity`, { pickedQuantity })
-  },
-  complete(processId) {
-    return apiClient.post(`/v1/processes/${processId}/complete`)
   }
 }

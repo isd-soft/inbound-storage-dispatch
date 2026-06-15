@@ -1,5 +1,6 @@
 package com.isd.wms.controller;
 
+import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.dto.process.*;
 import com.isd.wms.service.ProcessExecutionService;
 import com.isd.wms.service.ProcessService;
@@ -25,17 +26,38 @@ public class ProcessController {
         return processService.getProcessesOperator();
     }
 
+    @GetMapping("/operator/current/summary")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ResponseEntity<OperatorTaskSummaryResponse> getCurrentSummary() {
+        return processExecutionService.getCurrentSummary()
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/operator/current/start")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ResponseEntity<OperatorTaskSummaryResponse> startCurrentTask() {
+        return ResponseEntity.ok(processExecutionService.startCurrentTask());
+    }
+
+    @PostMapping("/operator/current/complete")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ResponseEntity<Void> completeCurrentOrder() {
+        processExecutionService.completeCurrentOrder();
+        return ResponseEntity.noContent().build();
+    }
+
 //    @GetMapping("/my")
 //    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
 //    public List<ProcessOperatorResponse> getMyProcesses() {
 //        return processService.getMyProcesses();
 //    }
 
-    @PatchMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessResponse completeProcess(@PathVariable Long id) {
-        return processService.completeProcess(id);
-    }
+//    @PatchMapping("/{id}/complete")
+//    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+//    public ProcessResponse completeProcess(@PathVariable Long id) {
+//        return processService.completeProcess(id);
+//    }
 
     @PostMapping("/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
@@ -64,6 +86,6 @@ public class ProcessController {
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ProcessCompletionResponse completeAssignedProcess(@PathVariable Long id) {
-        return processExecutionService.completeProcess(id);
+        return processExecutionService.completeAssignedProcess(id);
     }
 }
