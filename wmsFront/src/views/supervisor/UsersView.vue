@@ -82,13 +82,13 @@
           <InputText
             id="username"
             v-model="formData.username"
-            @input="formData.username = formData.username.replace(/@/g, '')"
+            :class="{ 'p-invalid': formData.username && formData.username.includes('@') }"
             required
             autofocus
             class="w-full"
           />
-          <small v-if="formData.username && formData.username.includes('@')" class="text-red-500 text-xs">
-            Username cannot contain the '@' character.
+          <small v-if="formData.username && formData.username.includes('@')" class="text-red-500 text-xs font-medium">
+            Username cannot contain the '@' character. Please use simple characters, numbers or underscores.
           </small>
         </div>
 
@@ -136,7 +136,7 @@
               inputClass="w-full"
               class="w-full"
             />
-            <small class="text-red-500">
+            <small v-if="confirmPassword && !isPasswordMatching" class="text-red-500">
               Passwords do not match.
             </small>
           </div>
@@ -249,7 +249,7 @@ const isPasswordStrongEnough = computed(() => {
   return regex.test(formData.value.password)
 })
 
-// Verifică suplimentar ca username-ul să nu aibă caracterul @ (siguranță extra pentru validarea formularului)
+// Întoarce true doar dacă există text completat și NU conține '@'
 const isUsernameValid = computed(() => {
   return formData.value.username && !formData.value.username.includes('@')
 })
