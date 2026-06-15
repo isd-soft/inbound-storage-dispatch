@@ -77,22 +77,32 @@
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
           <label for="username" class="app-subtitle font-medium"
-            >Username <span class="text-red-500">*</span></label
+          >Username <span class="text-red-500">*</span></label
           >
-          <InputText id="username" v-model="formData.username" required autofocus class="w-full" />
+          <InputText
+            id="username"
+            v-model="formData.username"
+            :class="{ 'p-invalid': formData.username && formData.username.includes('@') }"
+            required
+            autofocus
+            class="w-full"
+          />
+          <small v-if="formData.username && formData.username.includes('@')" class="text-red-500 text-xs font-medium">
+            Username cannot contain the '@' character. Please use simple characters, numbers or underscores.
+          </small>
         </div>
 
         <template v-if="dialogMode === 'add'">
           <div class="flex flex-col gap-2">
             <label for="email" class="app-subtitle font-medium"
-              >Email <span class="text-red-500">*</span></label
+            >Email <span class="text-red-500">*</span></label
             >
             <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
           </div>
 
           <div class="flex flex-col gap-2">
             <label for="password" class="app-subtitle font-medium"
-              >Password <span class="text-red-500">*</span></label
+            >Password <span class="text-red-500">*</span></label
             >
             <Password
               id="password"
@@ -113,10 +123,9 @@
             </small>
           </div>
 
-          <!-- Câmpul de Confirmare Parolă -->
           <div class="flex flex-col gap-2">
             <label for="confirmPassword" class="app-subtitle font-medium"
-              >Confirm Password <span class="text-red-500">*</span></label
+            >Confirm Password <span class="text-red-500">*</span></label
             >
             <Password
               id="confirmPassword"
@@ -135,7 +144,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="role" class="app-subtitle font-medium"
-            >Role <span class="text-red-500">*</span></label
+          >Role <span class="text-red-500">*</span></label
           >
           <Dropdown
             id="role"
@@ -174,8 +183,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 
-import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -240,9 +247,15 @@ const isPasswordStrongEnough = computed(() => {
   return regex.test(formData.value.password)
 })
 
+// Întoarce true doar dacă există text completat și NU conține '@'
+const isUsernameValid = computed(() => {
+  return formData.value.username && !formData.value.username.includes('@')
+})
+
 const isFormValid = computed(() => {
   if (dialogMode.value === 'add') {
     return (
+      isUsernameValid.value &&
       formData.value.username.trim() &&
       formData.value.email.trim() &&
       formData.value.password.trim() &&
@@ -251,7 +264,7 @@ const isFormValid = computed(() => {
       formData.value.userRole
     )
   } else {
-    return formData.value.username.trim() && formData.value.userRole
+    return isUsernameValid.value && formData.value.username.trim() && formData.value.userRole
   }
 })
 
