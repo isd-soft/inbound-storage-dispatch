@@ -22,7 +22,7 @@ public class AllocationController {
     private final AllocationExecutionService allocationExecutionService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public List<AllocationSupervisorProjection> getAllAllocations() {
         return allocationService.getAllAllocations();
     }

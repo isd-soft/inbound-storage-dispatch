@@ -23,6 +23,7 @@ import com.isd.wms.mapper.StockMapper;
 import com.isd.wms.repository.InventoryHistoryRepository;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
 
@@ -44,6 +45,7 @@ public class InventoryService {
     private final InventoryHistoryRepository inventoryHistoryRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
+    private final AllocationRepository allocationRepository;
     private final UserRepository userRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
@@ -129,6 +131,8 @@ public class InventoryService {
         int oldQuantity = stock.getQuantity();
         int alteredQuantity = request.getNewQuantity() - oldQuantity;
         stock.setQuantity(request.getNewQuantity());
+        stock.setManufactureDate(request.getManufactureDate());
+        stock.setExpirationDate(request.getExpirationDate());
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, alteredQuantity, request.getNewQuantity(), savedStock.getLocation(), savedStock.getLocation(),

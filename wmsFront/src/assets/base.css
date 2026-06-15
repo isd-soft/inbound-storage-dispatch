@@ -250,6 +250,17 @@ body {
   text-decoration: underline;
 }
 
+.app-product-link--disabled {
+  color: var(--brand-primary);
+  cursor: default;
+  text-decoration: none;
+}
+
+.app-product-link--disabled:hover {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+
 .app-row-highlight {
   background: color-mix(in srgb, var(--brand-primary) 12%, transparent) !important;
 }
