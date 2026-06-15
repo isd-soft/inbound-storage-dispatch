@@ -351,7 +351,7 @@ import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '@/stores/auth'
-import { processApi } from '@/api/processApi'
+import { allocationApi } from '@/api/allocationApi'
 import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import Button from 'primevue/button'
@@ -503,7 +503,7 @@ const hydrateState = (payload) => {
 const loadCurrentTask = async () => {
   loading.value = true
   try {
-    const response = await processApi.getCurrentTaskSummary()
+    const response = await allocationApi.getCurrentTaskSummary()
     if (response.status === 204 || !response.data) {
       // Dacă aveam un task activ de picking și acum s-a terminat, activăm ecranul final
       if (summary.value && isPickingTask.value) {
@@ -544,7 +544,7 @@ const startTask = async () => {
   actionLoading.value = true
   actionError.value = ''
   try {
-    const response = await processApi.startCurrentTask()
+    const response = await allocationApi.startCurrentTask()
     hydrateState(response.data)
     toast.add({ severity: 'success', summary: 'Task started', life: 1500 })
   } catch (error) {
@@ -565,10 +565,10 @@ const submitBarcodeStep = async () => {
 
   try {
     if (!currentProcess.value.sourceLocationScanned) {
-      await processApi.scanSourceLocation(currentProcess.value.processId, cleanBarcode)
+      await allocationApi.scanSourceLocation(currentProcess.value.processId, cleanBarcode)
       toast.add({ severity: 'success', summary: 'Source verified', life: 1500 })
     } else if (!currentProcess.value.productScanned) {
-      await processApi.scanProduct(currentProcess.value.processId, cleanBarcode)
+      await allocationApi.scanProduct(currentProcess.value.processId, cleanBarcode)
       toast.add({ severity: 'success', summary: 'Product verified', life: 1500 })
     }
     barcodeInput.value = ''
@@ -594,10 +594,10 @@ const confirmQuantity = async () => {
       finalProcessesSummary.value[localIdx].pickedQuantity = pickedQuantity.value
     }
 
-    await processApi.confirmPickedQuantity(processId, pickedQuantity.value)
+    await allocationApi.confirmPickedQuantity(processId, pickedQuantity.value)
 
     if (isPickingTask.value) {
-      await processApi.completeAssignedProcess(processId)
+      await allocationApi.completeAssignedProcess(processId)
       toast.add({ severity: 'success', summary: 'Line saved successfully', life: 1500 })
     } else {
       toast.add({ severity: 'success', summary: 'Quantity confirmed', life: 1500 })
@@ -616,7 +616,7 @@ const completeProcess = async () => {
   actionLoading.value = true
   actionError.value = ''
   try {
-    await processApi.completeAssignedProcess(currentProcess.value.processId)
+    await allocationApi.completeAssignedProcess(currentProcess.value.processId)
     toast.add({ severity: 'success', summary: 'Task completed and saved', life: 2000 })
     await loadCurrentTask()
   } catch (error) {
