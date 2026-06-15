@@ -231,7 +231,7 @@ import { computed, defineComponent, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '@/stores/auth'
-import { processApi } from '@/api/processApi'
+import { allocationApi } from '@/api/allocationApi'
 import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import Button from 'primevue/button'
@@ -519,7 +519,7 @@ const loadCurrentTask = async () => {
   loadError.value = ''
 
   try {
-    const response = await processApi.getCurrentTaskSummary()
+    const response = await allocationApi.getCurrentTaskSummary()
     if (response.status === 204 || !response.data) {
       summary.value = null
       if (pendingCompletionSummary.value) {
@@ -570,7 +570,7 @@ const startTask = async () => {
   actionError.value = ''
 
   try {
-    const response = await processApi.startCurrentTask()
+    const response = await allocationApi.startCurrentTask()
     hydrateState(response.data)
     toast.add({ severity: 'success', summary: 'Task started', life: 2500 })
   } catch (error) {
@@ -591,10 +591,10 @@ const submitBarcodeStep = async () => {
 
   try {
     if (!currentProcess.value.sourceLocationScanned) {
-      await processApi.scanSourceLocation(currentProcess.value.processId, barcodeInput.value.trim())
+      await allocationApi.scanSourceLocation(currentProcess.value.processId, barcodeInput.value.trim())
       toast.add({ severity: 'success', summary: 'Source verified', life: 2500 })
     } else if (!currentProcess.value.productScanned) {
-      await processApi.scanProduct(currentProcess.value.processId, barcodeInput.value.trim())
+      await allocationApi.scanProduct(currentProcess.value.processId, barcodeInput.value.trim())
       toast.add({ severity: 'success', summary: 'Product verified', life: 2500 })
     }
 
@@ -614,9 +614,9 @@ const confirmQuantity = async () => {
 
   try {
     const processId = currentProcess.value.processId
-    await processApi.confirmPickedQuantity(processId, pickedQuantity.value)
+    await allocationApi.confirmPickedQuantity(processId, pickedQuantity.value)
     if (isPickingTask.value) {
-      const completionResponse = await processApi.completeAssignedProcess(processId)
+      const completionResponse = await allocationApi.completeAssignedAllocation(processId)
       if (completionResponse.data?.status === 'COMPLETED') {
         queueCompletionSummary()
       }
@@ -639,7 +639,7 @@ const completeProcess = async () => {
   actionError.value = ''
 
   try {
-    const completionResponse = await processApi.completeAssignedProcess(currentProcess.value.processId)
+    const completionResponse = await allocationApi.completeAssignedAllocation(currentProcess.value.processId)
     if (isReplenishmentTask.value || completionResponse.data?.status === 'COMPLETED') {
       queueCompletionSummary()
     }

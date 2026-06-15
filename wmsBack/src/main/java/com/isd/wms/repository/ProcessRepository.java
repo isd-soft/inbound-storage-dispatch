@@ -144,12 +144,14 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
 
     @Query("""
         SELECT
+            p.id AS processId,
             r.id AS replenishmentId,
             ol.order.id AS orderId,
             t.taskType AS type,
             p.stock.id AS stockId,
             p.stock.product.name AS productName,
             p.stock.location.name AS locationName,
+            p.quantity AS quantity,
             p.status AS status,
             p.sourceLocationScanned AS sourceLocationScanned,
             p.productScanned AS productScanned,

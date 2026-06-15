@@ -7,7 +7,7 @@
       :loading="loading"
       paginator
       :rows="10"
-      dataKey="stockId"
+      dataKey="processId"
       stripedRows
       emptyMessage="No active allocations found."
     >
@@ -45,6 +45,14 @@
       </Column>
 
       <Column field="locationName" header="Location" sortable filter />
+
+      <Column field="quantity" header="Quantity" sortable>
+        <template #body="{ data }">
+          <span class="font-bold">
+            {{ data.quantity }}
+          </span>
+        </template>
+      </Column>
 
       <Column field="pickedQuantity" header="Picked Qty" sortable>
         <template #body="{ data }">
@@ -133,7 +141,7 @@ const loadAllocations = async () => {
   loading.value = true
 
   try {
-    const response = await allocationApi.getSupervisorProcesses()
+    const response = await allocationApi.getSupervisorAllocations()
     allocations.value = response.data
 
     console.log('Allocations:', allocations.value)
