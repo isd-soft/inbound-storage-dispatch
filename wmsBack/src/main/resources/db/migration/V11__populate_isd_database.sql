@@ -20,7 +20,7 @@ VALUES
     (5, 'Paper Towels', 'TOWELS-12R', 'Absorbent paper towels, 12 rolls per case', 3),
     (6, 'Hand Sanitizer', 'SAN-500ML', 'Alcohol-based hand sanitizer, 500 ml bottle', 4);
 
-INSERT INTO locations (id, location_code, zone, description, available)
+INSERT INTO locations (id, barcode, zone, description, available)
 VALUES
     (1, 'A-01-01', 'A', 'Receiving buffer rack A-01-01', true),
     (2, 'A-01-02', 'A', 'Receiving buffer rack A-01-02', true),

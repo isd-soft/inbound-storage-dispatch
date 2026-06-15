@@ -47,6 +47,11 @@ public class ProductService {
         }
         Category category = getCategory(request.categoryId());
         Product product = new Product(request.name().trim(), barcode, request.description(), category);
+
+        product.setAutoReplenish(request.autoReplenish() != null && request.autoReplenish());
+        product.setMinThreshold(request.minThreshold());
+        product.setReplenishQty(request.replenishQty());
+
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
         return productMapper.toResponse(savedProduct);
@@ -69,6 +74,11 @@ public class ProductService {
         product.setBarcode(barcode);
         product.setDescription(request.description());
         product.setCategory(category);
+
+        product.setAutoReplenish(request.autoReplenish() != null && request.autoReplenish());
+        product.setMinThreshold(request.minThreshold());
+        product.setReplenishQty(request.replenishQty());
+
         Product savedProduct = productRepository.save(product);
 
         log.info("Product ID {} successfully updated. Modifications: Name ['{}' -> '{}'], Barcode ['{}' -> '{}']",

@@ -3,143 +3,109 @@
     <Toast />
     <ConfirmDialog />
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-100">Replenishment Management</h2>
-        <p class="text-sm text-gray-400 mt-1">Monitor and assign replenishment tasks across warehouse zones.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Button label="Create Replenishment" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button label="Reset Filters" icon="pi pi-filter-slash" severity="secondary" outlined @click="clearFilters" />
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadData" />
-      </div>
-    </div>
-
-    <Card class="bg-gray-800 border-none shadow-lg mb-6">
-      <template #content>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-gray-400">Filter by Product</label>
-            <Dropdown v-model="filters.productId" :options="products" optionLabel="name" optionValue="id" placeholder="All Products" filter showClear @change="applyFilters" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-gray-400">Filter by Destination</label>
-            <Dropdown v-model="filters.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" placeholder="All Locations" filter showClear @change="applyFilters" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-gray-400">Filter by Status</label>
-            <Dropdown v-model="filters.status" :options="statuses" placeholder="All Statuses" showClear @change="applyFilters" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-gray-400">Filter by Task ID</label>
-            <InputNumber v-model="filters.taskId" placeholder="Task ID" :useGrouping="false" showClear @input="applyFilters" />
-          </div>
-        </div>
+    <AppDataTable
+      v-model:selection="selectedReplenishments"
+      :value="replenishments"
+      :loading="loading"
+      :filterFields="replenishmentFilterFields"
+      paginator
+      :rows="10"
+      stripedRows
+      class="p-datatable-sm"
+      dataKey="id"
+      emptyMessage="No replenishment tasks found."
+    >
+      <template #toolbar>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadData" />
+        <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="editMode" label="Edit Selected" icon="pi pi-pencil" severity="warning" outlined :disabled="selectedReplenishments.length !== 1" @click="openEditDialog(selectedReplenishments[0])" />
+        <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedReplenishments.length" @click="confirmDeleteSelected" />
+        <span v-if="editMode" class="app-muted text-sm">{{ selectedReplenishments.length }} selected</span>
       </template>
-    </Card>
-
-    <Card class="bg-gray-800 border-none shadow-lg">
-      <template #content>
-        <DataTable
-          :value="replenishments"
-          :loading="loading"
-          paginator
-          :rows="10"
-          stripedRows
-          class="p-datatable-sm"
-          dataKey="id"
-          emptyMessage="No replenishment tasks found."
-        >
-          <Column field="id" header="ID" sortable></Column>
-          <Column field="taskId" header="Task ID" sortable></Column>
-
-          <Column header="Product" sortable>
+          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+          <Column field="productName" header="Product" sortable filter>
             <template #body="slotProps">
-              <span class="font-semibold text-gray-200">{{ getProductName(slotProps.data.productId) }}</span>
+              <ProductLink :product-id="slotProps.data.productId" :name="slotProps.data.productName" class="font-semibold" />
             </template>
           </Column>
 
-          <Column field="requestedQuantity" header="Requested Qty" sortable>
+          <Column field="requestedQuantity" header="Requested Qty" sortable filter>
             <template #body="slotProps">
-              <span class="text-blue-400 font-bold">{{ slotProps.data.requestedQuantity }}</span>
+              <span class="text-primary font-bold">{{ slotProps.data.requestedQuantity }}</span>
             </template>
           </Column>
 
-          <Column header="Destination Location" sortable>
+          <Column field="locationName" header="Destination Location" sortable filter>
             <template #body="slotProps">
-              <span class="text-gray-300">{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+              <span class="app-subtitle">{{ slotProps.data.locationName }}</span>
             </template>
           </Column>
 
-          <Column field="status" header="Status" sortable>
+          <Column field="status" header="Status" sortable filter>
             <template #body="slotProps">
               <Tag :severity="getStatusSeverity(slotProps.data.status)" :value="slotProps.data.status" />
             </template>
           </Column>
 
-          <Column field="createdAt" header="Created At" sortable>
+          <Column field="createdAt" header="Created" sortable filter>
             <template #body="slotProps">
-              {{ formatDate(slotProps.data.createdAt) }}
+              <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
             </template>
           </Column>
 
-          <Column header="Actions" style="min-width: 8rem">
-            <template #body="slotProps">
-              <div class="flex gap-2">
-                <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="openEditDialog(slotProps.data)" />
-                <Button v-if="slotProps.data.status === 'CREATED'" icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="confirmDelete(slotProps.data)" />
-              </div>
-            </template>
-          </Column>
-        </DataTable>
-      </template>
-    </Card>
+          <!-- Inline editing is intentionally not enabled here because replenishment updates regenerate task/process allocation server-side. -->
+    </AppDataTable>
 
-    <Dialog v-model:visible="createDialogVisible" header="Create Replenishment Task" :modal="true" class="p-fluid w-full max-w-md">
-      <div class="field mb-4">
-        <label for="product" class="block text-sm font-medium mb-1">Product</label>
-        <Dropdown id="product" v-model="newReplenishment.productId" :options="products" optionLabel="name" optionValue="id" placeholder="Select a Product" filter />
-      </div>
+    <Dialog v-model:visible="createDialogVisible" header="Create Replenishment Task" :modal="true" class="w-full max-w-md">
+      <div class="flex flex-col gap-4 mt-2">
+        <div class="flex flex-col gap-2">
+          <label for="product" class="app-subtitle font-medium">Product</label>
+          <Dropdown id="product" v-model="newReplenishment.productId" :options="products" optionLabel="name" optionValue="id" placeholder="Select a Product" filter class="w-full" />
+        </div>
 
-      <div class="field mb-4">
-        <label for="quantity" class="block text-sm font-medium mb-1">Requested Quantity</label>
-        <InputNumber id="quantity" v-model="newReplenishment.requestedQuantity" :min="1" showButtons placeholder="Enter quantity" />
-      </div>
+        <div class="flex flex-col gap-2">
+          <label for="quantity" class="app-subtitle font-medium">Requested Quantity</label>
+          <InputNumber id="quantity" v-model="newReplenishment.requestedQuantity" :min="1" showButtons placeholder="Enter quantity" class="w-full" />
+        </div>
 
-      <div class="field mb-4">
-        <label for="location" class="block text-sm font-medium mb-1">Destination Location (Pick Zone)</label>
-        <Dropdown id="location" v-model="newReplenishment.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" placeholder="Select Destination Zone" filter />
+        <div class="flex flex-col gap-2">
+          <label for="location" class="app-subtitle font-medium">Destination Location (Pick Zone)</label>
+          <Dropdown id="location" v-model="newReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" placeholder="Select Destination Zone" filter class="w-full" />
+        </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="createDialogVisible = false" />
+        <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="createDialogVisible = false" />
         <Button label="Create" icon="pi pi-check" severity="success" :loading="actionLoading" @click="handleCreate" :disabled="!isCreateFormValid" />
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="editDialogVisible" header="Update Replenishment Task" :modal="true" class="p-fluid w-full max-w-md">
-      <div class="field mb-4">
-        <label class="block text-sm font-medium mb-1 text-gray-400">Product (Read Only)</label>
-        <InputText :value="getProductName(editingReplenishment.productId)" disabled />
-      </div>
+    <Dialog v-model:visible="editDialogVisible" header="Update Replenishment Task" :modal="true" class="w-full max-w-md">
+      <div class="flex flex-col gap-4 mt-2">
+        <div class="flex flex-col gap-2">
+          <label class="app-muted font-medium">Product (Read Only)</label>
+          <InputText :value="getProductName(editingReplenishment.productId)" disabled class="w-full" />
+        </div>
 
-      <div class="field mb-4">
-        <label for="editQuantity" class="block text-sm font-medium mb-1">Requested Quantity</label>
-        <InputNumber id="editQuantity" v-model="editingReplenishment.requestedQuantity" :min="1" showButtons />
-      </div>
+        <div class="flex flex-col gap-2">
+          <label for="editQuantity" class="app-subtitle font-medium">Requested Quantity</label>
+          <InputNumber id="editQuantity" v-model="editingReplenishment.requestedQuantity" :min="1" showButtons class="w-full" />
+        </div>
 
-      <div class="field mb-4">
-        <label for="editLocation" class="block text-sm font-medium mb-1">Destination Location</label>
-        <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="locationCode" optionValue="id" filter />
-      </div>
+        <div class="flex flex-col gap-2">
+          <label for="editLocation" class="app-subtitle font-medium">Destination Location</label>
+          <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" filter class="w-full" />
+        </div>
 
-      <div class="field mb-4">
-        <label for="editStatus" class="block text-sm font-medium mb-1">Status</label>
-        <Dropdown id="editStatus" v-model="editingReplenishment.status" :options="statuses" placeholder="Select Status" />
+        <div class="flex flex-col gap-2">
+          <label for="editStatus" class="app-subtitle font-medium">Status</label>
+          <Dropdown id="editStatus" v-model="editingReplenishment.status" :options="statuses" placeholder="Select Status" filter class="w-full" />
+        </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="editDialogVisible = false" />
+        <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="editDialogVisible = false" />
         <Button label="Save Changes" icon="pi pi-check" severity="warning" :loading="actionLoading" @click="handleUpdate" />
       </template>
     </Dialog>
@@ -170,6 +136,7 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const replenishments = ref([])
+const selectedReplenishments = ref([])
 const products = ref([])
 const locations = ref([])
 const statuses = ref(['CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'])
@@ -178,8 +145,17 @@ const loading = ref(false)
 const actionLoading = ref(false)
 const createDialogVisible = ref(false)
 const editDialogVisible = ref(false)
+const editMode = ref(false)
 
-const filters = ref({ productId: null, destinationLocationId: null, status: null, taskId: null })
+const filters = ref({ productId: null, destinationLocationId: null, status: null })
+const deletableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => task.status === 'CREATED'))
+const replenishmentFilterFields = [
+  { field: 'productName', label: 'Product' },
+  { field: 'requestedQuantity', label: 'Requested Qty' },
+  { field: 'locationName', label: 'Destination' },
+  { field: 'status', label: 'Status' },
+  { field: 'createdAt', label: 'Created' }
+]
 
 const newReplenishment = ref({ productId: null, requestedQuantity: null, destinationLocationId: null })
 const editingReplenishment = ref({ id: null, taskId: null, productId: null, requestedQuantity: null, status: null, destinationLocationId: null })
@@ -190,8 +166,14 @@ const isCreateFormValid = computed(() => {
 
 const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 const getProductName = (id) => products.value.find(p => p.id === id)?.name || `Product #${id}`
-const getLocationName = (id) => locations.value.find(l => l.id === id)?.locationCode || `Location #${id}`
-const formatDate = (ts) => ts ? new Date(ts).toLocaleString() : '-'
+const getLocationName = (id) => locations.value.find(l => l.id === id)?.barcode || `Location #${id}`
+const formatDate = (ts) => {
+  if (!ts) return '-'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(ts))
+}
 
 const getStatusSeverity = (status) => {
   switch (status) {
@@ -211,7 +193,6 @@ const loadData = async () => {
       inventoryApi.getLocations()
     ])
     products.value = productsRes.data
-
     locations.value = locsRes.data.filter(l => l.available !== false && l.zone === 'PICKING')
 
     await applyFilters()
@@ -227,7 +208,13 @@ const applyFilters = async () => {
   try {
     const cleanFilters = Object.fromEntries(Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''))
     const res = await replenishmentApi.filter(cleanFilters)
-    replenishments.value = res.data
+
+    replenishments.value = res.data.map(task => ({
+      ...task,
+      productName: getProductName(task.productId),
+      locationName: getLocationName(task.destinationLocationId)
+    }))
+
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
@@ -236,13 +223,18 @@ const applyFilters = async () => {
 }
 
 const clearFilters = () => {
-  filters.value = { productId: null, destinationLocationId: null, status: null, taskId: null }
+  filters.value = { productId: null, destinationLocationId: null, status: null }
   applyFilters()
 }
 
 const openCreateDialog = () => {
   newReplenishment.value = { productId: null, requestedQuantity: null, destinationLocationId: null }
   createDialogVisible.value = true
+}
+
+const toggleEditMode = () => {
+  editMode.value = !editMode.value
+  selectedReplenishments.value = []
 }
 
 const handleCreate = async () => {
@@ -268,7 +260,6 @@ const handleUpdate = async () => {
   actionLoading.value = true
   try {
     const payload = {
-      taskId: editingReplenishment.value.taskId,
       productId: editingReplenishment.value.productId,
       requestedQuantity: editingReplenishment.value.requestedQuantity,
       status: editingReplenishment.value.status,
@@ -285,22 +276,28 @@ const handleUpdate = async () => {
   }
 }
 
-const confirmDelete = (task) => {
+const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Are you sure you want to delete Replenishment #${task.id}?`,
-    header: 'Confirm Deletion',
+    message: `Delete ${deletableSelectedReplenishments.value.length} selected replenishment task(s)? Only CREATED tasks can be deleted.`,
+    header: 'Delete Selected Replenishments',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await replenishmentApi.delete(task.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Task has been deleted.', life: 3000 })
-        await applyFilters()
-      } catch (error) {
-        toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
-      }
-    }
+    accept: deleteSelectedReplenishments
   })
+}
+
+const deleteSelectedReplenishments = async () => {
+  loading.value = true
+  try {
+    await Promise.all(deletableSelectedReplenishments.value.map((task) => replenishmentApi.delete(task.id)))
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${deletableSelectedReplenishments.value.length} task(s) deleted.`, life: 3000 })
+    selectedReplenishments.value = []
+    await applyFilters()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

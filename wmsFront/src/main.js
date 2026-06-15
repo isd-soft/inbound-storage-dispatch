@@ -11,6 +11,8 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
+import AppDataTable from '@/components/AppDataTable.vue'
+import ProductLink from '@/components/ProductLink.vue'
 
 const app = createApp(App)
 
@@ -30,5 +32,7 @@ app.use(PrimeVue, {
 })
 app.use(ToastService)
 app.use(ConfirmationService)
+app.component('AppDataTable', AppDataTable)
+app.component('ProductLink', ProductLink)
 
 app.mount('#app')

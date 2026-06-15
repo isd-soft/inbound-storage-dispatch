@@ -18,8 +18,11 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
-    @Value("${wms.app.url:http://localhost:8080}")
-    private String appUrl;
+    @Value("${wms.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
+    @Value("${wms.mail.from:pajiloybaraban@gmail.com}")
+    private String fromEmail;
 
     public void sendVerificationEmail(String toEmail, String username, String token) {
         log.info("Preparing verification email for user: '{}' to address: {}", username, toEmail);
@@ -28,13 +31,15 @@ public class EmailService {
             Context ctx = new Context();
             ctx.setVariable("username", username);
             ctx.setVariable("email", toEmail);
-            ctx.setVariable("confirmUrl", appUrl + "/api/auth/verify?token=" + token);
+            ctx.setVariable("confirmUrl", frontendUrl + "/verify?token=" + token);
 
             log.debug("Processing Thymeleaf template 'email/operator-welcome' for user '{}'", username);
             String html = templateEngine.process("email/operator-welcome", ctx);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "ISD Warehouse System");
             helper.setTo(toEmail);
             helper.setSubject("Account verification — ISD Warehouse");
             helper.setText(html, true);

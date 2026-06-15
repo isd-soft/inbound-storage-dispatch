@@ -28,8 +28,11 @@ public class LocationService {
 
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
-        String name = request.name().trim();
         String code = request.barcode().trim();
+        
+        String name = request.name() == null || request.name().isBlank()
+                ? code
+                : request.name().trim();
 
         log.info("Attempting to create a new warehouse location: Name='{}', Barcode='{}', Zone='{}'", name, code, request.zone());
 
@@ -60,8 +63,18 @@ public class LocationService {
         log.info("Updating warehouse Location ID: {}. Old Barcode='{}', New Barcode='{}', Zone='{}'",
             locationId, location.getBarcode(), newCode, request.zone());
 
-        if (!location.getBarcode().equalsIgnoreCase(newCode) &&
-                locationRepository.existsByBarcodeIgnoreCase(newCode)) {
+        boolean isCodeChanged = !location.getBarcode().equalsIgnoreCase(newCode);
+        boolean isZoneChanged = location.getZone() != request.zone();
+        boolean isAvailableChanged = location.getAvailable() != request.available();
+
+        boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
+
+        if (hasProducts && (isCodeChanged || isZoneChanged || isAvailableChanged)) {
+            log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
+            throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
+        }
+
+        if (isCodeChanged && locationRepository.existsByBarcodeIgnoreCase(newCode)) {
             log.warn("Location update rejected for ID {}: Barcode '{}' is already assigned to another location", locationId, newCode);
             throw new DuplicateBarcodeException(newCode);
         }
@@ -84,11 +97,11 @@ public class LocationService {
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
         if (hasProducts) {
             log.warn("Attempt to deactivate occupied location ID: {}", locationId);
-            throw new IllegalStateException("You cannot deactivate this location, there is a product on it.");
+            throw new IllegalStateException("You cannot delete a location while there is a product in it");
         }
 
         Location location = getLocation(locationId);
-        location.setIsActive(false); // Deactivate
+        location.setIsActive(false);
 
         locationRepository.save(location);
 

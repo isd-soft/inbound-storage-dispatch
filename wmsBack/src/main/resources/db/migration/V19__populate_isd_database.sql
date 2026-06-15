@@ -20,7 +20,7 @@ VALUES
     (4, 'Scanner Symbol', 'SCN-SYM-001', 'Barcode scanner for terminal', 3),
     (5, 'Work Gloves', 'GLOVE-W-01', 'Protective warehouse gloves', 3);
 
-INSERT INTO locations (id, location_code, zone, description, available)
+INSERT INTO locations (id, barcode, zone, description, available)
 VALUES
     (1, 'PICK-A-01', 'PICKING', 'Pick Rack A, Level 1', true),
     (2, 'PICK-A-02', 'PICKING', 'Pick Rack A, Level 2', true),
@@ -58,7 +58,7 @@ VALUES
 INSERT INTO tasks (id, supervisor_id, task_type, requested_quantity, status)
 VALUES
     (1, 2, 'REPLENISHMENT', 20, 'CREATED'),
-    (2, 2, 'PICKING', 2, 'CREATED');
+    (2, 2, 'PICKING_ORDER', 2, 'CREATED');
 
 INSERT INTO replenishments (id, task_id, product_id, requested_quantity, status, destination_location_id)
 VALUES

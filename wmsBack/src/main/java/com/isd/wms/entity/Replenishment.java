@@ -38,14 +38,6 @@ public class Replenishment extends BaseTimestampEntity{
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
 
-    public Replenishment(Product product, Task task, Integer requestedQuantity, Status status, Location destinationLocation) {
-        this.product = product;
-        this.task = task;
-        this.requestedQuantity = requestedQuantity;
-        this.status = status;
-        this.destinationLocation = destinationLocation;
-    }
-
     public Replenishment(Task task, Product product, Integer requestedQuantity, Location destinationLocation) {
         this.task = task;
         this.product = product;

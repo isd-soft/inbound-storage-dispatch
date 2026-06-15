@@ -4,6 +4,7 @@ import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.dto.location.ShortLocationProjection;
+import com.isd.wms.exception.DuplicateLocationCodeException;
 import com.isd.wms.service.LocationService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -25,10 +27,16 @@ public class LocationController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<LocationResponse> createLocation(@Valid @RequestBody LocationCreateRequest request) {
+    public ResponseEntity<?> createLocation(@Valid @RequestBody LocationCreateRequest request) {
         log.info("REST request to create Location: {}", request.name());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(locationService.createLocation(request));
+        try {
+            LocationResponse response = locationService.createLocation(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (DuplicateLocationCodeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping
@@ -48,17 +56,29 @@ public class LocationController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public LocationResponse updateLocation(@PathVariable Long id,
-                                           @Valid @RequestBody LocationUpdateRequest request) {
+    public ResponseEntity<?> updateLocation(@PathVariable Long id, @Valid @RequestBody LocationUpdateRequest request) {
         log.info("REST request to update Location with ID: {}", id);
-        return locationService.updateLocation(id, request);
+        try {
+            LocationResponse response = locationService.updateLocation(id, request);
+            return ResponseEntity.ok(response);
+        } catch (DuplicateLocationCodeException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<Void> deleteLocation(@PathVariable Long id) {
+    public ResponseEntity<?> deleteLocation(@PathVariable Long id) {
         log.warn("REST request to DELETE Location with ID: {}", id);
-        locationService.deleteLocation(id);
-        return ResponseEntity.noContent().build();
+        try {
+            locationService.deleteLocation(id);
+            return ResponseEntity.ok(Map.of("message", "Location successfully deleted"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

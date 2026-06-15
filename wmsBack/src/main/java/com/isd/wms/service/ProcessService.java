@@ -1,23 +1,25 @@
 package com.isd.wms.service;
 
-import com.isd.wms.repository.projections.OperatorProcessProjection;
 import com.isd.wms.dto.process.ProcessOperatorResponse;
 import com.isd.wms.dto.process.ProcessResponse;
 import com.isd.wms.dto.process.ShortProcessResponse;
 import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.mapper.ProcessMapper;
-import com.isd.wms.exception.UserNotFoundException;
+import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.ProcessRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,20 +33,8 @@ public class ProcessService {
     private final WorkflowService workflowService;
     private final SecurityFacade securityFacade;
     private final ProcessMapper processMapper;
-    private final OrderService orderService;
-
-//    public List<ProcessOperatorResponse> getAvailableProcesses() {
-//        List<Process> processes = processRepository.findByStatus(Status.CREATED);
-//        return processes.stream().map(processMapper::toResponse).toList();
-//    }
-
-//    public List<ProcessOperatorResponse> getMyProcesses() {
-//        User operator = securityFacade.getCurrentUser();
-//
-//        List<Process> processes = processRepository.findByOperatorAndStatuses(
-//                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS));
-//        return processes.stream().map(processMapper::toResponse).toList();
-//    }
+    private final OrderLineRepository orderLineRepository;
+    private final ReplenishmentRepository replenishmentRepository;
 
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
@@ -87,29 +77,59 @@ public class ProcessService {
         String username = securityFacade.getCurrentUsername();
         log.debug("Fetching current active process dashboard data for operator user: '{}'", username);
 
-        OperatorProcessProjection info = getProcessForOperator(username);
-        Long oldestOrder = info.getOldestOrderId();
-        Integer total = processRepository.countProcessesInOrder(oldestOrder);
-        Integer current = processRepository.countCompletedProcessesInOrder(oldestOrder) + 1;
+        Process process = getProcessForOperator(username);
+        Task task = process.getTask();
+        TaskType taskType = task.getTaskType();
 
-        log.debug("Dashboard payload calculated for operator '{}'. Order ID: {}, Progress: {}/{}",
-            username, oldestOrder, current, total);
+        Integer total = processRepository.findAllByTaskId(task.getId()).size();
+        Integer current = Math.toIntExact(processRepository.findAllByTaskId(task.getId()).stream()
+            .filter(taskProcess -> taskProcess.getStatus() == Status.COMPLETED)
+            .count()) + 1;
+        
+        String logicalId = null;
+        String destinationLocationBarcode = null;
+
+        if (taskType == TaskType.PICKING_ORDER) {
+            OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
+                .orElseThrow(() -> {
+                    log.warn("Dashboard lookup empty: No active assigned processes found for operator '{}'", username);
+                    return new ProcessesNotFoundException(username);
+                });
+            Order order = orderLine.getOrder();
+            logicalId = order.getLogicId();
+            destinationLocationBarcode = order.getDestinationLocation().getBarcode();
+            total = processRepository.countProcessesInOrder(order.getId());
+            current = processRepository.countCompletedProcessesInOrder(order.getId()) + 1;
+        } else if (taskType == TaskType.REPLENISHMENT) {
+            Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
+                .orElseThrow(() -> {
+                    log.warn("Dashboard lookup empty: No active replenishment tasks found for operator '{}'", username);
+                    return new ProcessesNotFoundException(username);
+                });
+            destinationLocationBarcode = replenishment.getDestinationLocation().getBarcode();
+        }
+
+        log.debug("Dashboard payload calculated for operator '{}'. Task Type: {}, Progress: {}/{}",
+            username, taskType, current, total);
 
         return new ProcessOperatorResponse(
-            total, current, info.getOrderName(),
+            total, current, logicalId, taskType.name(), destinationLocationBarcode,
             new ShortProcessResponse(
-                info.getProcessId(),
-                info.getProductName(),
-                info.getProductBarcode(),
-                info.getLocationName(),
-                info.getLocationBarcode(),
-                info.getQuantity()
+                process.getId(),
+                process.getStock().getProduct().map(product -> product.getName()).orElse(null),
+                process.getStock().getProduct().map(product -> product.getBarcode()).orElse(null),
+                process.getStock().getLocation().getName(),
+                process.getStock().getLocation().getBarcode(),
+                process.getQuantity()
             )
         );
     }
 
-    private @NonNull OperatorProcessProjection getProcessForOperator(String username) {
-        return processRepository.getProcessInfoForOperator(username)
+    private Process getProcessForOperator(String username) {
+        return processRepository.findFirstByTask_Operator_UsernameAndStatusInOrderByCreatedAtAscIdAsc(
+                username,
+                java.util.List.of(Status.ASSIGNED, Status.IN_PROGRESS)
+            )
             .orElseThrow(() -> {
                 log.warn("Dashboard lookup empty: No active assigned processes found for operator '{}'", username);
                 return new ProcessesNotFoundException(username);

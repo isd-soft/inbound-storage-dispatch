@@ -24,6 +24,7 @@
             optionLabel="locationCode"
             optionValue="id"
             placeholder="Select a location"
+            filter
             fluid
             :class="{ 'p-invalid': submitted && !formData.location }"
           />
@@ -50,6 +51,7 @@
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Choose product"
+                filter
                 @change="line.quantity = 1"
                 fluid
                 :class="{ 'p-invalid': submitted && !line.product }"
@@ -132,8 +134,14 @@ const loadOrderCreateData = async () => {
       orderApi.getProducts(),
       orderApi.getLocationsForDispatch(),
     ])
-    products.value = productsResponse.data
-    locations.value = locationsResponse.data
+    products.value = (productsResponse.data || []).map((product) => ({
+      ...product,
+      sku: product.sku || product.barcode || product.code || product.productCode || ''
+    }))
+    locations.value = (locationsResponse.data || []).map((location) => ({
+      ...location,
+      locationCode: location.locationCode || location.barcode || location.code || location.location || ''
+    }))
   } catch (error) {
     toast.add({
       severity: 'error',

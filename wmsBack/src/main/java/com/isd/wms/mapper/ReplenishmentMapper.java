@@ -21,6 +21,7 @@ public class ReplenishmentMapper {
                 replenishment.getRequestedQuantity(),
                 replenishment.getStatus(),
                 destinationLocation.getId(),
+                task.getOperator().map(operator -> operator.getId()).orElse(null),
                 replenishment.getCreatedAt()
         );
     }

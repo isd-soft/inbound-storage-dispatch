@@ -11,6 +11,7 @@ import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InsufficientStockException;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -24,9 +25,10 @@ import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
-import java.time.Instant;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,14 +44,15 @@ public class InventoryService {
     private final InventoryHistoryRepository inventoryHistoryRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
-    private final UserRepository UserRepository;
+    private final UserRepository userRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
+    private final ReplenishmentService replenishmentService;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAll().stream()
-                .map(stockMapper::toResponse)
-                .toList();
+            .map(stockMapper::toResponse)
+            .toList();
     }
 
     public StockResponse getStockById(Long stockId) {
@@ -79,7 +82,7 @@ public class InventoryService {
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, request.getQuantity(), savedStock.getQuantity(), null, location,
-                InventoryOperationType.ADD_STOCK, user);
+            InventoryOperationType.ADD_STOCK, user);
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
     }
@@ -96,7 +99,7 @@ public class InventoryService {
 
         if (request.getQuantity() > availableQuantity) {
             log.warn("Insufficient unreserved stock: stockId={}, requestedQuantity={}, availableQuantity={}, reservedQuantity={}, userId={}",
-                    stock.getId(), request.getQuantity(), availableQuantity, stock.getReservedQuantity(), request.getUserId());
+                stock.getId(), request.getQuantity(), availableQuantity, stock.getReservedQuantity(), request.getUserId());
             throw new InsufficientStockException(stock.getId(), request.getQuantity(), availableQuantity);
         }
 
@@ -105,7 +108,10 @@ public class InventoryService {
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, -request.getQuantity(), finalQuantity, savedStock.getLocation(), null,
-                InventoryOperationType.REMOVE_STOCK, user);
+            InventoryOperationType.REMOVE_STOCK, user);
+
+        triggerReplenishmentCheck(savedStock);
+
         log.info("Stock removed successfully: stockId={}, finalQuantity={}", savedStock.getId(), finalQuantity);
         return stockMapper.toResponse(savedStock);
     }
@@ -119,7 +125,7 @@ public class InventoryService {
 
         if (request.getNewQuantity() < stock.getReservedQuantity()) {
             log.warn("Cannot adjust stock below reserved quantity: stockId={}, newQuantity={}, reservedQuantity={}",
-                    stock.getId(), request.getNewQuantity(), stock.getReservedQuantity());
+                stock.getId(), request.getNewQuantity(), stock.getReservedQuantity());
             throw new InvalidRequestException("Cannot adjust quantity below currently reserved quantity (" + stock.getReservedQuantity() + ")");
         }
 
@@ -130,16 +136,21 @@ public class InventoryService {
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, alteredQuantity, request.getNewQuantity(), savedStock.getLocation(), savedStock.getLocation(),
-                InventoryOperationType.ADJUST_STOCK, user);
+            InventoryOperationType.ADJUST_STOCK, user);
+
+        if (alteredQuantity < 0) {
+            triggerReplenishmentCheck(savedStock);
+        }
+
         log.info("Stock adjusted successfully: stockId={}, oldQuantity={}, newQuantity={}, alteredQuantity={}",
-                savedStock.getId(), oldQuantity, request.getNewQuantity(), alteredQuantity);
+            savedStock.getId(), oldQuantity, request.getNewQuantity(), alteredQuantity);
         return stockMapper.toResponse(savedStock);
     }
 
     public List<InventoryHistoryResponse> getAllHistory() {
         return inventoryHistoryRepository.findAll().stream()
-                .map(inventoryHistoryMapper::toResponse)
-                .toList();
+            .map(inventoryHistoryMapper::toResponse)
+            .toList();
     }
 
     public List<InventoryHistoryResponse> getHistoryForStock(Long stockId) {
@@ -149,11 +160,11 @@ public class InventoryService {
 
         log.debug("Fetching inventory operation history for Stock ID: {} (Product ID: {}, Location ID: {})", stockId, productId, locationId);
         return inventoryHistoryRepository
-                .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
-                        productId, locationId, productId, locationId)
-                .stream()
-                .map(inventoryHistoryMapper::toResponse)
-                .toList();
+            .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
+                productId, locationId, productId, locationId)
+            .stream()
+            .map(inventoryHistoryMapper::toResponse)
+            .toList();
     }
 
     @Transactional
@@ -161,17 +172,17 @@ public class InventoryService {
         log.info("Recording history for background operation PICKING: Stock ID={}, Quantity picked={}, User='{}'",
             stock.getId(), pickedQuantity, user.getUsername());
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
-                InventoryOperationType.PICKING, user);
+            InventoryOperationType.PICKING, user);
     }
 
     private void createHistory(
-            Stock stock,
-            Integer alteredQuantity,
-            Integer quantityAfterChange,
-            Location sourceLocation,
-            Location destinationLocation,
-            InventoryOperationType operationType,
-            User user
+        Stock stock,
+        Integer alteredQuantity,
+        Integer quantityAfterChange,
+        Location sourceLocation,
+        Location destinationLocation,
+        InventoryOperationType operationType,
+        User user
     ) {
         Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
@@ -187,6 +198,18 @@ public class InventoryService {
         history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);
         log.debug("Inventory history record saved successfully. Operation: {}, Delta: {}, Final: {}", operationType, alteredQuantity, quantityAfterChange);
+    }
+
+    private void triggerReplenishmentCheck(Stock stock) {
+        Product product = stock.getProduct().orElse(null);
+        if (product == null) return;
+
+        if (stock.getLocation().getZone() != Zone.PICKING) {
+            return;
+        }
+        int locationQty = stock.getQuantity() - stock.getReservedQuantity();
+
+        replenishmentService.checkAndTriggerAutoReplenishment(product, stock.getLocation(), locationQty);
     }
 
     private Stock getStock(Long stockId) {
@@ -214,7 +237,9 @@ public class InventoryService {
     }
 
     private User getUser(Long userId) {
-        return UserRepository.findById(userId)
+        // Folosim corect 'userRepository' (instanța injectată mică) în loc de clasa statică,
+        // păstrând totodată log-ul detaliat de integritate din feat/backlogging.
+        return userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("Security integrity failure: User record not found for ID: {}", userId);
                     return new UserNotFoundException(userId);

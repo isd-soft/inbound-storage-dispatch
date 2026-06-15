@@ -16,6 +16,12 @@ export const orderApi = {
   delete(id) {
     return apiClient.delete(`/v1/orders/${id}`)
   },
+  assign(orderId, operatorId) {
+    return apiClient.post(`/v1/orders/${orderId}/operators/${operatorId}`)
+  },
+  assignTask(taskId, operatorId) {
+    return apiClient.post(`/tasks/${taskId}/operators/${operatorId}`)
+  },
   getProducts() {
     return apiClient.get('/products/quantities')
   },

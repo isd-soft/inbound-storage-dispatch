@@ -72,8 +72,10 @@ public class ProcessController {
 
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ProcessExecutionResponse completeAssignedProcess(@PathVariable Long id) {
+    public ProcessCompletionResponse completeAssignedProcess(@PathVariable Long id) {
+        // Am păstrat log-ul din branch-ul tău (feat/backlogging)
         log.info("REST request to COMPLETE Assigned Process ID: {}", id);
+        // Tipul de retur este cel nou din main (ProcessCompletionResponse)
         return processExecutionService.completeProcess(id);
     }
 }

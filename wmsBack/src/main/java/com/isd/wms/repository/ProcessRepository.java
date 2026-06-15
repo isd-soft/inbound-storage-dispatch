@@ -27,12 +27,9 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
 
     @Query(value = """
         with oldest_process as (select p.id as process_id from processes p
-                                       left join order_lines ol on ol.task_id = p.task_id
-                                       left join orders o on ol.order_id = o.id
-                                       left join tasks t on t.id = ol.task_id
-                                       left join users u on t.operator_id = u.id
+                                       join tasks t on t.id = p.task_id
+                                       join users u on t.operator_id = u.id
                               where u.username = :userName
-                                and o.status in ('ASSIGNED', 'IN_PROGRESS')
                                 and p.status in ('ASSIGNED', 'IN_PROGRESS')
                               order by p.created_at, p.id
                               limit 1)
@@ -42,6 +39,11 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     returning p.id
     """, nativeQuery = true)
     Optional<Long> findOldestAssignedProcessId(String username);
+
+    Optional<Process> findFirstByTask_Operator_UsernameAndStatusInOrderByCreatedAtAscIdAsc(
+        String username,
+        List<Status> statuses
+    );
 
     @Query("""
         SELECT p FROM Process p
@@ -105,4 +107,19 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     Optional<OperatorProcessProjection> getProcessInfoForOperator(
         @Param("userName") String currentUsername
     );
+
+    @Modifying
+    @Query(value = """
+        WITH p_by_order AS (
+            SELECT DISTINCT p.* FROM processes p
+            JOIN order_lines o ON o.task_id = p.task_id
+            WHERE o.order_id = :orderId)
+
+        UPDATE processes p
+            SET status = :status
+            WHERE p.id = ANY(SELECT * FROM p_by_order)
+    """, nativeQuery = true)
+    int updateStatusByOrderId(
+        @Param("orderId") Long orderId,
+        @Param("status") Status status);
 }

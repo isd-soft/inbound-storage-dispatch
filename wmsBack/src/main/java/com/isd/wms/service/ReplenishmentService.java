@@ -10,6 +10,7 @@ import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,18 +32,16 @@ public class ReplenishmentService {
     private final WorkflowService workflowService;
     private final TaskService taskService;
 
-    private static final List<Status> TERMINAL_STATUSES = List.of(
-            Status.COMPLETED);
+    private static final List<Status> TERMINAL_STATUSES = List.of(Status.COMPLETED);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
         log.info("Creating replenishment: productId={}, requestedQuantity={}, destinationLocationId={}",
-                request.productId(), request.requestedQuantity(), request.destinationLocationId());
+            request.productId(), request.requestedQuantity(), request.destinationLocationId());
 
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        validateDestinationStockIsZero(product, destinationLocation);
         validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), null);
 
         log.debug("Triggering automatic background task creation of type REPLENISHMENT for Product '{}'", product.getName());
@@ -94,22 +93,44 @@ public class ReplenishmentService {
         return replenishmentMapper.toResponse(updatedReplenishment);
     }
 
+    @Transactional
+    public void checkAndTriggerAutoReplenishment(Product product, Location location, int locationQty) {
+        if (!Boolean.TRUE.equals(product.getAutoReplenish())) return;
+        if (product.getMinThreshold() == null || product.getReplenishQty() == null) return;
+
+        if (locationQty <= product.getMinThreshold()) {
+            boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(
+                product.getId(), location.getId(), TERMINAL_STATUSES
+            );
+
+            if (!hasActive) {
+                log.info("Auto-triggering replenishment for product {} at location {} (Location Qty: {}, Threshold: {})",
+                    product.getBarcode(), location.getBarcode(), locationQty, product.getMinThreshold());
+
+                ReplenishmentCreateRequest req = new ReplenishmentCreateRequest(
+                    product.getId(), product.getReplenishQty(), location.getId()
+                );
+                createReplenishment(req);
+            }
+        }
+    }
+
     private void validateNoActiveReplenishment(Long productId, Long locationId, Long excludeReplenishmentId) {
         boolean hasDuplicate;
 
         if (excludeReplenishmentId == null) {
             hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-                    productId, locationId, TERMINAL_STATUSES
+                productId, locationId, TERMINAL_STATUSES
             );
         } else {
             hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
-                    productId, locationId, TERMINAL_STATUSES, excludeReplenishmentId
+                productId, locationId, TERMINAL_STATUSES, excludeReplenishmentId
             );
         }
 
         if (hasDuplicate) {
             log.warn("Replenishment rejected: An active replenishment task already exists for productId={} and locationId={}",
-                    productId, locationId);
+                productId, locationId);
             throw new InvalidRequestException("An active replenishment task for this product and destination location already exists.");
         }
     }
@@ -141,17 +162,17 @@ public class ReplenishmentService {
 
     public List<ReplenishmentResponse> getAllReplenishments() {
         return replenishmentRepository.findAll().stream()
-                .map(replenishmentMapper::toResponse)
-                .toList();
+            .map(replenishmentMapper::toResponse)
+            .toList();
     }
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
         List<Replenishment> tasks = replenishmentRepository.filter(
-                request.taskId(),
-                request.productId(),
-                request.requestedQuantity(),
-                request.status(),
-                request.destinationLocationId()
+            request.taskId(),
+            request.productId(),
+            request.requestedQuantity(),
+            request.status(),
+            request.destinationLocationId()
         );
 
         return tasks.stream().map(replenishmentMapper::toResponse).toList();

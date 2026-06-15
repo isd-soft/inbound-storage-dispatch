@@ -13,6 +13,7 @@ import HistoryView from '../views/supervisor/HistoryView.vue'
 import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
 import DevDashboard from '../views/dev/DevDashboard.vue'
+import VerifyEmailView from '../views/auth/VerifyEmailView.vue'
 import OrderForm from '@/views/supervisor/OrderForm.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
 
@@ -36,9 +37,11 @@ const router = createRouter({
     },
     {
       path: '/access-denied',
-      name: 'access-denied',
-      component: AccessDeniedPage,
+      component: SupervisorLayout,
       meta: { requiresAuth: true },
+      children: [
+        { path: '', name: 'access-denied', component: AccessDeniedPage }
+      ]
     },
     {
       path: '/supervisor',
@@ -54,21 +57,30 @@ const router = createRouter({
         { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'order-form', name: 'order-form', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'operator', name: 'supervisor-operator', component: OperatorConsole, meta: { roles: [DEV] } },
         { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
       ]
     },
     {
       path: '/operator',
-      name: 'operator',
-      component: OperatorConsole,
-      meta: { requiresAuth: true, roles: [OPERATOR, DEV] },
+      component: SupervisorLayout,
+      meta: { requiresAuth: true, roles: [OPERATOR] },
+      children: [
+        { path: '', name: 'operator', component: OperatorConsole, meta: { roles: [OPERATOR] } }
+      ]
+    },
+    {
+      path: '/verify',
+      name: 'verify',
+      component: VerifyEmailView,
+      meta: { guestOnly: true },
     },
     {
       path: '/dev',
-      name: 'dev',
-      component: DevDashboard,
+      component: SupervisorLayout,
       meta: { requiresAuth: true, roles: [DEV] },
+      children: [
+        { path: '', name: 'dev', component: DevDashboard, meta: { roles: [DEV] } }
+      ]
     },
   ],
 })

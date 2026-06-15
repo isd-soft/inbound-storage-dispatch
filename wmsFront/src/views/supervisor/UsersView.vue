@@ -1,86 +1,165 @@
 <template>
   <div class="p-6">
     <Toast />
-
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="app-title text-2xl font-bold">System Users</h2>
-      <Button label="Add User" icon="pi pi-user-plus" severity="success" @click="openCreateDialog" />
-    </div>
-
-    <Card class="bg-gray-800 border-none shadow-lg">
-      <template #content>
-        <DataTable
-          :value="users"
+    <ConfirmDialog />
+    <AppDataTable
+      v-model:selection="selectedUsers"
+      :value="users"
+      :loading="loading"
+      :filterFields="userFilterFields"
+      stripedRows
+      class="p-datatable-sm"
+      emptyMessage="No users found."
+    >
+      <template #toolbar>
+        <Button
+          icon="pi pi-refresh"
+          size="small"
+          severity="secondary"
+          outlined
           :loading="loading"
-          stripedRows
-          class="p-datatable-sm"
-          emptyMessage="No users found."
-        >
-          <Column field="id" header="ID"></Column>
-          <Column field="username" header="Username" sortable></Column>
-          <Column field="email" header="Email"></Column>
-          <Column field="userRole" header="Role" sortable>
-            <template #body="{ data }">
-              <Tag :severity="getRoleSeverity(data.userRole)" :value="data.userRole" />
-            </template>
-          </Column>
-          <Column header="Actions">
-            <template #body="{ data }">
-              <Button
-                v-if="isDev"
-                icon="pi pi-pencil"
-                outlined
-                rounded
-                size="small"
-                class="mr-2"
-                severity="warning"
-                @click="openEditDialog(data)"
-              />
-              <Button
-                v-if="canDelete(data)"
-                icon="pi pi-trash"
-                outlined
-                rounded
-                severity="danger"
-                size="small"
-                @click="deleteUser(data)"
-              />
-            </template>
-          </Column>
-        </DataTable>
+          aria-label="Refresh"
+          @click="loadUsers"
+        />
+        <Button
+          label="Create"
+          icon="pi pi-user-plus"
+          severity="success"
+          @click="openCreateDialog"
+        />
+        <Button
+          :label="editMode ? 'Exit Edit' : 'Edit'"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          @click="toggleEditMode"
+        />
+        <Button
+          v-if="editMode && isDev"
+          label="Edit Selected"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          :disabled="selectedUsers.length !== 1"
+          @click="openEditDialog(selectedUsers[0])"
+        />
+        <Button
+          v-if="editMode"
+          label="Delete Selected"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :disabled="!deletableSelectedUsers.length"
+          @click="deleteSelectedUsers"
+        />
+        <span v-if="editMode" class="app-muted text-sm">{{ selectedUsers.length }} selected</span>
       </template>
-    </Card>
+      <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+      <Column field="username" header="Username" sortable filter>
+        <template #body="{ data }">
+          <span class="app-title font-semibold">{{ data.username }}</span>
+        </template>
+      </Column>
+      <Column field="email" header="Email" filter></Column>
+      <Column field="userRole" header="Role" sortable filter>
+        <template #body="{ data }">
+          <Tag :severity="getRoleSeverity(data.userRole)" :value="data.userRole" />
+        </template>
+      </Column>
+    </AppDataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="dialogMode === 'add' ? 'Register New User' : 'Edit User'" :modal="true" class="p-fluid w-full max-w-md">
-
-      <div class="field mb-4">
-        <label for="username" class="block text-sm font-medium mb-1">Username *</label>
-        <InputText id="username" v-model="formData.username" required autofocus />
-      </div>
-
-      <template v-if="dialogMode === 'add'">
-        <div class="field mb-4">
-          <label for="email" class="block text-sm font-medium mb-1">Email *</label>
-          <InputText id="email" type="email" v-model="formData.email" required />
+    <Dialog
+      v-model:visible="dialogVisible"
+      :header="dialogMode === 'add' ? 'Register New User' : 'Edit User'"
+      :modal="true"
+      class="w-full max-w-md"
+    >
+      <div class="flex flex-col gap-4 mt-2">
+        <div class="flex flex-col gap-2">
+          <label for="username" class="app-subtitle font-medium"
+            >Username <span class="text-red-500">*</span></label
+          >
+          <InputText id="username" v-model="formData.username" required autofocus class="w-full" />
         </div>
 
-        <div class="field mb-4">
-          <label for="password" class="block text-sm font-medium mb-1">Password *</label>
-          <Password id="password" v-model="formData.password" :feedback="false" toggleMask required />
-        </div>
-      </template>
+        <template v-if="dialogMode === 'add'">
+          <div class="flex flex-col gap-2">
+            <label for="email" class="app-subtitle font-medium"
+              >Email <span class="text-red-500">*</span></label
+            >
+            <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
+          </div>
 
-      <div class="field mb-4">
-        <label for="role" class="block text-sm font-medium mb-1">Role *</label>
-        <Dropdown id="role" v-model="formData.userRole" :options="roles" placeholder="Select a Role" />
+          <div class="flex flex-col gap-2">
+            <label for="password" class="app-subtitle font-medium"
+              >Password <span class="text-red-500">*</span></label
+            >
+            <Password
+              id="password"
+              v-model="formData.password"
+              toggleMask
+              required
+              promptLabel="Choose a password"
+              weakLabel="Weak password"
+              mediumLabel="Medium strength"
+              strongLabel="Strong password"
+              :mediumRegex="passwordMediumRegex"
+              :strongRegex="passwordStrongRegex"
+              inputClass="w-full"
+              class="w-full"
+            />
+            <small class="text-gray-500 text-xs">
+              Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char (@$!%*?&_#).
+            </small>
+          </div>
+
+          <!-- Câmpul de Confirmare Parolă -->
+          <div class="flex flex-col gap-2">
+            <label for="confirmPassword" class="app-subtitle font-medium"
+              >Confirm Password <span class="text-red-500">*</span></label
+            >
+            <Password
+              id="confirmPassword"
+              v-model="confirmPassword"
+              :feedback="false"
+              toggleMask
+              required
+              inputClass="w-full"
+              class="w-full"
+            />
+            <small v-if="confirmPassword && !isPasswordMatching" class="text-red-500">
+              Passwords do not match.
+            </small>
+          </div>
+        </template>
+
+        <div class="flex flex-col gap-2">
+          <label for="role" class="app-subtitle font-medium"
+            >Role <span class="text-red-500">*</span></label
+          >
+          <Dropdown
+            id="role"
+            v-model="formData.userRole"
+            :options="roles"
+            placeholder="Select a Role"
+            filter
+            class="w-full"
+          />
+        </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="dialogVisible = false" />
+        <Button
+          label="Cancel"
+          icon="pi pi-times"
+          text
+          severity="secondary"
+          @click="dialogVisible = false"
+        />
         <Button
           :label="dialogMode === 'add' ? 'Register' : 'Save Changes'"
           icon="pi pi-check"
-          severity="success"
+          :severity="dialogMode === 'add' ? 'success' : 'warning'"
           :loading="actionLoading"
           @click="submitAction"
           :disabled="!isFormValid"
@@ -93,6 +172,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -104,20 +184,36 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Dropdown from 'primevue/dropdown'
 import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 
 import { userApi } from '@/api/userApi'
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
+const confirm = useConfirm()
 const authStore = useAuthStore()
 
 const users = ref([])
+const selectedUsers = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref('add')
+const editMode = ref(false)
+
+const confirmPassword = ref('')
+
+const passwordMediumRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,64}$'
+const passwordStrongRegex =
+  '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_#])[A-Za-z\\d@$!%*?&_#]{8,64}$'
 
 const isDev = computed(() => authStore.role === 'ROLE_DEV')
+const deletableSelectedUsers = computed(() => selectedUsers.value.filter(canDelete))
+const userFilterFields = [
+  { field: 'username', label: 'Username' },
+  { field: 'email', label: 'Email' },
+  { field: 'userRole', label: 'Role' },
+]
 
 const formData = ref({
   id: null,
@@ -125,7 +221,7 @@ const formData = ref({
   email: '',
   password: '',
   userRole: null,
-  originalRole: null
+  originalRole: null,
 })
 
 const roles = computed(() => {
@@ -135,12 +231,25 @@ const roles = computed(() => {
   return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR']
 })
 
+const isPasswordMatching = computed(() => {
+  return formData.value.password === confirmPassword.value
+})
+
+const isPasswordStrongEnough = computed(() => {
+  const regex = new RegExp(passwordStrongRegex)
+  return regex.test(formData.value.password)
+})
+
 const isFormValid = computed(() => {
   if (dialogMode.value === 'add') {
-    return formData.value.username.trim() &&
+    return (
+      formData.value.username.trim() &&
       formData.value.email.trim() &&
       formData.value.password.trim() &&
+      isPasswordStrongEnough.value &&
+      isPasswordMatching.value &&
       formData.value.userRole
+    )
   } else {
     return formData.value.username.trim() && formData.value.userRole
   }
@@ -173,19 +282,33 @@ const loadUsers = async () => {
 
 const openCreateDialog = () => {
   dialogMode.value = 'add'
-  formData.value = { id: null, username: '', email: '', password: '', userRole: null, originalRole: null }
+  confirmPassword.value = ''
+  formData.value = {
+    id: null,
+    username: '',
+    email: '',
+    password: '',
+    userRole: null,
+    originalRole: null,
+  }
   dialogVisible.value = true
+}
+
+const toggleEditMode = () => {
+  editMode.value = !editMode.value
+  selectedUsers.value = []
 }
 
 const openEditDialog = (user) => {
   dialogMode.value = 'edit'
+  confirmPassword.value = ''
   formData.value = {
     id: user.id,
     username: user.username,
     email: '',
     password: '',
     userRole: user.userRole,
-    originalRole: user.userRole
+    originalRole: user.userRole,
   }
   dialogVisible.value = true
 }
@@ -199,7 +322,11 @@ const submitAction = async () => {
 }
 
 const handleBackendError = (error) => {
-  if (error.response?.status === 400 && typeof error.response.data === 'object' && !error.response.data.error) {
+  if (
+    error.response?.status === 400 &&
+    typeof error.response.data === 'object' &&
+    !error.response.data.error
+  ) {
     for (const [field, msg] of Object.entries(error.response.data)) {
       toast.add({ severity: 'error', summary: `Invalid ${field}`, detail: msg, life: 6000 })
     }
@@ -216,10 +343,15 @@ const registerUser = async () => {
       username: formData.value.username,
       email: formData.value.email,
       password: formData.value.password,
-      userRole: formData.value.userRole
+      userRole: formData.value.userRole,
     }
     await userApi.register(payload)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User registered successfully', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'User registered successfully',
+      life: 3000,
+    })
     dialogVisible.value = false
     await loadUsers()
   } catch (error) {
@@ -234,10 +366,15 @@ const updateUser = async () => {
   try {
     const payload = {
       username: formData.value.username,
-      userRole: formData.value.userRole
+      userRole: formData.value.userRole,
     }
     await userApi.update(formData.value.id, payload)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User updated successfully', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'User updated successfully',
+      life: 3000,
+    })
     dialogVisible.value = false
     await loadUsers()
   } catch (error) {
@@ -247,20 +384,31 @@ const updateUser = async () => {
   }
 }
 
-const deleteUser = async (user) => {
-  const confirmed = confirm(`Are you sure you want to permanently delete user '${user.username}'?`)
-  if (!confirmed) return
-
-  loading.value = true
-  try {
-    await userApi.delete(user.id)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted successfully', life: 3000 })
-    await loadUsers()
-  } catch (error) {
-    handleBackendError(error)
-  } finally {
-    loading.value = false
-  }
+const deleteSelectedUsers = () => {
+  confirm.require({
+    message: `Delete ${deletableSelectedUsers.value.length} selected user(s)?`,
+    header: 'Delete Selected Users',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      loading.value = true
+      try {
+        await Promise.all(deletableSelectedUsers.value.map((user) => userApi.delete(user.id)))
+        toast.add({
+          severity: 'success',
+          summary: 'Deleted',
+          detail: `${deletableSelectedUsers.value.length} user(s) deleted.`,
+          life: 3000,
+        })
+        selectedUsers.value = []
+        await loadUsers()
+      } catch (error) {
+        handleBackendError(error)
+      } finally {
+        loading.value = false
+      }
+    },
+  })
 }
 
 onMounted(() => {

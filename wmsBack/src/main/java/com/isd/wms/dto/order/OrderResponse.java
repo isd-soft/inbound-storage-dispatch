@@ -11,7 +11,22 @@ public record OrderResponse(
         String logicId,
         Long destinationLocationId,
         OrderStatus Status,
+        Long assignedOperatorId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+    public OrderResponse(
+            Long id,
+            String logicId,
+            Long destinationLocationId,
+            OrderStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this(id, logicId, destinationLocationId, status, null, createdAt, updatedAt);
+    }
+
+    public OrderStatus status() {
+        return Status;
+    }
 }

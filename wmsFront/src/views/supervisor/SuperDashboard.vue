@@ -7,7 +7,7 @@
       </div>
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <span v-if="lastUpdatedLabel" class="app-muted text-xs">Last updated: {{ lastUpdatedLabel }}</span>
-        <Button label="Refresh" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadDashboard" />
+        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadDashboard" />
       </div>
     </div>
 

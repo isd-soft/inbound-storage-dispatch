@@ -2,30 +2,30 @@ import apiClient from './index'
 
 export const processApi = {
   getAvailable() {
-    return apiClient.get('/processes/available')
+    return apiClient.get('/v1/processes/operators')
   },
   getMy() {
-    return apiClient.get('/processes/my')
+    return apiClient.get('/v1/processes/operators')
   },
   getAssignedExecutions() {
-    return apiClient.get('/processes/assigned')
+    return apiClient.get('/v1/processes/operators')
   },
   assign(processId) {
-    return apiClient.patch(`/processes/${processId}/assign`)
+    return apiClient.post('/v1/processes/start')
   },
-  start(processId) {
-    return apiClient.post(`/processes/${processId}/start`)
+  start() {
+    return apiClient.post('/v1/processes/start')
   },
   scanSourceLocation(processId, barcode) {
-    return apiClient.post(`/processes/${processId}/location`, { barcode })
+    return apiClient.post(`/v1/processes/${processId}/location`, { barcode })
   },
   scanProduct(processId, barcode) {
-    return apiClient.post(`/processes/${processId}/product`, { barcode })
+    return apiClient.post(`/v1/processes/${processId}/product`, { barcode })
   },
   confirmPickedQuantity(processId, pickedQuantity) {
-    return apiClient.post(`/processes/${processId}/confirm-quantity`, { pickedQuantity })
+    return apiClient.post(`/v1/processes/${processId}/confirm-quantity`, { pickedQuantity })
   },
   complete(processId) {
-    return apiClient.post(`/processes/${processId}/complete`)
+    return apiClient.post(`/v1/processes/${processId}/complete`)
   }
 }

@@ -2,7 +2,11 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.entity.*;
+import com.isd.wms.entity.Location;
+import com.isd.wms.entity.Order;
+import com.isd.wms.entity.User;
+import com.isd.wms.entity.Task;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -21,18 +25,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.List;
 
 @Slf4j
-@RequiredArgsConstructor
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class OrderService {
     private final ExtendedOrderMapper extendedOrderMapper;
     private final OrderMapper orderMapper;
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
-    private final UserRepository userRepository;
     private final ProcessRepository processRepository;
     private final TaskRepository taskRepository;
+    private final OrderLineRepository orderLineRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -40,7 +45,7 @@ public class OrderService {
             request.order().logicId(), request.lines().size());
 
         Order order = addOrder(request.order());
-        for (OrderLineCreateRequest oRequest: request.lines()) {
+        for (OrderLineCreateRequest oRequest : request.lines()) {
             oRequest = new OrderLineCreateRequest(oRequest, order.getId());
             orderLineService.addOrderLine(order, oRequest);
         }
@@ -60,7 +65,7 @@ public class OrderService {
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
         log.info("Request to update Order ID: {}. New Status target: {}", id, request.status());
 
-        if (!request.status().equals(Status.CREATED)) {
+        if (!request.status().equals(OrderStatus.CREATED)) {
             log.warn("Order update rejected for ID: {}. Status change to '{}' is invalid (Must be CREATED)", id, request.status());
             throw new InvalidRequestException("Order status must be CREATED");
         }
@@ -69,6 +74,7 @@ public class OrderService {
         String oldLogicId = order.getLogicId();
 
         order.setLogicId(request.logicId());
+        order.setDestinationLocation(getLocation(request.destinationLocationId()));
         order.setStatus(request.status());
 
         Order savedOrder = orderRepository.save(order);
@@ -91,8 +97,8 @@ public class OrderService {
 
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream()
-                .map(orderMapper::toResponse)
-                .toList();
+            .map(orderMapper::toResponse)
+            .toList();
     }
 
     public OrderResponse getOrderById(@NonNull Long orderId) {
@@ -111,25 +117,20 @@ public class OrderService {
     public void assignOrder(Long orderId, Long operatorId) {
         log.info("Initiating Order assignment. Order ID: {} -> Operator ID: {}", orderId, operatorId);
 
-        Order order = getOrder(orderId);
-        User operator = getUser(operatorId);
-
-        List<Task> tasks = getAllTasksByOrder(order);
-
-        if (tasks.isEmpty()) {
-            log.warn("Potential configuration issue: Order ID {} has 0 tasks associated. No tasks were assigned to Operator '{}'", orderId, operator.getUsername());
-        } else {
-            log.info("Assigning {} tasks from Order ID: {} to Operator: '{}'", tasks.size(), orderId, operator.getUsername());
+        int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
+        if (updated == 0) {
+            throw new OrderNotFoundException(orderId);
         }
+        log.info("Updated order with id {}", orderId);
 
-        tasks.forEach((t)-> t.setOperator(operator));
-        taskRepository.saveAll(tasks);
+        int tasksUpdated = taskRepository.updateOperatorByOrderId(orderId, operatorId);
+        log.info("Updated {} tasks for order {}", tasksUpdated, orderId);
 
-        log.info("Order ID: {} successfully assigned to Operator '{}'", orderId, operator.getUsername());
-    }
+        int processesUpdated = processRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} processes for order {}", processesUpdated, orderId);
 
-    private List<Task> getAllTasksByOrder(Order order) {
-        return taskRepository.findAllByOrder(order);
+        int orderLinesUpdated = orderLineRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} order lines for order {}", orderLinesUpdated, orderId);
     }
 
     public Order getOldestOrderAssignedToOperator(User operator) {
@@ -165,14 +166,14 @@ public class OrderService {
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         log.debug("Executing dynamic order search/filter with criteria: logicId='{}', status={}", request.logicId(), request.status());
         return orderRepository.filter(request.logicId(), request.destinationLocationId(), request.status(), request.createdAt(), request.updatedAt()).stream()
-                .map(orderMapper::toResponse)
-                .toList();
+            .map(orderMapper::toResponse)
+            .toList();
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
         List<Order> orders = orderRepository.findAll();
         return orders.stream()
-                .map(extendedOrderMapper::toResponse)
-                .toList();
+            .map(extendedOrderMapper::toResponse)
+            .toList();
     }
 }
