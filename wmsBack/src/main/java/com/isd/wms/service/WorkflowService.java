@@ -1,10 +1,12 @@
 package com.isd.wms.service;
 
-import com.isd.wms.entity.*;
+import com.isd.wms.dto.process.ProcessCompletionResponse;
+import com.isd.wms.dto.process.ProcessCompletionResult;
 import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Stock;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
-import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
@@ -92,7 +94,7 @@ public class WorkflowService {
     }
 
     @Transactional
-    public void executeProcessCompletion(Process process) {
+    public ProcessCompletionResult executeProcessCompletion(Process process) {
         Stock sourceStock = process.getStock();
 
         int quantityToMove = process.getPickedQuantity() != null ? process.getPickedQuantity() : process.getQuantity();
@@ -102,23 +104,21 @@ public class WorkflowService {
 
         Task task = process.getTask();
 
-        processCompletionStrategies.stream()
-            .filter(strategy -> strategy.support(task.getTaskType()))
-            .findAny()
-            .ifPresentOrElse(strategy -> strategy.handle(process),
-                () -> new RuntimeException("No completion strategy found for task type: " + task.getTaskType()));
+        ProcessCompletionStrategy strategy = processCompletionStrategies.stream()
+            .filter(s -> s.support(task.getTaskType()))
+            .findFirst()
+            .orElseThrow(() ->
+                new IllegalStateException(
+                    "No completion strategy found for task type: " + task.getTaskType()
+                ));
+
+        strategy.handle(process);
 
         int taskFullyCompleted = taskRepository.markTaskAsCompleted(process.getTask().getId());
 
         if (taskFullyCompleted != 0) {
-            task.setStatus(TaskStatus.COMPLETED);
-            taskRepository.save(task);
-
-            processCompletionStrategies.stream()
-                .filter(strategy -> strategy.support(task.getTaskType()))
-                .findAny()
-                .ifPresentOrElse(strategy -> strategy.updateStatus(task),
-                    () -> new RuntimeException("No completion strategy found for task type: " + task.getTaskType()));
+            strategy.updateStatus(task);
         }
+        return strategy.result(task);
     }
 }

@@ -1,6 +1,7 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -52,4 +53,26 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     int updateStatus(
         @Param("orderId") Long orderId,
         @Param("orderStatus") OrderStatus orderStatus);
+
+    @Modifying
+    @Query("""
+            UPDATE Order o
+                SET o.status = :orderStatus
+                WHERE o.id = :orderId
+                    AND NOT EXISTS (
+                          SELECT 1 FROM OrderLine ol
+                          WHERE ol.order = o
+                            AND ol.status NOT IN (COMPLETED, CANCELED)
+                      )
+        """)
+    int markOrderAsCompleted(Order order);
+
+    @Query("""
+        SELECT o FROM Order o
+        JOIN OrderLine ol ON ol.order = o
+        WHERE ol.task = :task
+    """)
+    Optional<Order> getOrderByTask(
+        @Param("task") Task task
+    );
 }
