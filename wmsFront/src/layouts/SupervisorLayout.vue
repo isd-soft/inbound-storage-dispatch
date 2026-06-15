@@ -77,6 +77,8 @@
       </header>
       <router-view />
     </main>
+
+    <AiChatWidget v-if="['ROLE_SUPERVISOR', 'ROLE_DEV'].includes(authStore.role)" />
   </div>
 </template>
 
@@ -86,6 +88,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Button from 'primevue/button'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import AiChatWidget from '@/components/AiChatWidget.vue'
 
 const router = useRouter()
 const route = useRoute()

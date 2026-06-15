@@ -289,7 +289,6 @@
                       />
                     </div>
 
-                    <!-- Pasul: Move Review / Completion (Doar pentru Replenishment) -->
                     <div v-if="step.type === 'complete-move'" class="w-full flex flex-col gap-3 box-border">
                       <div class="text-sm font-bold text-emerald-600 dark:text-emerald-400 w-full flex items-center justify-center gap-1.5 py-1">
                         <i class="pi pi-file-edit text-base"></i> Move Review & Summary
