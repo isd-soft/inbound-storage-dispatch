@@ -19,10 +19,10 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
 
     @Modifying
     @Query("""
-        UPDATE OrderLine ol
-            SET ol.status = :status
-            WHERE ol.order.id = :orderId
-    """)
+            UPDATE OrderLine ol
+                SET ol.status = :status
+                WHERE ol.order.id = :orderId
+        """)
     int updateStatusByOrderId(
         @Param("orderId") Long orderId,
         @Param("status") Status status);
