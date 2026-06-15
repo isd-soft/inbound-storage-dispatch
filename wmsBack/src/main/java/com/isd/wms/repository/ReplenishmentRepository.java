@@ -1,8 +1,10 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,5 +40,15 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
     );
     boolean existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
             Long productId, Long destinationLocationId, Collection<Status> statuses, Long id
+    );
+
+    @Modifying
+    @Query("""
+        UPDATE Replenishment r
+            SET r.status = Status.COMPLETED
+            WHERE r.task = :task
+    """)
+    int updateReplenishmentStatusByTask(
+        @Param("task") Task task
     );
 }

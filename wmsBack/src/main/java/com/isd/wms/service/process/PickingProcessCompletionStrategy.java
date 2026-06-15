@@ -23,6 +23,11 @@ public class PickingProcessCompletionStrategy implements ProcessCompletionStrate
     private final OrderRepository orderRepository;
 
     @Override
+    public void updateStatus(Task task) {
+
+    }
+
+    @Override
     public void handle(Process process) {
         Task task = process.getTask();
 

@@ -36,19 +36,6 @@ public class ProcessService {
     private final OrderLineRepository orderLineRepository;
     private final ReplenishmentRepository replenishmentRepository;
 
-//    public List<ProcessOperatorResponse> getAvailableProcesses() {
-//        List<Process> processes = processRepository.findByStatus(Status.CREATED);
-//        return processes.stream().map(processMapper::toResponse).toList();
-//    }
-
-//    public List<ProcessOperatorResponse> getMyProcesses() {
-//        User operator = securityFacade.getCurrentUser();
-//
-//        List<Process> processes = processRepository.findByOperatorAndStatuses(
-//                operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS));
-//        return processes.stream().map(processMapper::toResponse).toList();
-//    }
-
     @Transactional
     public ProcessResponse completeProcess(Long processId) {
         Process process = getProcessById(processId);

@@ -108,20 +108,17 @@ public class WorkflowService {
             .ifPresentOrElse(strategy -> strategy.handle(process),
                 () -> new RuntimeException("No completion strategy found for task type: " + task.getTaskType()));
 
-        List<Process> allProcesses = processRepository.findAllByTaskId(task.getId());
-        boolean isTaskFullyCompleted = allProcesses.stream()
-            .allMatch(p -> p.getStatus() == Status.COMPLETED || p.getId().equals(process.getId()));
+        int taskFullyCompleted = taskRepository.markTaskAsCompleted(process.getTask().getId());
 
-        if (isTaskFullyCompleted) {
+        if (taskFullyCompleted != 0) {
             task.setStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
 
-            if (task.getTaskType() == TaskType.REPLENISHMENT) {
-                Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
-                    .orElseThrow(() -> new RuntimeException("Replenishment not found"));
-                replenishment.setStatus(Status.COMPLETED);
-                replenishmentRepository.save(replenishment);
-            }
+            processCompletionStrategies.stream()
+                .filter(strategy -> strategy.support(task.getTaskType()))
+                .findAny()
+                .ifPresentOrElse(strategy -> strategy.updateStatus(task),
+                    () -> new RuntimeException("No completion strategy found for task type: " + task.getTaskType()));
         }
     }
 }

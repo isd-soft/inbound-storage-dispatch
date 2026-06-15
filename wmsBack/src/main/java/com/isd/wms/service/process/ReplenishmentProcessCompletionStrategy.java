@@ -1,10 +1,8 @@
 package com.isd.wms.service.process;
 
-import com.isd.wms.entity.Location;
+import com.isd.wms.entity.*;
 import com.isd.wms.entity.Process;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.Stock;
+import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
@@ -31,17 +29,27 @@ public class ReplenishmentProcessCompletionStrategy implements ProcessCompletion
                 .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
         stockRepository.findByProductAndLocation(product, destinationLocation)
-                .ifPresentOrElse(existingStock -> existingStock.addQuantity(quantityToMove), //todo: check if we need it
+                .ifPresentOrElse(existingStock -> {
+                        existingStock.addQuantity(quantityToMove);
+                        existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
+                    }, //todo: check if we need it
                         () ->  createStock(sourceStock, product, destinationLocation, quantityToMove));
     }
 
     private void createStock(Stock sourceStock, Product product, Location destinationLocation, int quantityToMove) {
-        Stock newStock = new Stock(product, destinationLocation);
-        newStock.setQuantity(quantityToMove);
-        newStock.setExpirationDate(sourceStock.getExpirationDate());
-        newStock.setManufactureDate(sourceStock.getManufactureDate());
-
+        Stock newStock = new Stock(product, destinationLocation, quantityToMove, sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
         stockRepository.save(newStock);
+    }
+
+    @Override
+    public void updateStatus(Task task) {
+        if (task.getStatus() != TaskStatus.COMPLETED) {
+            return;
+        }
+
+        if (replenishmentRepository.updateReplenishmentStatusByTask(task) == 0) {
+            throw new RuntimeException("Replenishment not found");
+        }
     }
 
     @Override
