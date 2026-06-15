@@ -2,10 +2,13 @@ package com.isd.wms.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
+
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,7 +46,7 @@ public class Stock extends BaseTimestampEntity {
 
     @Min(0)
     @Column(nullable = false)
-    private Integer quantity;
+    private Integer quantity = 0;
 
     @Column(name = "quantity_reserved", nullable = false)
     private Integer reservedQuantity = 0;
@@ -60,8 +63,14 @@ public class Stock extends BaseTimestampEntity {
     public Stock(Product product, Location location) {
         this.product = product;
         this.location = location;
-        this.quantity = 0;
-        this.reservedQuantity = 0;
+    }
+
+    public Stock(Product product, Location location, Integer quantity, LocalDate manufactureDate, LocalDate expirationDate) {
+        this.product = product;
+        this.location = location;
+        this.quantity = quantity;
+        this.manufactureDate = manufactureDate;
+        this.expirationDate = expirationDate;
     }
 
     public Optional<Product> getProduct() {
@@ -88,5 +97,13 @@ public class Stock extends BaseTimestampEntity {
     @Override
     public int hashCode() {
         return getClass().hashCode();
+    }
+
+    public void updateDate(LocalDate manufactureDate, LocalDate expirationDate) {
+        this.manufactureDate = manufactureDate.isAfter(this.manufactureDate)
+                ? manufactureDate : this.manufactureDate;
+
+        this.expirationDate = expirationDate.isAfter(this.expirationDate)
+                ? expirationDate : this.expirationDate;
     }
 }

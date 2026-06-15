@@ -35,4 +35,17 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     int updateOperatorByOrderId(
         @Param("orderId") Long orderId,
         @Param("operatorId") Long operatorId);
+
+    @Modifying
+    @Query("""
+            UPDATE Task t
+            SET t.status = COMPLETED
+            WHERE t.id = :taskId
+              AND NOT EXISTS (
+                  SELECT 1 FROM Process p
+                  WHERE p.task = t
+                    AND p.status NOT IN (CANCELED, COMPLETED)
+              )
+        """)
+    int markTaskAsCompleted(@Param("taskId") Long taskId);
 }

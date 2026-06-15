@@ -1,8 +1,6 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.process.BarcodeScanRequest;
-import com.isd.wms.dto.process.ConfirmPickedQuantityRequest;
-import com.isd.wms.dto.process.ProcessExecutionResponse;
+import com.isd.wms.dto.process.*;
 import com.isd.wms.entity.Process;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
@@ -11,16 +9,11 @@ import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.ProcessesNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
-import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.repository.ProcessRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.validation.SecurityFacade;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +27,12 @@ public class ProcessExecutionService {
 
     private final ProcessRepository processRepository;
     private final StockRepository stockRepository;
-    private final UserRepository userRepository;
     private final InventoryService inventoryService;
     private final SecurityFacade securityFacade;
-    private final WorkflowService workflowService; // Внедряем WorkflowService!
+    private final WorkflowService workflowService;
 
     public List<ProcessExecutionResponse> getAssignedProcesses() {
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
         return processRepository.findByOperatorAndStatuses(
                 operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS))
             .stream()
@@ -114,9 +106,9 @@ public class ProcessExecutionService {
     }
 
     @Transactional
-    public ProcessExecutionResponse completeProcess(Long processId) {
+    public ProcessCompletionResponse completeProcess(Long processId) {
         Process process = getAssignedProcessInProgress(processId);
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
 
         if (!process.isSourceLocationScanned()) {
             throw new InvalidRequestException("Source location must be scanned first");
@@ -135,10 +127,10 @@ public class ProcessExecutionService {
 
         inventoryService.recordPickingHistory(process.getStock(), process.getPickedQuantity(), operator);
 
-        workflowService.executeProcessCompletion(savedProcess);
+        ProcessCompletionResult result = workflowService.executeProcessCompletion(savedProcess);
 
         log.info("Process {} completed by operator {}", processId, operator.getUsername());
-        return toResponse(savedProcess);
+        return new ProcessCompletionResponse(result);
     }
 
     private Process getAssignedProcessInProgress(Long processId) {
@@ -158,18 +150,11 @@ public class ProcessExecutionService {
     private Process getAssignedProcess(Long processId) {
         Process process = processRepository.findById(processId)
             .orElseThrow(() -> new InvalidRequestException("Process not found"));
-        User operator = getCurrentUser();
+        User operator = securityFacade.getCurrentUser();
         if (process.getTask().getOperator().filter(operator::equals).isEmpty()) {
             throw new InvalidRequestException("Process is not assigned to current operator");
         }
         return process;
-    }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        return userRepository.findByUsername(username)
-            .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private void validatePickedQuantityForProcess(Process process, Integer pickedQuantity) {
