@@ -107,4 +107,19 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     Optional<OperatorProcessProjection> getProcessInfoForOperator(
         @Param("userName") String currentUsername
     );
+
+    @Modifying
+    @Query(value = """
+        WITH p_by_order AS (
+            SELECT DISTINCT p.* FROM processes p
+            JOIN order_lines o ON o.task_id = p.task_id
+            WHERE o.order_id = :orderId)
+
+        UPDATE processes p
+            SET status = :status
+            WHERE p.id = ANY(SELECT * FROM p_by_order)
+    """, nativeQuery = true)
+    int updateStatusByOrderId(
+        @Param("orderId") Long orderId,
+        @Param("status") Status status);
 }
