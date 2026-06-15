@@ -57,15 +57,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Modifying
     @Query("""
             UPDATE Order o
-                SET o.status = :orderStatus
-                WHERE o.id = :orderId
+                SET o.status = COMPLETED
+                WHERE o = :order
                     AND NOT EXISTS (
                           SELECT 1 FROM OrderLine ol
                           WHERE ol.order = o
                             AND ol.status NOT IN (COMPLETED, CANCELED)
                       )
         """)
-    int markOrderAsCompleted(Order order);
+    int markOrderAsCompleted(
+        @Param("order") Order order
+    );
 
     @Query("""
         SELECT o FROM Order o
