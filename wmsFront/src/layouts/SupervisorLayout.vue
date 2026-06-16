@@ -63,7 +63,11 @@
         class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
       >
         <div class="flex items-center gap-3">
-          <i class="pi pi-box text-xl app-brand"></i>
+          <img
+            :src="isDark ? '/white_logo.png' : '/color_white_logo.png'"
+            alt="Inbound Storage Dispatch logo"
+            class="h-8 w-auto object-contain"
+          />
           <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
         </div>
         <Button
@@ -84,6 +88,7 @@
 import { computed, defineComponent, h, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/composables/useTheme'
 import Button from 'primevue/button'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
@@ -91,13 +96,18 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const mobileMenuOpen = ref(false)
+const { isDark } = useTheme()
 
 const SidebarBrand = defineComponent({
   name: 'SidebarBrand',
   setup() {
     return () =>
       h('div', { class: 'p-6 flex items-center gap-3' }, [
-        h('i', { class: 'pi pi-box text-2xl app-brand' }),
+        h('img', {
+          src: isDark.value ? '/white_logo.png' : '/color_white_logo.png',
+          alt: 'Inbound Storage Dispatch logo',
+          class: 'h-9 w-auto object-contain',
+        }),
         h('h1', { class: 'app-title text-xl font-bold tracking-wide' }, 'ISD WMS'),
       ])
   },
