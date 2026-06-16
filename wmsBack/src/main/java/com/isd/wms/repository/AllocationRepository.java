@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -166,4 +167,8 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     List<AllocationSupervisorProjection> getAllAllocationsSupervisor(
         @Param("username") String username
     );
+
+    @Modifying
+    @Query("DELETE FROM Allocation a WHERE a.createdAt < :cutoffDate")
+    int deleteAllocationsOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

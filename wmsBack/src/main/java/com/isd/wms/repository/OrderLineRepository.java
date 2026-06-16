@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,8 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
     int updateStatusByOrderId(
         @Param("orderId") Long orderId,
         @Param("status") Status status);
+
+    @Modifying
+    @Query("DELETE FROM OrderLine ol WHERE ol.order.createdAt < :cutoffDate")
+    int deleteOrderLinesByOrderCreatedAtOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }
