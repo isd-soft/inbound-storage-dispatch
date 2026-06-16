@@ -74,7 +74,7 @@ public class AllocationService {
     }
 
     private Allocation getAllocationsForOperator(String username) {
-        return allocationRepository.findFirstByTaskAndOperatorAndUsernameAndStatusInOrderByCreatedAtAscIdAsc(
+        return allocationRepository.findFirstByTask_Operator_UsernameAndStatusInOrderByCreatedAtAscIdAsc(
                 username,
                 java.util.List.of(Status.ASSIGNED, Status.IN_PROGRESS)
             )

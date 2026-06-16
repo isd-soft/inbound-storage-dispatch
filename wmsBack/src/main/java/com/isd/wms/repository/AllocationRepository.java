@@ -60,7 +60,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
         """, nativeQuery = true)
     Optional<Long> findOldestAssignedAllocationId(String username);
 
-    Optional<Allocation> findFirstByTaskAndOperatorAndUsernameAndStatusInOrderByCreatedAtAscIdAsc(
+    Optional<Allocation> findFirstByTask_Operator_UsernameAndStatusInOrderByCreatedAtAscIdAsc(
         String username,
         List<Status> statuses
     );
