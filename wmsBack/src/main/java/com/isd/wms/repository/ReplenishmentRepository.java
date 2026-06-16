@@ -29,23 +29,21 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
             AND (:destinationLocationId IS NULL OR r.destinationLocation.id = :destinationLocationId)
             """)
     List<Replenishment> filter(
-            @Param("taskId") Long taskId,
-            @Param("productId") Long productId,
-            @Param("requestedQuantity") Integer requestedQuantity,
-            @Param("status") Status status,
-            @Param("destinationLocationId") Long destinationLocationId
+        @Param("taskId") Long taskId,
+        @Param("productId") Long productId,
+        @Param("requestedQuantity") Integer requestedQuantity,
+        @Param("status") Status status,
+        @Param("destinationLocationId") Long destinationLocationId
     );
-    boolean existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-            Long productId, Long destinationLocationId, Collection<Status> statuses
-    );
-    boolean existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
-            Long productId, Long destinationLocationId, Collection<Status> statuses, Long id
+
+    boolean existsByProductIdAndDestinationLocationIdAndStatusIn(
+        Long productId, Long destinationLocationId, Collection<Status> statuses
     );
 
     @Modifying
     @Query("""
         UPDATE Replenishment r
-            SET r.status = Status.COMPLETED
+            SET r.status = com.isd.wms.enums.Status.COMPLETED
             WHERE r.task = :task
     """)
     int updateReplenishmentStatusByTask(

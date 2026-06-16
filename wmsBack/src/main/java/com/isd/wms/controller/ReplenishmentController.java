@@ -59,4 +59,10 @@ public class ReplenishmentController {
     public ResponseEntity<List<ReplenishmentResponse>> searchReplenishmentsFromBody(@RequestBody ReplenishmentSearchRequest request) {
         return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
     }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<ReplenishmentResponse> cancelReplenishment(@PathVariable Long id) {
+        return ResponseEntity.ok(replenishmentService.cancelReplenishment(id));
+    }
 }
