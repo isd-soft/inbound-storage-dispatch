@@ -1,10 +1,10 @@
-package com.isd.wms.dto.process;
+package com.isd.wms.repository.projections;
 
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 
-public interface ProcessSupervisorProjection {
-    Long getProcessId();
+public interface AllocationSupervisorProjection {
+    Long getAllocationId();
     Long getReplenishmentId();
     Long getOrderId();
     TaskType getType();

@@ -1,9 +1,9 @@
 //package com.isd.wms.controller;
 //
-//import com.isd.wms.dto.process.ProcessOperatorResponse;
+//import com.isd.wms.dto.allocation.ProcessOperatorResponse;
 //import com.isd.wms.enums.Status;
-//import com.isd.wms.service.ProcessExecutionService;
-//import com.isd.wms.service.ProcessService;
+//import com.isd.wms.service.AllocationExecutionService;
+//import com.isd.wms.service.AllocationService;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
 //import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +36,8 @@
 //import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 //
 //@SpringJUnitWebConfig
-//@ContextConfiguration(classes = ProcessControllerTest.TestConfig.class)
-//class ProcessControllerTest {
+//@ContextConfiguration(classes = AllocationControllerTest.TestConfig.class)
+//class AllocationControllerTest {
 //
 //    private MockMvc mockMvc;
 //
@@ -45,13 +45,13 @@
 //    private WebApplicationContext webApplicationContext;
 //
 //    @Autowired
-//    private ProcessService processService;
+//    private AllocationService allocationService;
 //
 //    private ProcessOperatorResponse mockResponse;
 //
 //    @BeforeEach
 //    void setUp() {
-//        reset(processService);
+//        reset(allocationService);
 //        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
 //                .apply(springSecurity())
 //                .build();
@@ -70,7 +70,7 @@
 //    @Test
 //    @WithMockUser(roles = "OPERATOR")
 //    void getAvailableProcesses_ShouldReturn200AndList() throws Exception {
-//        when(processService.getAvailableProcesses()).thenReturn(List.of(mockResponse));
+//        when(allocationService.getAvailableProcesses()).thenReturn(List.of(mockResponse));
 //
 //        mockMvc.perform(get("/api/processes/available")
 //                        .contentType(MediaType.APPLICATION_JSON))
@@ -83,7 +83,7 @@
 //    @WithMockUser(roles = "OPERATOR")
 //    void getMyProcesses_ShouldReturn200AndList() throws Exception {
 //        ProcessOperatorResponse assignedResponse = new ProcessOperatorResponse(50L, 100L, 10L, "Test Product", "ZONE-A", 10, Status.ASSIGNED);
-//        when(processService.getMyProcesses()).thenReturn(List.of(assignedResponse));
+//        when(allocationService.getMyProcesses()).thenReturn(List.of(assignedResponse));
 //
 //        mockMvc.perform(get("/api/processes/my")
 //                        .contentType(MediaType.APPLICATION_JSON))
@@ -95,7 +95,7 @@
 //    @WithMockUser(roles = "OPERATOR")
 //    void assignProcess_ShouldReturn200AndAssignedProcess() throws Exception {
 //        ProcessOperatorResponse assignedResponse = new ProcessOperatorResponse(50L, 100L, 10L, "Test Product", "ZONE-A", 10, Status.ASSIGNED);
-//        when(processService.assignProcess(anyLong())).thenReturn(assignedResponse);
+//        when(allocationService.assignProcess(anyLong())).thenReturn(assignedResponse);
 //
 //        mockMvc.perform(patch("/api/processes/50/assign")
 //                        .with(csrf())
@@ -108,7 +108,7 @@
 //    @WithMockUser(roles = "OPERATOR")
 //    void completeProcess_ShouldReturn200AndCompletedProcess() throws Exception {
 //        ProcessOperatorResponse completedResponse = new ProcessOperatorResponse(50L, 100L, 10L, "Test Product", "ZONE-A", 10, Status.COMPLETED);
-//        when(processService.completeProcess(anyLong())).thenReturn(completedResponse);
+//        when(allocationService.completeProcess(anyLong())).thenReturn(completedResponse);
 //
 //        mockMvc.perform(patch("/api/processes/50/complete")
 //                        .with(csrf())
@@ -132,18 +132,18 @@
 //    static class TestConfig {
 //
 //        @Bean
-//        public ProcessService processService() {
-//            return mock(ProcessService.class);
+//        public AllocationService allocationService() {
+//            return mock(allocationService.class);
 //        }
 //
 //        @Bean
-//        public ProcessExecutionService processExecutionService() {
-//            return mock(ProcessExecutionService.class);
+//        public AllocationExecutionService allocationExecutionService() {
+//            return mock(allocationExecutionService.class);
 //        }
 //
 //        @Bean
-//        public ProcessController processController(ProcessService processService, ProcessExecutionService processExecutionService) {
-//            return new ProcessController(processService, processExecutionService);
+//        public AllocationController AllocationController(AllocationService allocationService, AllocationExecutionService allocationExecutionService) {
+//            return new AllocationController(allocationService, allocationExecutionService);
 //        }
 //
 //        @Bean

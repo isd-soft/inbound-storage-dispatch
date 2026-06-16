@@ -1,4 +1,4 @@
-package com.isd.wms.dto.location;
+package com.isd.wms.repository.projections;
 
 public interface ShortLocationProjection {
     Long getId();

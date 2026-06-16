@@ -16,6 +16,9 @@ export const inventoryApi = {
   adjustStock(payload) {
     return apiClient.put('/inventory/adjust', payload)
   },
+  deleteStock(stockId) {
+    return apiClient.delete(`/inventory/${stockId}`)
+  },
   getAllHistory() {
     return apiClient.get('/inventory/history')
   },

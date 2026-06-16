@@ -1,6 +1,6 @@
 package com.isd.wms.service;
 
-import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.enums.Status;
 import org.springframework.stereotype.Service;
 
@@ -14,14 +14,14 @@ import java.util.Optional;
 @Service
 public class PickingFlowService {
 
-    public List<Process> orderProcessesBySourceLocation(List<Process> processes) {
-        List<Process> sortedProcesses = new ArrayList<>(processes);
-        sortedProcesses.sort(Comparator.comparing(Process::getCreatedAt).thenComparing(Process::getId));
+    public List<Allocation> orderAllocationsBySourceLocation(List<Allocation> allocations) {
+        List<Allocation> sortedAllocations = new ArrayList<>(allocations);
+        sortedAllocations.sort(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId));
 
-        Map<Long, List<Process>> groupedByLocation = new LinkedHashMap<>();
-        for (Process process : sortedProcesses) {
-            Long locationId = process.getStock().getLocation().getId();
-            groupedByLocation.computeIfAbsent(locationId, ignored -> new ArrayList<>()).add(process);
+        Map<Long, List<Allocation>> groupedByLocation = new LinkedHashMap<>();
+        for (Allocation allocation : sortedAllocations) {
+            Long locationId = allocation.getStock().getLocation().getId();
+            groupedByLocation.computeIfAbsent(locationId, ignored -> new ArrayList<>()).add(allocation);
         }
 
         return groupedByLocation.values().stream()
@@ -29,24 +29,24 @@ public class PickingFlowService {
             .toList();
     }
 
-    public Optional<Process> findCurrentExecutableProcess(List<Process> processes) {
-        return orderProcessesBySourceLocation(processes).stream()
-            .filter(process -> process.getStatus() == Status.ASSIGNED || process.getStatus() == Status.IN_PROGRESS)
+    public Optional<Allocation> findCurrentExecutableAllocation(List<Allocation> allocations) {
+        return orderAllocationsBySourceLocation(allocations).stream()
+            .filter(allocation -> allocation.getStatus() == Status.ASSIGNED || allocation.getStatus() == Status.IN_PROGRESS)
             .findFirst();
     }
 
-    public Optional<Process> findNextExecutableProcessAfter(List<Process> processes, Process completedProcess) {
-        List<Process> orderedProcesses = orderProcessesBySourceLocation(processes);
-        int completedIndex = orderedProcesses.indexOf(completedProcess);
+    public Optional<Allocation> findNextExecutableAllocationAfter(List<Allocation> allocations, Allocation completedAllocation) {
+        List<Allocation> orderedAllocations = orderAllocationsBySourceLocation(allocations);
+        int completedIndex = orderedAllocations.indexOf(completedAllocation);
 
         if (completedIndex < 0) {
-            return findCurrentExecutableProcess(processes);
+            return findCurrentExecutableAllocation(allocations);
         }
 
-        for (int index = completedIndex + 1; index < orderedProcesses.size(); index++) {
-            Process process = orderedProcesses.get(index);
-            if (process.getStatus() == Status.ASSIGNED || process.getStatus() == Status.IN_PROGRESS) {
-                return Optional.of(process);
+        for (int index = completedIndex + 1; index < orderedAllocations.size(); index++) {
+            Allocation allocation = orderedAllocations.get(index);
+            if (allocation.getStatus() == Status.ASSIGNED || allocation.getStatus() == Status.IN_PROGRESS) {
+                return Optional.of(allocation);
             }
         }
 

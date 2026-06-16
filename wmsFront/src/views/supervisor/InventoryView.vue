@@ -7,27 +7,36 @@
       v-model:selection="selectedStockItems"
       :value="stockItems"
       :loading="loading"
+      :rowClass="stockRowClass"
       :filterFields="inventoryFilterFields"
+      :editMode="editMode ? 'cell' : null"
       paginator
       :rows="10"
       stripedRows
-      class="p-datatable-sm"
+      class="p-datatable-sm inventory-table"
       dataKey="id"
       emptyMessage="No inventory stock found."
+      @cell-edit-complete="onCellEditComplete"
     >
       <template #toolbar>
         <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadInventoryData" />
         <Button v-if="canManageStock" label="Add Stock" icon="pi pi-plus" severity="success" @click="openAddDialog" />
-        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
-        <Button v-if="editMode && canManageStock" label="Remove" icon="pi pi-minus" severity="danger" outlined :disabled="selectedStockItems.length !== 1" @click="openStockDialog('remove', selectedStockItems[0])" />
-        <Button v-if="editMode && canManageStock" label="Adjust" icon="pi pi-sliders-h" severity="warning" outlined :disabled="selectedStockItems.length !== 1" @click="openStockDialog('adjust', selectedStockItems[0])" />
-        <Button v-if="editMode" label="History" icon="pi pi-history" severity="info" outlined :disabled="selectedStockItems.length !== 1" @click="viewHistory(selectedStockItems[0])" />
-        <span v-if="editMode" class="app-muted text-sm">{{ selectedStockItems.length }} selected</span>
+        <Button v-if="canManageStock" :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button v-if="editMode && canManageStock" label="Submit" icon="pi pi-check" severity="success" :disabled="!hasPendingChanges" :loading="actionLoading" @click="confirmSubmitChanges" />
+        <Button v-if="editMode && canManageStock" label="Reset" icon="pi pi-refresh" severity="secondary" outlined :disabled="!hasPendingChanges" @click="confirmResetChanges" />
+        <Button v-if="editMode && canManageStock" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedStockItems.length || hasPendingChanges" @click="confirmDeleteSelected" />
+        <span v-if="editMode && canManageStock" class="app-muted text-sm">{{ selectedStockItems.length }} selected</span>
       </template>
-          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+          <Column v-if="editMode && canManageStock" selectionMode="multiple" headerStyle="width: 3rem" />
           <Column field="productName" header="Product" sortable filter>
             <template #body="{ data }">
-              <ProductLink :product-id="data.productId" :barcode="data.barcode" :name="data.productName" class="font-semibold" />
+              <ProductLink
+                :product-id="data.productId"
+                :barcode="data.barcode"
+                :name="data.productName"
+                :disabled="editMode"
+                class="font-semibold"
+              />
             </template>
           </Column>
 
@@ -36,6 +45,9 @@
           <Column field="quantity" header="Total Qty" sortable filter>
             <template #body="{ data }">
               <span class="app-title font-bold text-base">{{ data.quantity }}</span>
+            </template>
+            <template #editor="{ data, field }">
+              <InputNumber v-model="data[field]" class="w-full" :min="0" autofocus />
             </template>
           </Column>
 
@@ -60,15 +72,19 @@
             <template #body="{ data }">
               <span class="app-muted text-sm">{{ data.manufactureDate || '-' }}</span>
             </template>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" type="date" class="w-full" />
+            </template>
           </Column>
 
           <Column field="expirationDate" header="Expires" sortable filter>
             <template #body="{ data }">
               <span class="app-muted text-sm">{{ data.expirationDate || '-' }}</span>
             </template>
+            <template #editor="{ data, field }">
+              <InputText v-model="data[field]" type="date" class="w-full" />
+            </template>
           </Column>
-
-          <!-- Inline editing and bulk delete are intentionally not enabled here because stock changes must create audit history and respect reserved quantity rules. -->
     </AppDataTable>
 
     <StockActionDialog
@@ -87,31 +103,31 @@
 import { computed, onMounted, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { useRouter } from 'vue-router'
 
 import Button from 'primevue/button'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
-import DataTable from 'primevue/datatable'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Toast from 'primevue/toast'
 
 import StockActionDialog from '@/components/inventory/StockActionDialog.vue'
 import { inventoryApi } from '@/api/inventoryApi'
 import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const authStore = useAuthStore()
 
 const stockItems = ref([])
+const originalStockItems = ref([])
 const selectedStockItems = ref([])
 const products = ref([])
 const locations = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const editMode = ref(false)
+const modifiedStockIds = ref(new Set())
 const dialogVisible = ref(false)
 const dialogMode = ref('add')
 const selectedStock = ref(null)
@@ -126,6 +142,9 @@ const inventoryFilterFields = [
   { field: 'manufactureDate', label: 'Manufactured' },
   { field: 'expirationDate', label: 'Expires' }
 ]
+const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+const hasPendingChanges = computed(() => modifiedStockIds.value.size > 0)
+const deletableSelectedStockItems = computed(() => selectedStockItems.value.filter((stock) => stock.quantity === 0 && stock.reservedQuantity === 0))
 
 const getErrorMessage = (error) => {
   return error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
@@ -150,8 +169,11 @@ const loadInventoryData = async () => {
       inventoryApi.getLocations()
     ])
     stockItems.value = stockResponse.data
+    originalStockItems.value = cloneRows(stockResponse.data)
+    modifiedStockIds.value = new Set()
     products.value = productsResponse.data
     locations.value = locationsResponse.data.filter((location) => location.available !== false)
+    selectedStockItems.value = []
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Inventory load failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
@@ -166,18 +188,137 @@ const openAddDialog = () => {
 }
 
 const toggleEditMode = () => {
-  editMode.value = !editMode.value
+  if (!editMode.value) {
+    editMode.value = true
+    selectedStockItems.value = []
+    return
+  }
+
+  if (hasPendingChanges.value) {
+    confirmResetChanges(() => {
+      editMode.value = false
+    })
+    return
+  }
+
+  editMode.value = false
   selectedStockItems.value = []
 }
 
-const openStockDialog = (mode, stock) => {
-  selectedStock.value = stock
-  dialogMode.value = mode
-  dialogVisible.value = true
+const stockRowClass = (stock) => ({
+  'app-row-modified': modifiedStockIds.value.has(stock.id)
+})
+
+const normalizeStock = (stock) => ({
+  quantity: stock.quantity ?? 0,
+  manufactureDate: stock.manufactureDate || null,
+  expirationDate: stock.expirationDate || null
+})
+
+const refreshModifiedState = (stock) => {
+  const original = originalStockItems.value.find((item) => item.id === stock.id)
+  if (!original) return
+
+  const nextIds = new Set(modifiedStockIds.value)
+  if (JSON.stringify(normalizeStock(stock)) !== JSON.stringify(normalizeStock(original))) nextIds.add(stock.id)
+  else nextIds.delete(stock.id)
+  modifiedStockIds.value = nextIds
 }
 
-const refreshAfterAction = async () => {
-  await loadInventoryData()
+const onCellEditComplete = ({ data, newValue, field }) => {
+  if (!editMode.value) return
+  if (newValue !== undefined) {
+    const normalizedValue = typeof newValue === 'string' ? newValue.trim() : newValue
+    data[field] = normalizedValue === '' ? null : normalizedValue
+  }
+  refreshModifiedState(data)
+}
+
+const buildAdjustPayload = (stock, userId) => ({
+  stockId: stock.id,
+  newQuantity: stock.quantity,
+  manufactureDate: stock.manufactureDate || null,
+  expirationDate: stock.expirationDate || null,
+  userId
+})
+
+const confirmSubmitChanges = () => {
+  confirm.require({
+    message: `Submit ${modifiedStockIds.value.size} changed stock item(s)?`,
+    header: 'Submit Inventory Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-success',
+    accept: submitQuantityChanges
+  })
+}
+
+const submitQuantityChanges = async () => {
+  const userId = currentUserId()
+  if (!userId) {
+    toast.add({ severity: 'error', summary: 'Missing user', detail: 'User id is required for stock changes.', life: 4000 })
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    const changedStocks = stockItems.value.filter((stock) => modifiedStockIds.value.has(stock.id))
+    const invalidStock = changedStocks.find((stock) => stock.quantity === null || stock.quantity < 0)
+    if (invalidStock) {
+      toast.add({ severity: 'error', summary: 'Validation failed', detail: 'Quantity must be zero or greater.', life: 4000 })
+      return
+    }
+
+    await Promise.all(changedStocks.map((stock) => inventoryApi.adjustStock(buildAdjustPayload(stock, userId))))
+
+    toast.add({ severity: 'success', summary: 'Inventory updated', detail: `${changedStocks.length} stock item(s) updated.`, life: 3000 })
+    editMode.value = false
+    selectedStockItems.value = []
+    await loadInventoryData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmResetChanges = (afterReset) => {
+  confirm.require({
+    message: 'Discard all unsaved inventory changes?',
+    header: 'Reset Unsaved Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-warning',
+    accept: () => {
+      stockItems.value = cloneRows(originalStockItems.value)
+      modifiedStockIds.value = new Set()
+      selectedStockItems.value = []
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved inventory changes were discarded.', life: 2500 })
+      if (typeof afterReset === 'function') afterReset()
+    }
+  })
+}
+
+const confirmDeleteSelected = () => {
+  confirm.require({
+    message: `Delete ${deletableSelectedStockItems.value.length} selected stock item(s)? This action cannot be undone.`,
+    header: 'Delete Selected Stock',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: deleteSelectedStocks
+  })
+}
+
+const deleteSelectedStocks = async () => {
+  actionLoading.value = true
+  try {
+    await Promise.all(deletableSelectedStockItems.value.map((stock) => inventoryApi.deleteStock(stock.id)))
+    toast.add({ severity: 'success', summary: 'Stock deleted', detail: `${deletableSelectedStockItems.value.length} stock item(s) deleted.`, life: 3000 })
+    selectedStockItems.value = []
+    await loadInventoryData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
 }
 
 const submitAction = async (payload) => {
@@ -193,16 +334,10 @@ const submitAction = async (payload) => {
     if (dialogMode.value === 'add') {
       await inventoryApi.addStock(requestPayload)
       toast.add({ severity: 'success', summary: 'Stock added', detail: 'Inventory stock was added.', life: 3000 })
-    } else if (dialogMode.value === 'remove') {
-      await inventoryApi.removeStock(requestPayload)
-      toast.add({ severity: 'success', summary: 'Stock removed', detail: 'Inventory stock was removed.', life: 3000 })
-    } else {
-      await inventoryApi.adjustStock(requestPayload)
-      toast.add({ severity: 'success', summary: 'Stock adjusted', detail: 'Inventory quantity was updated.', life: 3000 })
     }
     dialogVisible.value = false
     selectedStockItems.value = []
-    await refreshAfterAction()
+    await loadInventoryData()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Stock action failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
@@ -211,23 +346,14 @@ const submitAction = async (payload) => {
 }
 
 const handleStockAction = (payload) => {
-  if (dialogMode.value !== 'remove') {
-    submitAction(payload)
-    return
-  }
-
-  confirm.require({
-    message: 'Remove this quantity from the selected stock?',
-    header: 'Confirm Remove Stock',
-    icon: 'pi pi-exclamation-triangle',
-    acceptClass: 'p-button-danger',
-    accept: () => submitAction(payload)
-  })
-}
-
-const viewHistory = (stock) => {
-  router.push({ name: 'history', query: { stockId: stock.id } })
+  submitAction(payload)
 }
 
 onMounted(loadInventoryData)
 </script>
+
+<style scoped>
+.inventory-table :deep(.p-datatable-tbody > tr > td) {
+  height: 3.25rem;
+}
+</style>

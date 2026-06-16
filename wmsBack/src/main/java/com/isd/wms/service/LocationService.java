@@ -4,7 +4,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
-import com.isd.wms.dto.location.ShortLocationProjection;
+import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateBarcodeException;
 import com.isd.wms.exception.LocationNotFoundException;

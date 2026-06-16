@@ -1,9 +1,8 @@
-package com.isd.wms.service.process;
+package com.isd.wms.service.allocation;
 
-import com.isd.wms.dto.process.ProcessCompletionResult;
+import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.*;
-import com.isd.wms.entity.Process;
-import com.isd.wms.enums.ProcessCompletionStatus;
+import com.isd.wms.enums.AllocationCompletionStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.ReplenishmentRepository;
@@ -13,20 +12,20 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ReplenishmentProcessCompletionStrategy implements ProcessCompletionStrategy {
+public class ReplenishmentAllocationCompletionStrategy implements AllocationCompletionStrategy {
 
     private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
 
     @Override
-    public void handle(Process process) {
-        Replenishment replenishment = replenishmentRepository.findByTaskId(process.getTask().getId())
+    public void handle(Allocation allocation) {
+        Replenishment replenishment = replenishmentRepository.findByTaskId(allocation.getTask().getId())
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
 
         Location destinationLocation = replenishment.getDestinationLocation();
-        Stock sourceStock = process.getStock();
+        Stock sourceStock = allocation.getStock();
 
-        Integer quantityToMove = process.getQuantity();
+        Integer quantityToMove = allocation.getQuantity();
         Product product = sourceStock.getProduct()
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
@@ -49,11 +48,11 @@ public class ReplenishmentProcessCompletionStrategy implements ProcessCompletion
     }
 
     @Override
-    public ProcessCompletionResult result(Task task) {
+    public AllocationCompletionResult result(Task task) {
         Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
-        return new ProcessCompletionResult(
-            replenishment.getStatus() == Status.COMPLETED? ProcessCompletionStatus.COMPLETED : ProcessCompletionStatus.IN_PROGRESS,
+        return new AllocationCompletionResult(
+            replenishment.getStatus() == Status.COMPLETED ? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.IN_PROGRESS,
             TaskType.REPLENISHMENT,
             replenishment.getId()
         );

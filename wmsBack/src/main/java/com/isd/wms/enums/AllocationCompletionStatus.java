@@ -1,6 +1,6 @@
 package com.isd.wms.enums;
 
-public enum ProcessCompletionStatus {
+public enum AllocationCompletionStatus {
     IN_PROGRESS,
     PICKING,
     COMPLETED

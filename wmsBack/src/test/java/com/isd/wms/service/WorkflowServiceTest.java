@@ -1,10 +1,10 @@
 package com.isd.wms.service;
 
-import com.isd.wms.entity.Process;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.ProcessRepository;
+import com.isd.wms.repository.AllocationRepository  ;
 import com.isd.wms.repository.StockRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 class WorkflowServiceTest {
 
     @Mock
-    private ProcessRepository processRepository;
+    private AllocationRepository  allocationRepository ;
 
     @Mock
     private StockRepository stockRepository;
@@ -46,7 +46,7 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void generateProcessesForTask_success_createsOneProcess() {
+    void generateAllocationsForTask_success_createsOneAllocation() {
         Stock stock = new Stock();
         stock.setId(10L);
         stock.setQuantity(100);
@@ -55,14 +55,14 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 
-        workflowService.generateProcessesForTask(task, 1L, 50);
+        workflowService.generateAllocationsForTask(task, 1L, 50);
 
-        verify(processRepository, times(1)).saveAll(anyList());
+        verify(allocationRepository , times(1)).saveAll(anyList());
         assertThat(stock.getReservedQuantity()).isEqualTo(50);
     }
 
     @Test
-    void generateProcessesForTask_splitProcesses_createsTwoProcesses() {
+    void generateAllocationsForTask_splitAllocations_createsTwoAllocations() {
         Stock stock1 = new Stock();
         stock1.setId(10L);
         stock1.setQuantity(50);
@@ -76,22 +76,22 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock1, stock2)));
 
-        workflowService.generateProcessesForTask(task, 1L, 70);
+        workflowService.generateAllocationsForTask(task, 1L, 70);
 
-        ArgumentCaptor<List<Process>> captor = ArgumentCaptor.forClass(List.class);
-        verify(processRepository).saveAll(captor.capture());
+        ArgumentCaptor<List<Allocation>> captor = ArgumentCaptor.forClass(List.class);
+        verify(allocationRepository ).saveAll(captor.capture());
 
-        List<Process> capturedProcesses = captor.getValue();
-        assertThat(capturedProcesses).hasSize(2);
-        assertThat(capturedProcesses.get(0).getQuantity()).isEqualTo(50);
-        assertThat(capturedProcesses.get(1).getQuantity()).isEqualTo(20);
+        List<Allocation> capturedAllocations = captor.getValue();
+        assertThat(capturedAllocations).hasSize(2);
+        assertThat(capturedAllocations.get(0).getQuantity()).isEqualTo(50);
+        assertThat(capturedAllocations.get(1).getQuantity()).isEqualTo(20);
 
         assertThat(stock2.getReservedQuantity()).isEqualTo(50);
         assertThat(stock1.getReservedQuantity()).isEqualTo(20);
     }
 
     @Test
-    void generateProcessesForTask_insufficientStock_throwsException() {
+    void generateAllocationsForTask_insufficientStock_throwsException() {
         Stock stock = new Stock();
         stock.setId(10L);
         stock.setQuantity(10);
@@ -100,10 +100,10 @@ class WorkflowServiceTest {
         when(stockRepository.findAvailableStocksByProductId(1L))
                 .thenReturn(new ArrayList<>(List.of(stock)));
 
-        assertThatThrownBy(() -> workflowService.generateProcessesForTask(task, 1L, 50))
+        assertThatThrownBy(() -> workflowService.generateAllocationsForTask(task, 1L, 50))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Insufficient stock");
 
-        verify(processRepository, never()).saveAll(anyList());
+        verify(allocationRepository , never()).saveAll(anyList());
     }
 }

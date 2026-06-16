@@ -2,24 +2,24 @@ import apiClient from './index'
 
 export const allocationApi = {
   getCurrentTaskSummary() {
-    return apiClient.get('/v1/processes/operator/current/summary')
+    return apiClient.get('/v1/allocations/operator/current/summary')
   },
   getSupervisorAllocations() {
-    return apiClient.get('/v1/processes')
+    return apiClient.get('/v1/allocations')
   },
   startCurrentTask() {
-    return apiClient.post('/v1/processes/operator/current/start')
+    return apiClient.post('/v1/allocations/operator/current/start')
   },
-  completeAssignedAllocation(processId) {
-    return apiClient.post(`/v1/processes/${processId}/complete`)
+  completeAssignedAllocation(allocationId) {
+    return apiClient.post(`/v1/allocations/${allocationId}/complete`)
   },
-  scanSourceLocation(processId, barcode) {
-    return apiClient.post(`/v1/processes/${processId}/location`, { barcode })
+  scanSourceLocation(allocationId, barcode) {
+    return apiClient.post(`/v1/allocations/${allocationId}/location`, { barcode })
   },
-  scanProduct(processId, barcode) {
-    return apiClient.post(`/v1/processes/${processId}/product`, { barcode })
+  scanProduct(allocationId, barcode) {
+    return apiClient.post(`/v1/allocations/${allocationId}/product`, { barcode })
   },
-  confirmPickedQuantity(processId, pickedQuantity) {
-    return apiClient.post(`/v1/processes/${processId}/confirm-quantity`, { pickedQuantity })
+  confirmPickedQuantity(allocationId, pickedQuantity) {
+    return apiClient.post(`/v1/allocations/${allocationId}/confirm-quantity`, { pickedQuantity })
   }
 }

@@ -10,6 +10,7 @@ import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.validation.SecurityFacade;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,9 +29,10 @@ class OrderServiceTest {
     private ExtendedOrderMapper extendedOrderMapper;
     private OrderLineService orderLineService;
     private OrderService orderService;
-    private ProcessRepository processRepository;
+    private AllocationRepository  allocationRepository ;
     private TaskRepository taskRepository;
     private OrderLineRepository orderLineRepository;
+    private SecurityFacade securityFacade;
 
     @BeforeEach
     void setUp() {
@@ -39,10 +41,11 @@ class OrderServiceTest {
         orderRepository = mock(OrderRepository.class);
         locationRepository = mock(LocationRepository.class);
         orderLineService = mock(OrderLineService.class);
-        processRepository = mock(ProcessRepository.class);
+        allocationRepository  = mock(AllocationRepository.class);
         taskRepository = mock(TaskRepository.class);
         orderLineRepository = mock(OrderLineRepository.class);
-        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, processRepository, taskRepository, orderLineRepository);
+        securityFacade = mock(SecurityFacade.class);
+        orderService = new OrderService(extendedOrderMapper, orderMapper, orderRepository, locationRepository, orderLineService, allocationRepository , taskRepository, orderLineRepository, securityFacade);
     }
 
     private Order orderWithId(Long id, String logicId) {
@@ -64,6 +67,7 @@ class OrderServiceTest {
         OrderCreateRequest request = new OrderCreateRequest("LOGIC-001", 1L);
         Order saved = orderWithId(1L, "LOGIC-001");
         when(orderRepository.save(any(Order.class))).thenReturn(saved);
+        when(securityFacade.getCurrentUser()).thenReturn(new com.isd.wms.entity.User());
 
         Order result = orderService.addOrder(request);
 
@@ -83,6 +87,7 @@ class OrderServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenReturn(saved);
         when(orderMapper.toResponse(saved)).thenReturn(sampleOrderResponse());
+        when(securityFacade.getCurrentUser()).thenReturn(new com.isd.wms.entity.User());
         doNothing().when(orderLineService).addOrderLine(eq(saved), any(OrderLineCreateRequest.class));
 
         OrderResponse result = orderService.addExtendedOrder(request);
@@ -101,6 +106,7 @@ class OrderServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenReturn(saved);
         when(orderMapper.toResponse(saved)).thenReturn(sampleOrderResponse());
+        when(securityFacade.getCurrentUser()).thenReturn(new com.isd.wms.entity.User());
 
         orderService.addExtendedOrder(request);
 
@@ -155,7 +161,8 @@ class OrderServiceTest {
     @Test
     void getAllOrders_returnsMappedList() {
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.findAll()).thenReturn(List.of(order));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findAllByCreatedByUsername(any())).thenReturn(List.of(order));
         when(orderMapper.toResponse(order)).thenReturn(sampleOrderResponse());
 
         List<OrderResponse> result = orderService.getAllOrders();
@@ -166,7 +173,8 @@ class OrderServiceTest {
 
     @Test
     void getAllOrders_empty_returnsEmptyList() {
-        when(orderRepository.findAll()).thenReturn(List.of());
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findAllByCreatedByUsername(any())).thenReturn(List.of());
 
         assertThat(orderService.getAllOrders()).isEmpty();
     }
@@ -174,7 +182,8 @@ class OrderServiceTest {
     @Test
     void getOrderById_existingId_returnsResponse() {
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findByIdAndCreatedByUsername(eq(1L), any())).thenReturn(Optional.of(order));
         when(orderMapper.toResponse(order)).thenReturn(sampleOrderResponse());
 
         assertThat(orderService.getOrderById(1L).id()).isEqualTo(1L);
@@ -182,7 +191,8 @@ class OrderServiceTest {
 
     @Test
     void getOrderById_notFound_throwsOrderNotFoundException() {
-        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findByIdAndCreatedByUsername(eq(99L), any())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.getOrderById(99L))
                 .isInstanceOf(OrderNotFoundException.class);
@@ -191,7 +201,8 @@ class OrderServiceTest {
     @Test
     void getExtendedOrderById_existingId_returnsExtendedResponse() {
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findByIdAndCreatedByUsername(eq(1L), any())).thenReturn(Optional.of(order));
         when(extendedOrderMapper.toResponse(order)).thenReturn(sampleExtendedOrderResponse());
 
         assertThat(orderService.getExtendedOrderById(1L).order().id()).isEqualTo(1L);
@@ -199,7 +210,8 @@ class OrderServiceTest {
 
     @Test
     void getExtendedOrderById_notFound_throwsOrderNotFoundException() {
-        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findByIdAndCreatedByUsername(eq(99L), any())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.getExtendedOrderById(99L))
                 .isInstanceOf(OrderNotFoundException.class);
@@ -208,17 +220,34 @@ class OrderServiceTest {
     @Test
     void getAllExtendedOrders_returnsMappedList() {
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.findAll()).thenReturn(List.of(order));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findAllByCreatedByUsername(any())).thenReturn(List.of(order));
         when(extendedOrderMapper.toResponse(order)).thenReturn(sampleExtendedOrderResponse());
 
         assertThat(orderService.getAllExtendedOrders()).hasSize(1);
     }
 
     @Test
+    void assignOrder_completedOrder_throwsInvalidRequestException() {
+        Order order = orderWithId(1L, "LOGIC-001");
+        order.setStatus(OrderStatus.COMPLETED);
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.findByIdAndCreatedByUsername(eq(1L), any())).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.assignOrder(1L, 10L))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("not allowed");
+
+        verify(orderRepository, never()).updateStatus(any(), any());
+        verify(taskRepository, never()).updateOperatorByOrderId(any(), any());
+    }
+
+    @Test
     void searchOrders_withFilters_returnsMappedList() {
         OrderSearchRequest request = new OrderSearchRequest(null, "LOGIC-001", null, OrderStatus.CREATED, null, null);
         Order order = orderWithId(1L, "LOGIC-001");
-        when(orderRepository.filter("LOGIC-001", null, OrderStatus.CREATED, null, null)).thenReturn(List.of(order));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.filter(any(), eq("LOGIC-001"), any(), eq(OrderStatus.CREATED), any(), any())).thenReturn(List.of(order));
         when(orderMapper.toResponse(order)).thenReturn(sampleOrderResponse());
 
         assertThat(orderService.searchOrders(request)).hasSize(1);
@@ -227,7 +256,8 @@ class OrderServiceTest {
     @Test
     void searchOrders_noMatch_returnsEmptyList() {
         OrderSearchRequest request = new OrderSearchRequest(null, "NONEXISTENT", null, null, null, null);
-        when(orderRepository.filter(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(orderRepository.filter(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
 
         assertThat(orderService.searchOrders(request)).isEmpty();
     }

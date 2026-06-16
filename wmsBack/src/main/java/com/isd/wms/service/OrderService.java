@@ -12,6 +12,7 @@ import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +32,10 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
-    private final ProcessRepository processRepository;
+    private final AllocationRepository  allocationRepository ;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
+    private final SecurityFacade securityFacade;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -71,7 +73,7 @@ public class OrderService {
     }
 
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream()
+        return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
             .map(orderMapper::toResponse)
             .toList();
     }
@@ -81,12 +83,17 @@ public class OrderService {
     }
 
     public Order getOrder(@NonNull Long orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdAndCreatedByUsername(orderId, securityFacade.getCurrentUsername())
             .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
+        Order order = getOrder(orderId);
+        if (order.getStatus() == OrderStatus.IN_PROGRESS || order.getStatus() == OrderStatus.COMPLETED) {
+            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS or COMPLETED orders");
+        }
+
         int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
         if (updated == 0) {
             throw new OrderNotFoundException(orderId);
@@ -96,8 +103,8 @@ public class OrderService {
         int tasksUpdated = taskRepository.updateOperatorByOrderId(orderId, operatorId);
         log.info("Updated {} tasks for order {}", tasksUpdated, orderId);
 
-        int processesUpdated = processRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
-        log.info("Updated {} processes for order {}", processesUpdated, orderId);
+        int allocationsUpdated = allocationRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
+        log.info("Updated {} allocations for order {}", allocationsUpdated, orderId);
 
         int orderLinesUpdated = orderLineRepository.updateStatusByOrderId(orderId, Status.ASSIGNED);
         log.info("Updated {} order lines for order {}", orderLinesUpdated, orderId);
@@ -114,13 +121,20 @@ public class OrderService {
     }
 
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
-        return orderRepository.filter(request.logicId(), request.destinationLocationId(), request.status(), request.createdAt(), request.updatedAt()).stream()
+        return orderRepository.filter(
+                securityFacade.getCurrentUsername(),
+                request.logicId(),
+                request.destinationLocationId(),
+                request.status(),
+                request.createdAt(),
+                request.updatedAt()
+            ).stream()
             .map(orderMapper::toResponse)
             .toList();
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
-        List<Order> orders = orderRepository.findAll();
+        List<Order> orders = orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername());
         return orders.stream()
             .map(extendedOrderMapper::toResponse)
             .toList();
