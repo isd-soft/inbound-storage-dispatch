@@ -8,11 +8,13 @@ import com.poiji.exception.PoijiExcelType;
 import com.poiji.exception.PoijiException;
 import com.poiji.exception.PoijiMultiRowException;
 import org.apache.commons.io.FilenameUtils;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
 
+@Component
 public class XlsxImportStrategy implements ImportStrategy {
     @Override
     public <T> List<T> parse(MultipartFile file, Class<T> clazz) {
@@ -31,7 +33,7 @@ public class XlsxImportStrategy implements ImportStrategy {
         } catch (PoijiException e) {
             throw new InvalidRequestException(e.getLocalizedMessage());
         } catch (Exception e) {
-            throw new InvalidRequestException(e.getLocalizedMessage());
+            throw new InvalidRequestException("An error occurred while parsing the file.");
         }
     }
 

@@ -30,10 +30,13 @@ import com.isd.wms.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.xlsx.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -50,6 +53,7 @@ public class InventoryService {
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
     private final ReplenishmentService replenishmentService;
+    private final ImportService importService;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAll().stream()
@@ -237,5 +241,12 @@ public class InventoryService {
                 log.warn("User not found: userId={}", userId);
                 return new UserNotFoundException(userId);
             });
+    }
+
+    @Transactional
+    public void importStockFromFile(MultipartFile file) {
+        List<Stock> stocks = importService.importData(file, StockInfo.class);
+        stocks.stream().forEach((s) -> System.out.println(s.getQuantity()));
+        stockRepository.saveAllAndFlush(stocks);
     }
 }
