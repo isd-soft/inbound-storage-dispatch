@@ -22,19 +22,40 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
 
     @Query("""
             SELECT r FROM Replenishment r
+            JOIN Task t ON t = r.task
+            JOIN User u ON u = t.supervisor
             WHERE (:taskId IS NULL OR r.task.id = :taskId)
             AND (:productId IS NULL OR r.product.id = :productId)
             AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
             AND (:status IS NULL OR r.status = :status)
             AND (:destinationLocationId IS NULL OR r.destinationLocation.id = :destinationLocationId)
+            AND u.username = :username
             """)
     List<Replenishment> filter(
+            @Param("username") String username,
             @Param("taskId") Long taskId,
             @Param("productId") Long productId,
             @Param("requestedQuantity") Integer requestedQuantity,
             @Param("status") Status status,
             @Param("destinationLocationId") Long destinationLocationId
     );
+
+    @Query("""
+        SELECT r FROM Replenishment r
+        JOIN Task t ON t = r.task
+        JOIN User u ON u = t.supervisor
+        WHERE u.username = :username
+        """)
+    List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);
+
+    @Query("""
+        SELECT r FROM Replenishment r
+        JOIN Task t ON t = r.task
+        JOIN User u ON u = t.supervisor
+        WHERE r.id = :id AND u.username = :username
+        """)
+    Optional<Replenishment> findByIdAndCreatedByUsername(@Param("id") Long id, @Param("username") String username);
+
     boolean existsByProductIdAndDestinationLocationIdAndStatusNotIn(
             Long productId, Long destinationLocationId, Collection<Status> statuses
     );

@@ -1,10 +1,10 @@
 <template>
   <div class="app-table-shell">
-    <div class="app-table-toolbar">
+    <div v-if="showSearch || $slots.toolbar" class="app-table-toolbar">
       <div v-if="$slots.toolbar" class="app-table-toolbar__actions">
         <slot name="toolbar" />
       </div>
-      <div class="app-table-toolbar__search">
+      <div v-if="showSearch" class="app-table-toolbar__search">
         <IconField>
           <InputIcon class="pi pi-search" />
           <InputText v-model="filters.global.value" placeholder="Search table" size="small" />
@@ -21,13 +21,13 @@
       :rows="rows"
       :rowsPerPageOptions="rowsPerPageOptions"
       :globalFilterFields="globalFilterFields"
-      filterDisplay="menu"
-      paginator
+      :filterDisplay="showSearch ? 'menu' : undefined"
+      :paginator="showPaginator"
       stripedRows
       responsiveLayout="scroll"
       class="app-data-table p-datatable-sm"
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
-      currentPageReportTemplate="{first}-{last} of {totalRecords}"
+      :paginatorTemplate="showPaginator ? 'FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport' : undefined"
+      :currentPageReportTemplate="showPaginator ? '{first}-{last} of {totalRecords}' : undefined"
       v-bind="$attrs"
     >
       <template v-for="(_, slotName) in dataTableSlots" #[slotName]="slotProps">
@@ -54,7 +54,9 @@ const props = defineProps({
   emptyMessage: { type: String, default: 'No records found.' },
   rows: { type: Number, default: 10 },
   rowsPerPageOptions: { type: Array, default: () => [10, 20, 50] },
-  filterFields: { type: Array, default: () => [] }
+  filterFields: { type: Array, default: () => [] },
+  showSearch: { type: Boolean, default: true },
+  showPaginator: { type: Boolean, default: true }
 })
 
 const slots = defineSlots()

@@ -10,6 +10,7 @@ import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.validation.SecurityFacade;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class ReplenishmentService {
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
+    private final SecurityFacade securityFacade;
 
     private static final List<Status> TERMINAL_STATUSES = List.of(Status.COMPLETED);
 
@@ -134,13 +136,14 @@ public class ReplenishmentService {
     }
 
     public List<ReplenishmentResponse> getAllReplenishments() {
-        return replenishmentRepository.findAll().stream()
+        return replenishmentRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
             .map(replenishmentMapper::toResponse)
             .toList();
     }
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
         List<Replenishment> tasks = replenishmentRepository.filter(
+            securityFacade.getCurrentUsername(),
             request.taskId(),
             request.productId(),
             request.requestedQuantity(),
@@ -152,7 +155,7 @@ public class ReplenishmentService {
     }
 
     private Replenishment getReplenishment(Long replenishmentId) {
-        return replenishmentRepository.findById(replenishmentId)
+        return replenishmentRepository.findByIdAndCreatedByUsername(replenishmentId, securityFacade.getCurrentUsername())
             .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
     }
 
