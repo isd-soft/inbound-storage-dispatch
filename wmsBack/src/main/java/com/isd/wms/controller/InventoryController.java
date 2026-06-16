@@ -6,20 +6,17 @@ import com.isd.wms.dto.inventory.InventoryHistoryResponse;
 import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.service.InventoryService;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.xlsx.StockInfo;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -27,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final ImportService importService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
@@ -68,5 +66,12 @@ public class InventoryController {
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public List<InventoryHistoryResponse> getStockHistory(@PathVariable Long stockId) {
         return inventoryService.getHistoryForStock(stockId);
+    }
+
+    @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(("hasAnyRole('SUPERVISOR', 'DEV')"))
+    public ResponseEntity<String> importStockFromFile(@RequestParam("file") MultipartFile file) {
+        importService.importData(file, StockInfo.class);
+        return ResponseEntity.ok("Stocks were successfully imported.");
     }
 }

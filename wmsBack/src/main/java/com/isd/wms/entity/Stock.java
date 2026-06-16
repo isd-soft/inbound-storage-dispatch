@@ -62,6 +62,15 @@ public class Stock extends BaseTimestampEntity {
         this.expirationDate = expirationDate;
     }
 
+    public Stock(Product product, Location location, Integer quantity, Integer reservedQuantity, LocalDate manufactureDate, LocalDate expirationDate) {
+        this.product = product;
+        this.location = location;
+        this.quantity = quantity;
+        this.reservedQuantity = reservedQuantity;
+        this.manufactureDate = manufactureDate;
+        this.expirationDate = expirationDate;
+    }
+
     public Stock(Long id, Product product, Location location, Integer quantity, Integer reservedQuantity, LocalDate manufactureDate, LocalDate expirationDate, Long version) {
         this.id = id;
         this.product = product;
