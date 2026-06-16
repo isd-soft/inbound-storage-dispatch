@@ -3,6 +3,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.product.ProductCreateRequest;
 import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.dto.product.ProductUpdateRequest;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.repository.projections.ProductWithQuantityProjection;
 import com.isd.wms.entity.Category;
 import com.isd.wms.entity.Product;
@@ -102,8 +103,8 @@ public class ProductService {
         return products;
     }
 
-    public List<ProductWithQuantityProjection> getAllProductsWithQuantity() {
-        return productRepository.getProductsWithQuantities();
+    public List<ProductWithQuantityProjection> getAllProductsWithQuantity(Zone zone) {
+        return productRepository.getProductsWithQuantities(zone);
     }
 
     public List<ProductResponse> searchProducts(String name, Long categoryId) {
