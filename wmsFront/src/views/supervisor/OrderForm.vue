@@ -73,6 +73,7 @@
                 optionValue="id"
                 placeholder="Select operator" filter
                 class="w-full"
+                :disabled="isAssignmentLocked(data.order)"
                 @change="assignOrderToOperator(data.order.id, assignmentByOrderId[data.order.id])"
               />
             </template>
@@ -84,7 +85,15 @@
           </Column>
           <template #expansion="{ data }">
             <div class="order-lines-expansion">
-              <AppDataTable :value="data.lines" :filterFields="orderLineFilterFields" class="p-datatable-sm order-lines-table" dataKey="orderLineId" responsiveLayout="scroll" emptyMessage="No order lines found.">
+              <AppDataTable
+                :value="data.lines"
+                :filterFields="orderLineFilterFields"
+                :showSearch="false"
+                :showPaginator="false"
+                class="p-datatable-sm order-lines-table"
+                dataKey="orderLineId"
+                emptyMessage="No order lines found."
+              >
                 <Column field="productId" header="Product" filter>
                   <template #body="{ data: line }">
                     <ProductLink
@@ -209,6 +218,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 
 import { orderApi } from '@/api/orderApi.js'
+import { inventoryApi } from '@/api/inventoryApi.js'
 import { userApi } from '@/api/userApi'
 
 const toast = useToast()
@@ -283,17 +293,41 @@ const toggleEditMode = () => {
 }
 
 const loadOrderCreateData = async () => {
-  const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
-    orderApi.getProducts(),
-    orderApi.getLocationsForDispatch(),
+  const [stocksResponse, locationsResponse, usersResponse] = await Promise.all([
+    inventoryApi.getAllStock(),
+    inventoryApi.getLocations(),
     userApi.getAll()
   ])
 
-  products.value = (productsResponse.data || []).map((product) => ({
+  const pickingLocationIds = new Set(
+    (locationsResponse.data || [])
+      .filter((location) => location.zone === 'PICKING')
+      .map((location) => Number(location.id))
+  )
+
+  const pickingStocks = (stocksResponse.data || []).filter((stock) =>
+    pickingLocationIds.has(Number(stock.locationId))
+  )
+
+  const stockByProductId = new Map()
+  pickingStocks.forEach((stock) => {
+    const productId = Number(stock.productId)
+    const current = stockByProductId.get(productId) || {
+      id: productId,
+      name: stock.productName,
+      barcode: stock.barcode || stock.sku,
+      quantity: 0
+    }
+
+    current.quantity += Number(stock.availableQuantity ?? stock.quantity ?? 0)
+    stockByProductId.set(productId, current)
+  })
+
+  products.value = Array.from(stockByProductId.values()).map((product) => ({
     ...product,
     sku: product.sku || product.barcode || product.code || product.productCode || ''
   }))
-  locations.value = (locationsResponse.data || []).map((location) => ({
+  locations.value = (locationsResponse.data || []).filter((location) => location.zone === 'DISPATCH').map((location) => ({
     ...location,
     locationCode: location.locationCode || location.barcode || location.code || location.location || ''
   }))
@@ -396,6 +430,8 @@ const getLocationLabel = (locationId) => {
 }
 
 const assignmentByOrderId = reactive({})
+
+const isAssignmentLocked = (order) => ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(order?.status || order?.Status)
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return

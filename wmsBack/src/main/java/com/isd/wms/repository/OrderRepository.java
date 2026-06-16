@@ -1,6 +1,7 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,19 +19,42 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("""
         SELECT o FROM Order o
-        WHERE (:status IS NULL OR o.logicId = :logicId)
+        JOIN OrderLine ol ON ol.order = o
+        JOIN Task t ON t = ol.task
+        JOIN User u ON u = t.supervisor
+        WHERE (:logicId IS NULL OR o.logicId = :logicId)
         AND (:destinationId IS NULL OR o.destinationLocation.id = :destinationId)
         AND (:status IS NULL OR o.status = :status)
         AND (:createdAt IS NULL OR o.createdAt = :createdAt)
         AND (:updatedAt IS NULL OR o.updatedAt = :updatedAt)
+        AND u.username = :username
         """)
     List<Order> filter(
+        @Param("username") String username,
         @Param("logicId") String logicId,
         @Param("destinationId") Long destinationId,
         @Param("status") OrderStatus status,
         @Param("createdAt") LocalDateTime createdAt,
         @Param("updatedAt") LocalDateTime updatedAt
     );
+
+    @Query("""
+        SELECT DISTINCT o FROM Order o
+        JOIN OrderLine ol ON ol.order = o
+        JOIN Task t ON t = ol.task
+        JOIN User u ON u = t.supervisor
+        WHERE u.username = :username
+        """)
+    List<Order> findAllByCreatedByUsername(@Param("username") String username);
+
+    @Query("""
+        SELECT DISTINCT o FROM Order o
+        JOIN OrderLine ol ON ol.order = o
+        JOIN Task t ON t = ol.task
+        JOIN User u ON u = t.supervisor
+        WHERE o.id = :id AND u.username = :username
+        """)
+    Optional<Order> findByIdAndCreatedByUsername(@Param("id") Long id, @Param("username") String username);
 
     @Query(value = """
             SELECT o.* FROM orders o

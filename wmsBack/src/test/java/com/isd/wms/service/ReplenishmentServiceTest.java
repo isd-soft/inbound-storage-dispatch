@@ -8,6 +8,7 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.validation.SecurityFacade;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,8 @@ class ReplenishmentServiceTest {
     private WorkflowService workflowService;
     @Mock
     private TaskService taskService;
+    @Mock
+    private SecurityFacade securityFacade;
 
     @InjectMocks
     private ReplenishmentService replenishmentService;
@@ -77,18 +80,11 @@ class ReplenishmentServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void mockSecurityContext(String username) {
-        Authentication authentication = mock(Authentication.class);
-        SecurityContext securityContext = mock(SecurityContext.class);
-        when(authentication.getName()).thenReturn(username);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
-    }
-
     @Test
     void createReplenishment_validRequest_returnsResponse() {
         ReplenishmentCreateRequest request = new ReplenishmentCreateRequest(1L, 10, 3L);
 
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(destinationLocation));
         when(replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(eq(1L), eq(3L), any())).thenReturn(false);
@@ -107,7 +103,8 @@ class ReplenishmentServiceTest {
     void updateReplenishment_validRequest_returnsUpdatedResponse() {
         ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, Status.COMPLETED, 3L);
 
-        when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(replenishmentRepository.findByIdAndCreatedByUsername(eq(1L), any())).thenReturn(Optional.of(replenishment));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(destinationLocation));
         when(replenishmentRepository.save(replenishment)).thenReturn(replenishment);
@@ -126,7 +123,8 @@ class ReplenishmentServiceTest {
     void searchReplenishments_withFilters_returnsMappedResults() {
         ReplenishmentSearchRequest request = new ReplenishmentSearchRequest(1L, null, null, Status.CREATED, null);
 
-        when(replenishmentRepository.filter(1L, null, null, Status.CREATED, null))
+        when(securityFacade.getCurrentUsername()).thenReturn("tester");
+        when(replenishmentRepository.filter(any(), eq(1L), any(), any(), eq(Status.CREATED), any()))
                 .thenReturn(List.of(replenishment));
         when(replenishmentMapper.toResponse(replenishment)).thenReturn(response);
 
