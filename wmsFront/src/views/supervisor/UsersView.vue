@@ -63,7 +63,7 @@
       <Column field="email" header="Email" filter></Column>
       <Column field="userRole" header="Role" sortable filter>
         <template #body="{ data }">
-          <Tag :severity="getRoleSeverity(data.userRole)" :value="data.userRole" />
+          <Tag :severity="getRoleSeverity(data.userRole)" :value="formatRoleLabel(data.userRole)" />
         </template>
       </Column>
     </AppDataTable>
@@ -77,7 +77,7 @@
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
           <label for="username" class="app-subtitle font-medium"
-          >Username <span class="text-red-500">*</span></label
+            >Username <span class="text-red-500">*</span></label
           >
           <InputText
             id="username"
@@ -87,22 +87,26 @@
             autofocus
             class="w-full"
           />
-          <small v-if="formData.username && formData.username.includes('@')" class="text-red-500 text-xs font-medium">
-            Username cannot contain the '@' character. Please use simple characters, numbers or underscores.
+          <small
+            v-if="formData.username && formData.username.includes('@')"
+            class="text-red-500 text-xs font-medium"
+          >
+            Username cannot contain the '@' character. Please use simple characters, numbers or
+            underscores.
           </small>
         </div>
 
         <template v-if="dialogMode === 'add'">
           <div class="flex flex-col gap-2">
             <label for="email" class="app-subtitle font-medium"
-            >Email <span class="text-red-500">*</span></label
+              >Email <span class="text-red-500">*</span></label
             >
             <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
           </div>
 
           <div class="flex flex-col gap-2">
             <label for="password" class="app-subtitle font-medium"
-            >Password <span class="text-red-500">*</span></label
+              >Password <span class="text-red-500">*</span></label
             >
             <Password
               id="password"
@@ -119,13 +123,14 @@
               class="w-full"
             />
             <small class="text-gray-500 text-xs">
-              Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char (@$!%*?&_#).
+              Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char
+              (@$!%*?&_#).
             </small>
           </div>
 
           <div class="flex flex-col gap-2">
             <label for="confirmPassword" class="app-subtitle font-medium"
-            >Confirm Password <span class="text-red-500">*</span></label
+              >Confirm Password <span class="text-red-500">*</span></label
             >
             <Password
               id="confirmPassword"
@@ -144,12 +149,14 @@
 
         <div class="flex flex-col gap-2">
           <label for="role" class="app-subtitle font-medium"
-          >Role <span class="text-red-500">*</span></label
+            >Role <span class="text-red-500">*</span></label
           >
           <Dropdown
             id="role"
             v-model="formData.userRole"
             :options="roles"
+            optionLabel="label"
+            optionValue="value"
             placeholder="Select a Role"
             filter
             class="w-full"
@@ -231,11 +238,18 @@ const formData = ref({
   originalRole: null,
 })
 
+// MODIFICARE: Mapăm string-urile brute în obiecte cu text frumos (label) și cheie tehnică (value)
 const roles = computed(() => {
+  const allRoles = [
+    { value: 'ROLE_SUPERVISOR', label: 'Supervisor' },
+    { value: 'ROLE_OPERATOR', label: 'Operator' },
+    { value: 'ROLE_DEV', label: 'Developer' },
+  ]
+
   if (dialogMode.value === 'edit' && formData.value.originalRole === 'ROLE_DEV') {
-    return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR', 'ROLE_DEV']
+    return allRoles
   }
-  return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR']
+  return allRoles.filter((role) => role.value !== 'ROLE_DEV')
 })
 
 const isPasswordMatching = computed(() => {
@@ -247,7 +261,6 @@ const isPasswordStrongEnough = computed(() => {
   return regex.test(formData.value.password)
 })
 
-// Întoarce true doar dacă există text completat și NU conține '@'
 const isUsernameValid = computed(() => {
   return formData.value.username && !formData.value.username.includes('@')
 })
@@ -272,6 +285,14 @@ const getRoleSeverity = (role) => {
   if (role === 'ROLE_SUPERVISOR') return 'warning'
   if (role === 'ROLE_DEV') return 'danger'
   return 'success'
+}
+
+// MODIFICARE: Funcție utilitară pentru a afișa un text prietenos în tabel bazat pe codul de rol
+const formatRoleLabel = (roleValue) => {
+  if (roleValue === 'ROLE_SUPERVISOR') return 'Supervisor'
+  if (roleValue === 'ROLE_DEV') return 'Developer'
+  if (roleValue === 'ROLE_OPERATOR') return 'Operator'
+  return roleValue
 }
 
 const canDelete = (user) => {
