@@ -32,19 +32,25 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("token", token));
     }
 
-    @GetMapping("/verify")
-    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestBody Map<String, String> payload) {
+        String token = payload.get("token");
+        String password = payload.get("password");
+
+        if (password == null || password.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password is required"));
+        }
+
         try {
-            boolean isVerified = userService.verifyEmail(token);
+            boolean isVerified = userService.verifyEmail(token, password);
             if (isVerified) {
                 log.info("Email verified successfully for token: {}", token);
-                return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
+                return ResponseEntity.ok(Map.of("message", "Account activated successfully! You can now log in."));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "error", "The verification link has expired. The unverified account has been removed. Please ask to send a new invitation."
+                    "error", "The verification link has expired. The unverified account has been removed."
                 ));
             }
-
         } catch (RuntimeException e) {
             log.warn("Email verification failed: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

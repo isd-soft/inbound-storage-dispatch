@@ -54,6 +54,7 @@
         />
         <span v-if="editMode" class="app-muted text-sm">{{ selectedUsers.length }} selected</span>
       </template>
+
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
       <Column field="username" header="Username" sortable filter>
         <template #body="{ data }">
@@ -75,10 +76,11 @@
       class="w-full max-w-md"
     >
       <div class="flex flex-col gap-4 mt-2">
+        <!-- Username (общее) -->
         <div class="flex flex-col gap-2">
-          <label for="username" class="app-subtitle font-medium"
-          >Username <span class="text-red-500">*</span></label
-          >
+          <label for="username" class="app-subtitle font-medium">
+            Username <span class="text-red-500">*</span>
+          </label>
           <InputText
             id="username"
             v-model="formData.username"
@@ -87,65 +89,35 @@
             autofocus
             class="w-full"
           />
-          <small v-if="formData.username && formData.username.includes('@')" class="text-red-500 text-xs font-medium">
+          <small
+            v-if="formData.username && formData.username.includes('@')"
+            class="text-red-500 text-xs font-medium"
+          >
             Username cannot contain the '@' character. Please use simple characters, numbers or underscores.
           </small>
         </div>
 
+        <!-- Email (только при создании) -->
         <template v-if="dialogMode === 'add'">
           <div class="flex flex-col gap-2">
-            <label for="email" class="app-subtitle font-medium"
-            >Email <span class="text-red-500">*</span></label
-            >
-            <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label for="password" class="app-subtitle font-medium"
-            >Password <span class="text-red-500">*</span></label
-            >
-            <Password
-              id="password"
-              v-model="formData.password"
-              toggleMask
+            <label for="email" class="app-subtitle font-medium">
+              Email <span class="text-red-500">*</span>
+            </label>
+            <InputText
+              id="email"
+              type="email"
+              v-model="formData.email"
               required
-              promptLabel="Choose a password"
-              weakLabel="Weak password"
-              mediumLabel="Medium strength"
-              strongLabel="Strong password"
-              :mediumRegex="passwordMediumRegex"
-              :strongRegex="passwordStrongRegex"
-              inputClass="w-full"
               class="w-full"
             />
-            <small class="text-gray-500 text-xs">
-              Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char (@$!%*?&_#).
-            </small>
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label for="confirmPassword" class="app-subtitle font-medium"
-            >Confirm Password <span class="text-red-500">*</span></label
-            >
-            <Password
-              id="confirmPassword"
-              v-model="confirmPassword"
-              :feedback="false"
-              toggleMask
-              required
-              inputClass="w-full"
-              class="w-full"
-            />
-            <small v-if="confirmPassword && !isPasswordMatching" class="text-red-500">
-              Passwords do not match.
-            </small>
           </div>
         </template>
 
+        <!-- Role (общее) -->
         <div class="flex flex-col gap-2">
-          <label for="role" class="app-subtitle font-medium"
-          >Role <span class="text-red-500">*</span></label
-          >
+          <label for="role" class="app-subtitle font-medium">
+            Role <span class="text-red-500">*</span>
+          </label>
           <Dropdown
             id="role"
             v-model="formData.userRole"
@@ -182,13 +154,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
 import Dropdown from 'primevue/dropdown'
 import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -208,14 +178,9 @@ const dialogVisible = ref(false)
 const dialogMode = ref('add')
 const editMode = ref(false)
 
-const confirmPassword = ref('')
-
-const passwordMediumRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,64}$'
-const passwordStrongRegex =
-  '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_#])[A-Za-z\\d@$!%*?&_#]{8,64}$'
-
 const isDev = computed(() => authStore.role === 'ROLE_DEV')
 const deletableSelectedUsers = computed(() => selectedUsers.value.filter(canDelete))
+
 const userFilterFields = [
   { field: 'username', label: 'Username' },
   { field: 'email', label: 'Email' },
@@ -226,7 +191,6 @@ const formData = ref({
   id: null,
   username: '',
   email: '',
-  password: '',
   userRole: null,
   originalRole: null,
 })
@@ -238,16 +202,6 @@ const roles = computed(() => {
   return ['ROLE_SUPERVISOR', 'ROLE_OPERATOR']
 })
 
-const isPasswordMatching = computed(() => {
-  return formData.value.password === confirmPassword.value
-})
-
-const isPasswordStrongEnough = computed(() => {
-  const regex = new RegExp(passwordStrongRegex)
-  return regex.test(formData.value.password)
-})
-
-// Întoarce true doar dacă există text completat și NU conține '@'
 const isUsernameValid = computed(() => {
   return formData.value.username && !formData.value.username.includes('@')
 })
@@ -258,9 +212,6 @@ const isFormValid = computed(() => {
       isUsernameValid.value &&
       formData.value.username.trim() &&
       formData.value.email.trim() &&
-      formData.value.password.trim() &&
-      isPasswordStrongEnough.value &&
-      isPasswordMatching.value &&
       formData.value.userRole
     )
   } else {
@@ -287,7 +238,12 @@ const loadUsers = async () => {
     const res = await userApi.getAll()
     users.value = res.data
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Load Failed', detail: error.message, life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Load Failed',
+      detail: error.message,
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }
@@ -295,12 +251,10 @@ const loadUsers = async () => {
 
 const openCreateDialog = () => {
   dialogMode.value = 'add'
-  confirmPassword.value = ''
   formData.value = {
     id: null,
     username: '',
     email: '',
-    password: '',
     userRole: null,
     originalRole: null,
   }
@@ -314,12 +268,10 @@ const toggleEditMode = () => {
 
 const openEditDialog = (user) => {
   dialogMode.value = 'edit'
-  confirmPassword.value = ''
   formData.value = {
     id: user.id,
     username: user.username,
     email: '',
-    password: '',
     userRole: user.userRole,
     originalRole: user.userRole,
   }
@@ -341,11 +293,21 @@ const handleBackendError = (error) => {
     !error.response.data.error
   ) {
     for (const [field, msg] of Object.entries(error.response.data)) {
-      toast.add({ severity: 'error', summary: `Invalid ${field}`, detail: msg, life: 6000 })
+      toast.add({
+        severity: 'error',
+        summary: `Invalid ${field}`,
+        detail: msg,
+        life: 6000,
+      })
     }
   } else {
     const errorMsg = error.response?.data?.error || 'Operation failed'
-    toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: errorMsg,
+      life: 5000,
+    })
   }
 }
 
@@ -355,7 +317,6 @@ const registerUser = async () => {
     const payload = {
       username: formData.value.username,
       email: formData.value.email,
-      password: formData.value.password,
       userRole: formData.value.userRole,
     }
     await userApi.register(payload)
@@ -406,7 +367,9 @@ const deleteSelectedUsers = () => {
     accept: async () => {
       loading.value = true
       try {
-        await Promise.all(deletableSelectedUsers.value.map((user) => userApi.delete(user.id)))
+        await Promise.all(
+          deletableSelectedUsers.value.map((user) => userApi.delete(user.id))
+        )
         toast.add({
           severity: 'success',
           summary: 'Deleted',
