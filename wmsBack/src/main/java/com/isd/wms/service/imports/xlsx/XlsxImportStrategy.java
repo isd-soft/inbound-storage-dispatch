@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class XlsxImportStrategy implements ImportStrategy {
@@ -21,7 +22,7 @@ public class XlsxImportStrategy implements ImportStrategy {
         try (InputStream inputStream = file.getInputStream()) {
 
             PoijiExcelType excelType = PoijiExcelType.XLSX;
-            if (FilenameUtils.getExtension(file.getOriginalFilename()).equals("xls")) {
+            if (Objects.equals(FilenameUtils.getExtension(file.getOriginalFilename()), "xls")) {
                 excelType = PoijiExcelType.XLS;
             }
 

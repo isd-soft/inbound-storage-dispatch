@@ -1,7 +1,9 @@
 package com.isd.wms.service.imports.xlsx;
 
 import com.poiji.annotation.ExcelCellName;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 import java.time.LocalDate;
@@ -10,15 +12,21 @@ import java.time.LocalDate;
 @Setter
 public class StockInfo {
     @ExcelCellName("Product")
+    @NonNull
     private Long productId;
 
     @ExcelCellName("Location")
+    @NonNull
     private Long locationId;
 
     @ExcelCellName("Quantity")
+    @NonNull
+    @Min(0)
     private Integer quantity;
 
     @ExcelCellName("Reserved Quantity")
+    @NonNull
+    @Min(0)
     private Integer reservedQuantity;
 
     @ExcelCellName("Manufacture Date")
