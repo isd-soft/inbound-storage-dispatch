@@ -71,7 +71,7 @@ public class InventoryController {
     @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(("hasAnyRole('SUPERVISOR', 'DEV')"))
     public ResponseEntity<String> importStockFromFile(@RequestParam("file") MultipartFile file) {
-        importService.importData(file, StockInfo.class);
+        inventoryService.importStockFromFile(file);
         return ResponseEntity.ok("Stocks were successfully imported.");
     }
 }

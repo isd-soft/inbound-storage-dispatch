@@ -1,10 +1,12 @@
 package com.isd.wms.service.imports;
 
 import com.isd.wms.enums.ImportType;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Component
 public interface ImportStrategy {
     <T> List<T> parse(MultipartFile file, Class<T> clazz);
 

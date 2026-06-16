@@ -27,6 +27,9 @@ public class StockInfo {
     @ExcelCellName("Expiration Date")
     private LocalDate expirationDate;
 
+    public StockInfo() {
+    }
+
     public StockInfo(Long productId, Long locationId, Integer quantity, LocalDate manufactureDate, LocalDate expirationDate) {
         this.productId = productId;
         this.locationId = locationId;

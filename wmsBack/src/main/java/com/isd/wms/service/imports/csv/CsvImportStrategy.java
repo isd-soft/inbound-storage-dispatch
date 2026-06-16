@@ -2,10 +2,12 @@ package com.isd.wms.service.imports.csv;
 
 import com.isd.wms.enums.ImportType;
 import com.isd.wms.service.imports.ImportStrategy;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Component
 public class CsvImportStrategy implements ImportStrategy {
     @Override
     public <T> List<T> parse(MultipartFile file, Class<T> clazz) {
@@ -14,6 +16,6 @@ public class CsvImportStrategy implements ImportStrategy {
 
     @Override
     public boolean support(ImportType type) {
-        return false;
+        return type == ImportType.CSV;
     }
 }
