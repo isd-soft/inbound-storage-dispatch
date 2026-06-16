@@ -1,6 +1,6 @@
 package com.isd.wms.repository;
 
-import com.isd.wms.dto.product.ProductWithQuantityProjection;
+import com.isd.wms.repository.projections.ProductWithQuantityProjection;
 import com.isd.wms.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -59,7 +59,7 @@
             </template>
           </Column>
 
-          <!-- Inline editing is intentionally not enabled here because replenishment tasks are backed by generated process allocations. -->
+          <!-- Inline editing is intentionally not enabled here because replenishment tasks are backed by generated allocation allocations. -->
     </AppDataTable>
 
     <Dialog v-model:visible="dialogVisible" header="Create Replenishment Task" :modal="true" class="p-fluid w-full max-w-md">
@@ -113,8 +113,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 
-import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'

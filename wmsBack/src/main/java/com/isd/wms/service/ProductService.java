@@ -3,7 +3,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.product.ProductCreateRequest;
 import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.dto.product.ProductUpdateRequest;
-import com.isd.wms.dto.product.ProductWithQuantityProjection;
+import com.isd.wms.repository.projections.ProductWithQuantityProjection;
 import com.isd.wms.entity.Category;
 import com.isd.wms.entity.Product;
 import com.isd.wms.exception.CategoryNotFoundException;

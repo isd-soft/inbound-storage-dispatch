@@ -70,7 +70,7 @@
             </template>
           </Column>
 
-          <!-- Inline editing is intentionally not enabled here because replenishment updates regenerate task/process allocation server-side. -->
+          <!-- Inline editing is intentionally not enabled here because replenishment updates regenerate task/allocation allocation server-side. -->
     </AppDataTable>
 
     <Dialog v-model:visible="createDialogVisible" header="Create Replenishment Task" :modal="true" class="w-full max-w-md">
@@ -133,8 +133,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 
-import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -250,10 +248,10 @@ const applyFilters = async () => {
   }
 }
 
-const clearFilters = () => {
-  filters.value = { productId: null, destinationLocationId: null, status: null }
-  applyFilters()
-}
+// const clearFilters = () => {
+//   filters.value = { productId: null, destinationLocationId: null, status: null }
+//   applyFilters()
+// }
 
 const openCreateDialog = () => {
   newReplenishment.value = { productId: null, requestedQuantity: null, destinationLocationId: null }

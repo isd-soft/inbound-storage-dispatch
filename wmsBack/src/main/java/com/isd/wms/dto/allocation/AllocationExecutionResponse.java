@@ -1,7 +1,7 @@
-package com.isd.wms.dto.process;
+package com.isd.wms.dto.allocation;
 
-public record ProcessExecutionResponse(
-        Long processId,
+public record AllocationExecutionResponse(
+        Long allocationId,
         String status,
         boolean sourceLocationScanned,
         boolean productScanned,

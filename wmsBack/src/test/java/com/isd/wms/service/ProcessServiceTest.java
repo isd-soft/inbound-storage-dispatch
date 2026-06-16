@@ -1,6 +1,6 @@
 //package com.isd.wms.service;
 //
-//import com.isd.wms.dto.process.ProcessOperatorResponse;
+//import com.isd.wms.dto.allocation.ProcessOperatorResponse;
 //import com.isd.wms.entity.Location;
 //import com.isd.wms.entity.Process;
 //import com.isd.wms.entity.Product;
@@ -9,7 +9,7 @@
 //import com.isd.wms.entity.User;
 //import com.isd.wms.enums.Status;
 //import com.isd.wms.exception.InvalidRequestException;
-//import com.isd.wms.repository.ProcessRepository;
+//import com.isd.wms.repository.AllocationRepository  ;
 //import com.isd.wms.repository.UserRepository;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
@@ -29,10 +29,10 @@
 //import static org.mockito.Mockito.*;
 //
 //@ExtendWith(MockitoExtension.class)
-//class ProcessServiceTest {
+//class allocationServiceTest {
 //
 //    @Mock
-//    private ProcessRepository processRepository;
+//    private AllocationRepository  allocationRepository ;
 //
 //    @Mock
 //    private UserRepository userRepository;
@@ -41,10 +41,10 @@
 //    private WorkflowService workflowService;
 //
 //    @InjectMocks
-//    private ProcessService processService;
+//    private AllocationService allocationService;
 //
 //    private User operator;
-//    private Process process;
+//    private Allocation allocation;
 //
 //    @BeforeEach
 //    void setUp() {
@@ -67,11 +67,11 @@
 //        task.setId(100L);
 //
 //        process = new Process();
-//        process.setId(50L);
-//        process.setQuantity(10);
-//        process.setStatus(Status.CREATED);
-//        process.setStock(stock);
-//        process.setTask(task);
+//        allocation.setId(50L);
+//        allocation.setQuantity(10);
+//        allocation.setStatus(Status.CREATED);
+//        allocation.setStock(stock);
+//        allocation.setTask(task);
 //
 //        Authentication authentication = mock(Authentication.class);
 //        SecurityContext securityContext = mock(SecurityContext.class);
@@ -85,52 +85,52 @@
 //
 //    @Test
 //    void getAvailableProcesses_ShouldReturnList() {
-//        when(processRepository.findByStatus(Status.CREATED)).thenReturn(List.of(process));
+//        when(allocationRepository.findByStatus(Status.CREATED)).thenReturn(List.of(process));
 //
-//        List<ProcessOperatorResponse> result = processService.getAvailableProcesses();
+//        List<ProcessOperatorResponse> result = allocationService.getAvailableProcesses();
 //
 //        assertFalse(result.isEmpty());
 //        assertEquals(50L, result.get(0).id());
 //        assertEquals("Test Product", result.get(0).productName());
-//        verify(processRepository).findByStatus(Status.CREATED);
+//        verify(allocationRepository ).findByStatus(Status.CREATED);
 //    }
 //
 //    @Test
 //    void assignProcess_WhenStatusCreated_ShouldAssignToOperator() {
-//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
-//        when(processRepository.save(any(Process.class))).thenReturn(process);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.save(any(allocation.class))).thenReturn(process);
 //
-//        ProcessOperatorResponse result = processService.assignProcess(50L);
+//        ProcessOperatorResponse result = allocationService.assignProcess(50L);
 //
-//        assertEquals(Status.ASSIGNED, process.getStatus());
-//        assertEquals(operator, process.getOperator().orElseThrow());
+//        assertEquals(Status.ASSIGNED, allocation.getStatus());
+//        assertEquals(operator, allocation.getOperator().orElseThrow());
 //        assertEquals(Status.ASSIGNED, result.status());
-//        verify(processRepository).save(process);
+//        verify(allocationRepository ).save(process);
 //    }
 //
 //    @Test
 //    void assignProcess_WhenStatusAlreadyAssigned_ShouldThrowException() {
-//        process.setStatus(Status.ASSIGNED);
-//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+//        allocation.setStatus(Status.ASSIGNED);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
 //
-//        assertThrows(InvalidRequestException.class, () -> processService.assignProcess(50L));
-//        verify(processRepository, never()).save(any());
+//        assertThrows(InvalidRequestException.class, () -> allocationService.assignProcess(50L));
+//        verify(allocationRepository , never()).save(any());
 //    }
 //
 //    @Test
 //    void completeProcess_WhenAssignedToCurrentUser_ShouldCompleteAndTriggerWorkflow() {
-//        process.setStatus(Status.ASSIGNED);
-//        process.setOperator(operator);
+//        allocation.setStatus(Status.ASSIGNED);
+//        allocation.setOperator(operator);
 //
-//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
-//        when(processRepository.save(any(Process.class))).thenReturn(process);
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.save(any(allocation.class))).thenReturn(process);
 //
-//        ProcessOperatorResponse result = processService.completeProcess(50L);
+//        ProcessOperatorResponse result = allocationService.completeProcess(50L);
 //
-//        assertEquals(Status.COMPLETED, process.getStatus());
+//        assertEquals(Status.COMPLETED, allocation.getStatus());
 //        assertEquals(Status.COMPLETED, result.status());
 //
-//        verify(processRepository).save(process);
+//        verify(allocationRepository ).save(process);
 //        verify(workflowService).executeProcessCompletion(process);
 //    }
 //
@@ -138,12 +138,12 @@
 //    void completeProcess_WhenAssignedToDifferentUser_ShouldThrowException() {
 //        User anotherOperator = new User();
 //        anotherOperator.setId(2L);
-//        process.setStatus(Status.ASSIGNED);
-//        process.setOperator(anotherOperator);
+//        allocation.setStatus(Status.ASSIGNED);
+//        allocation.setOperator(anotherOperator);
 //
-//        when(processRepository.findById(50L)).thenReturn(Optional.of(process));
+//        when(allocationRepository.findById(50L)).thenReturn(Optional.of(process));
 //
-//        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> processService.completeProcess(50L));
+//        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> allocationService.completeProcess(50L));
 //        assertEquals("You can only complete your own processes", exception.getMessage());
 //        verify(workflowService, never()).executeProcessCompletion(any());
 //    }

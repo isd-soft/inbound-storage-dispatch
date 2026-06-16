@@ -1,4 +1,4 @@
-package com.isd.wms.dto.product;
+package com.isd.wms.repository.projections;
 
 public interface ProductWithQuantityProjection {
     Long getId();

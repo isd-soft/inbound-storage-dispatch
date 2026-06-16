@@ -45,8 +45,8 @@
 
           <div class="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
             <div
-              v-for="(proc, index) in finalProcessesSummary"
-              :key="proc.processId || index"
+              v-for="(proc, index) in finalAllocationsSummary"
+              :key="proc.allocationId || index"
               class="flex flex-col gap-1 p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-gray-100 dark:border-zinc-700 text-xs shadow-sm"
             >
               <div class="flex justify-between items-start gap-2">
@@ -78,7 +78,7 @@
 
           <div class="flex items-center justify-between text-[11px] text-gray-400 dark:text-zinc-500 pt-1">
             <span>Total processed lines:</span>
-            <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ finalProcessesSummary.length || 0 }}</span>
+            <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ finalAllocationsSummary.length || 0 }}</span>
           </div>
         </div>
 
@@ -131,8 +131,8 @@
 
                   <div class="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
                     <div
-                      v-for="(proc, index) in orderedProcesses"
-                      :key="proc.processId || index"
+                      v-for="(proc, index) in orderedAllocations"
+                      :key="proc.allocationId || index"
                       class="flex flex-col gap-1 p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-gray-100 dark:border-zinc-700 text-xs shadow-sm"
                     >
                       <div class="flex justify-between items-start gap-2">
@@ -165,7 +165,7 @@
 
                   <div class="flex items-center justify-between text-[11px] text-gray-400 dark:text-zinc-500 pt-1">
                     <span>Total lines to process:</span>
-                    <span class="font-bold text-gray-700 dark:text-zinc-300">{{ orderedProcesses.length || 0 }}</span>
+                    <span class="font-bold text-gray-700 dark:text-zinc-300">{{ orderedAllocations.length || 0 }}</span>
                   </div>
                 </div>
 
@@ -180,7 +180,7 @@
               </div>
 
               <!-- STEPPER DINAMIC UNITAR -->
-              <Stepper v-else-if="currentProcess" :value="activeStep" linear class="w-full">
+              <Stepper v-else-if="currentAllocation" :value="activeStep" linear class="w-full">
                 <StepList class="justify-center text-xs gap-3">
                   <Step
                     v-for="step in stepDefinitions"
@@ -207,7 +207,7 @@
                       <div>
                         <div class="text-xs app-muted">Scan source location</div>
                         <div class="font-mono font-semibold app-brand text-xl mt-0.5">
-                          {{ currentProcess.sourceLocationBarcode }}
+                          {{ currentAllocation.sourceLocationBarcode }}
                         </div>
                       </div>
                       <ScanSection
@@ -225,9 +225,9 @@
                       <div>
                         <div class="text-xs app-muted">Scan product barcode</div>
                         <div class="font-mono font-semibold app-warm text-xl mt-0.5">
-                          {{ currentProcess.productBarcode || 'No barcode' }}
+                          {{ currentAllocation.productBarcode || 'No barcode' }}
                         </div>
-                        <div class="text-xs app-muted mt-1 font-medium px-2 line-clamp-2">{{ currentProcess.productName }}</div>
+                        <div class="text-xs app-muted mt-1 font-medium px-2 line-clamp-2">{{ currentAllocation.productName }}</div>
                       </div>
                       <ScanSection
                         v-model="barcodeInput"
@@ -244,16 +244,16 @@
                       <div>
                         <div class="text-xs app-muted">Confirm picked quantity</div>
                         <div class="font-semibold text-sm app-title mt-0.5 px-2 line-clamp-2">
-                          {{ currentProcess.productName }}
+                          {{ currentAllocation.productName }}
                         </div>
-                        <div class="text-xs font-normal text-gray-500 mt-1">Required: <strong class="app-brand">{{ currentProcess.requiredQuantity }}</strong></div>
+                        <div class="text-xs font-normal text-gray-500 mt-1">Required: <strong class="app-brand">{{ currentAllocation.requiredQuantity }}</strong></div>
                       </div>
 
                       <div class="w-full flex flex-col gap-2 items-center">
                         <InputNumber
                           v-model="pickedQuantity"
                           :min="1"
-                          :max="currentProcess.requiredQuantity"
+                          :max="currentAllocation.requiredQuantity"
                           fluid
                           readonly
                           inputClass="text-center text-lg font-bold bg-gray-100 dark:bg-zinc-800 py-2 w-full"
@@ -270,8 +270,8 @@
                             icon="pi pi-plus"
                             severity="success"
                             class="w-12 h-12 rounded-full shadow"
-                            @click="incrementQuantity(currentProcess.requiredQuantity)"
-                            :disabled="pickedQuantity >= currentProcess.requiredQuantity"
+                            @click="incrementQuantity(currentAllocation.requiredQuantity)"
+                            :disabled="pickedQuantity >= currentAllocation.requiredQuantity"
                           />
                         </div>
                       </div>
@@ -331,7 +331,7 @@
                         severity="success"
                         class="w-full font-bold py-3 shadow-md text-base mt-2"
                         :loading="actionLoading"
-                        @click="completeProcess"
+                        @click="completeAllocation"
                       />
                     </div>
 
@@ -356,8 +356,6 @@ import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
@@ -431,35 +429,35 @@ const barcodeInput = ref('')
 const pickedQuantity = ref(1)
 
 // Stocăm local lista de linii ca să o avem disponibilă pe ecranul final chiar dacă backend-ul întoarce 204
-const finalProcessesSummary = ref([])
+const finalAllocationsSummary = ref([])
 const showFinalSummary = ref(false)
 
 const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuantity.value++ }
 const decrementQuantity = () => { if (pickedQuantity.value > 1) pickedQuantity.value-- }
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value)
-const currentProcess = computed(() => summary.value?.currentProcess || null)
-const orderedProcesses = computed(() => summary.value?.processes || [])
+const currentAllocation = computed(() => summary.value?.currentAllocation || null)
+const orderedAllocations = computed(() => summary.value?.allocations || [])
 const isPickingTask = computed(() => summary.value?.taskType === 'PICKING_ORDER')
 const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT')
 
 const taskExecutionTitle = computed(() => isReplenishmentTask.value ? 'Replenishment Task' : 'Picking Order Task')
 const taskHeaderClass = computed(() => isReplenishmentTask.value ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400')
-const isAwaitingStart = computed(() => summary.value?.status === 'ASSIGNED' || currentProcess.value?.status === 'ASSIGNED')
+const isAwaitingStart = computed(() => summary.value?.status === 'ASSIGNED' || currentAllocation.value?.status === 'ASSIGNED')
 
 const liveSummaryRows = computed(() => {
-  if (!currentProcess.value) return []
+  if (!currentAllocation.value) return []
   return [{
-    rowKey: currentProcess.value.processId,
-    productName: currentProcess.value.productName || 'N/A',
-    movedQuantity: pickedQuantity.value ?? currentProcess.value.pickedQuantity ?? 0,
-    sourceLocation: currentProcess.value.sourceLocationBarcode || 'N/A',
-    destinationLocation: currentProcess.value.destinationLocationBarcode || 'N/A'
+    rowKey: currentAllocation.value.allocationId,
+    productName: currentAllocation.value.productName || 'N/A',
+    movedQuantity: pickedQuantity.value ?? currentAllocation.value.pickedQuantity ?? 0,
+    sourceLocation: currentAllocation.value.sourceLocationBarcode || 'N/A',
+    destinationLocation: currentAllocation.value.destinationLocationBarcode || 'N/A'
   }]
 })
 
 const stepDefinitions = computed(() => {
-  if (!currentProcess.value) return []
+  if (!currentAllocation.value) return []
   if (isReplenishmentTask.value) {
     return [
       { value: 1, type: 'location', label: 'Location' },
@@ -476,11 +474,11 @@ const stepDefinitions = computed(() => {
 })
 
 const activeStep = computed(() => {
-  if (!currentProcess.value) return 1
-  if (!currentProcess.value.sourceLocationScanned) return 1
-  if (!currentProcess.value.productScanned) return 2
+  if (!currentAllocation.value) return 1
+  if (!currentAllocation.value.sourceLocationScanned) return 1
+  if (!currentAllocation.value.productScanned) return 2
   if (isReplenishmentTask.value) {
-    if (currentProcess.value.pickedQuantity == null) return 3
+    if (currentAllocation.value.pickedQuantity == null) return 3
     return 4
   }
   return 3
@@ -492,11 +490,11 @@ const hydrateState = (payload) => {
   summary.value = payload
   actionError.value = ''
   barcodeInput.value = ''
-  pickedQuantity.value = payload?.currentProcess?.pickedQuantity ?? payload?.currentProcess?.requiredQuantity ?? 1
+  pickedQuantity.value = payload?.currentAllocation?.pickedQuantity ?? payload?.currentAllocation?.requiredQuantity ?? 1
 
   // Salvăm istoricul complet al liniilor local
-  if (payload && payload.processes) {
-    finalProcessesSummary.value = JSON.parse(JSON.stringify(payload.processes))
+  if (payload && payload.allocations) {
+    finalAllocationsSummary.value = JSON.parse(JSON.stringify(payload.allocations))
   }
 }
 
@@ -555,7 +553,7 @@ const startTask = async () => {
 }
 
 const submitBarcodeStep = async () => {
-  if (!currentProcess.value || !barcodeInput.value?.trim()) {
+  if (!currentAllocation.value || !barcodeInput.value?.trim()) {
     actionError.value = 'Barcode is required.'
     return
   }
@@ -564,11 +562,11 @@ const submitBarcodeStep = async () => {
   const cleanBarcode = barcodeInput.value.trim().toUpperCase()
 
   try {
-    if (!currentProcess.value.sourceLocationScanned) {
-      await allocationApi.scanSourceLocation(currentProcess.value.processId, cleanBarcode)
+    if (!currentAllocation.value.sourceLocationScanned) {
+      await allocationApi.scanSourceLocation(currentAllocation.value.allocationId, cleanBarcode)
       toast.add({ severity: 'success', summary: 'Source verified', life: 1500 })
-    } else if (!currentProcess.value.productScanned) {
-      await allocationApi.scanProduct(currentProcess.value.processId, cleanBarcode)
+    } else if (!currentAllocation.value.productScanned) {
+      await allocationApi.scanProduct(currentAllocation.value.allocationId, cleanBarcode)
       toast.add({ severity: 'success', summary: 'Product verified', life: 1500 })
     }
     barcodeInput.value = ''
@@ -581,23 +579,23 @@ const submitBarcodeStep = async () => {
 }
 
 const confirmQuantity = async () => {
-  if (!currentProcess.value) return
+  if (!currentAllocation.value) return
   actionLoading.value = true
   actionError.value = ''
 
   try {
-    const processId = currentProcess.value.processId
+    const allocationId = currentAllocation.value.allocationId
 
     // Actualizăm cantitatea culeasă în tabloul local înainte de salvarea finală a liniei
-    const localIdx = finalProcessesSummary.value.findIndex(p => p.processId === processId)
+    const localIdx = finalAllocationsSummary.value.findIndex(p => p.allocationId === allocationId)
     if (localIdx !== -1) {
-      finalProcessesSummary.value[localIdx].pickedQuantity = pickedQuantity.value
+      finalAllocationsSummary.value[localIdx].pickedQuantity = pickedQuantity.value
     }
 
-    await allocationApi.confirmPickedQuantity(processId, pickedQuantity.value)
+    await allocationApi.confirmPickedQuantity(allocationId, pickedQuantity.value)
 
     if (isPickingTask.value) {
-      await allocationApi.completeAssignedProcess(processId)
+      await allocationApi.completeAssignedAllocation(allocationId)
       toast.add({ severity: 'success', summary: 'Line saved successfully', life: 1500 })
     } else {
       toast.add({ severity: 'success', summary: 'Quantity confirmed', life: 1500 })
@@ -611,16 +609,16 @@ const confirmQuantity = async () => {
   }
 }
 
-const completeProcess = async () => {
-  if (!currentProcess.value) return
+const completeAllocation = async () => {
+  if (!currentAllocation.value) return
   actionLoading.value = true
   actionError.value = ''
   try {
-    await allocationApi.completeAssignedProcess(currentProcess.value.processId)
+    await allocationApi.completeAssignedAllocation(currentAllocation.value.allocationId)
     toast.add({ severity: 'success', summary: 'Task completed and saved', life: 2000 })
     await loadCurrentTask()
   } catch (error) {
-    actionError.value = getErrorMessage(error, 'Failed to complete process.')
+    actionError.value = getErrorMessage(error, 'Failed to complete allocation.')
   } finally {
     actionLoading.value = false
   }

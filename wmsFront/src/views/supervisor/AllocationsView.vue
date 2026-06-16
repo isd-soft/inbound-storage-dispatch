@@ -7,7 +7,7 @@
       :loading="loading"
       paginator
       :rows="10"
-      dataKey="processId"
+      dataKey="allocationId"
       stripedRows
       emptyMessage="No active allocations found."
     >
