@@ -13,12 +13,9 @@
         alt="Inbound Storage Dispatch logo"
         class="mx-auto block h-32 w-auto max-w-[85vw] object-contain sm:h-40 transition-all duration-300 mb-2"
       />
-      <h2 class="app-brand text-3xl font-extrabold tracking-tight sm:text-4xl">
+      <h2 class="app-brand text-3xl font-extrabold tracking-tight sm:text-4xl pb-4">
         Inbound Storage Dispatch
       </h2>
-      <p class="app-subtitle mt-6 text-sm sm:text-base font-medium tracking-wide opacity-80">
-        Welcome to WMS
-      </p>
     </div>
 
     <Card class="app-card w-full max-w-md shadow-lg rounded-xl">
