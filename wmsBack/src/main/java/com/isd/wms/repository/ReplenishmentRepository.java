@@ -22,8 +22,8 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
 
     @Query("""
             SELECT r FROM Replenishment r
-            JOIN Task t ON t = r.task
-            JOIN User u ON u = t.supervisor
+            JOIN r.task t
+            JOIN t.supervisor u
             WHERE (:taskId IS NULL OR r.task.id = :taskId)
             AND (:productId IS NULL OR r.product.id = :productId)
             AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
@@ -32,41 +32,38 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
             AND u.username = :username
             """)
     List<Replenishment> filter(
-            @Param("username") String username,
-            @Param("taskId") Long taskId,
-            @Param("productId") Long productId,
-            @Param("requestedQuantity") Integer requestedQuantity,
-            @Param("status") Status status,
-            @Param("destinationLocationId") Long destinationLocationId
+        @Param("username") String username,
+        @Param("taskId") Long taskId,
+        @Param("productId") Long productId,
+        @Param("requestedQuantity") Integer requestedQuantity,
+        @Param("status") Status status,
+        @Param("destinationLocationId") Long destinationLocationId
     );
 
     @Query("""
         SELECT r FROM Replenishment r
-        JOIN Task t ON t = r.task
-        JOIN User u ON u = t.supervisor
+        JOIN r.task t
+        JOIN t.supervisor u
         WHERE u.username = :username
         """)
     List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);
 
     @Query("""
         SELECT r FROM Replenishment r
-        JOIN Task t ON t = r.task
-        JOIN User u ON u = t.supervisor
+        JOIN r.task t
+        JOIN t.supervisor u
         WHERE r.id = :id AND u.username = :username
         """)
     Optional<Replenishment> findByIdAndCreatedByUsername(@Param("id") Long id, @Param("username") String username);
 
-    boolean existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-            Long productId, Long destinationLocationId, Collection<Status> statuses
-    );
-    boolean existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
-            Long productId, Long destinationLocationId, Collection<Status> statuses, Long id
+    boolean existsByProductIdAndDestinationLocationIdAndStatusIn(
+        Long productId, Long destinationLocationId, Collection<Status> statuses
     );
 
     @Modifying
     @Query("""
         UPDATE Replenishment r
-            SET r.status = Status.COMPLETED
+            SET r.status = com.isd.wms.enums.Status.COMPLETED
             WHERE r.task = :task
     """)
     int updateReplenishmentStatusByTask(

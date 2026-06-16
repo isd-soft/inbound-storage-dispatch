@@ -19,6 +19,9 @@ export const replenishmentApi = {
   delete(id) {
     return apiClient.delete(`/replenishments/${id}`)
   },
+  cancel(id) {
+    return apiClient.post(`/replenishments/${id}/cancel`)
+  },
   filter(filters) {
     return apiClient.post('/replenishments/filter', null, { params: filters })
   }

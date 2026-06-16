@@ -18,59 +18,65 @@
       <template #toolbar>
         <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadData" />
         <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+
         <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+
         <Button v-if="editMode" label="Edit Selected" icon="pi pi-pencil" severity="warning" outlined :disabled="selectedReplenishments.length !== 1" @click="openEditDialog(selectedReplenishments[0])" />
+
+        <Button v-if="editMode" label="Cancel Selected" icon="pi pi-ban" severity="secondary" outlined :disabled="!cancelableSelectedReplenishments.length" @click="confirmCancelSelected" />
+
         <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedReplenishments.length" @click="confirmDeleteSelected" />
+
         <span v-if="editMode" class="app-muted text-sm">{{ selectedReplenishments.length }} selected</span>
       </template>
-          <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
-          <Column field="productName" header="Product" sortable filter>
-            <template #body="slotProps">
-              <ProductLink :product-id="slotProps.data.productId" :name="slotProps.data.productName" class="font-semibold" />
-            </template>
-          </Column>
 
-          <Column field="requestedQuantity" header="Requested Qty" sortable filter>
-            <template #body="slotProps">
-              <span class="text-primary font-bold">{{ slotProps.data.requestedQuantity }}</span>
-            </template>
-          </Column>
+      <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+      <Column field="productName" header="Product" sortable filter>
+        <template #body="slotProps">
+          <ProductLink :product-id="slotProps.data.productId" :name="slotProps.data.productName" class="font-semibold" />
+        </template>
+      </Column>
 
-          <Column field="locationName" header="Destination Location" sortable filter>
-            <template #body="slotProps">
-              <span class="app-subtitle">{{ slotProps.data.locationName }}</span>
-            </template>
-          </Column>
+      <Column field="requestedQuantity" header="Requested Qty" sortable filter>
+        <template #body="slotProps">
+          <span class="text-primary font-bold">{{ slotProps.data.requestedQuantity }}</span>
+        </template>
+      </Column>
 
-          <Column field="status" header="Status" sortable filter>
-            <template #body="slotProps">
-              <Tag :severity="getStatusSeverity(slotProps.data.status)" :value="slotProps.data.status" />
-            </template>
-          </Column>
+      <Column field="locationName" header="Destination Location" sortable filter>
+        <template #body="slotProps">
+          <span class="app-subtitle">{{ slotProps.data.locationName }}</span>
+        </template>
+      </Column>
 
-          <Column field="assignedOperatorId" header="Assigned Operator">
-            <template #body="slotProps">
-              <Dropdown
-                v-model="assignmentByTaskId[slotProps.data.taskId]"
-                :options="operators"
-                optionLabel="username"
-                optionValue="id"
-                placeholder="Select operator"
-                filter
-                class="w-full"
-                :disabled="isAssignmentLocked(slotProps.data)"
-                @change="assignReplenishment(slotProps.data.taskId, assignmentByTaskId[slotProps.data.taskId])"
-              />
-            </template>
-          </Column>
+      <Column field="status" header="Status" sortable filter>
+        <template #body="slotProps">
+          <Tag :severity="getStatusSeverity(slotProps.data.status)" :value="slotProps.data.status" />
+        </template>
+      </Column>
 
-          <Column field="createdAt" header="Created" sortable filter>
-            <template #body="slotProps">
-              <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
-            </template>
-          </Column>
+      <Column field="assignedOperatorId" header="Assigned Operator">
+        <template #body="slotProps">
+          <Dropdown
+            v-model="assignmentByTaskId[slotProps.data.taskId]"
+            :options="operators"
+            optionLabel="username"
+            optionValue="id"
+            placeholder="Select operator"
+            filter
+            class="w-full"
+            :disabled="isAssignmentLocked(slotProps.data)"
+            @change="assignReplenishment(slotProps.data.taskId, assignmentByTaskId[slotProps.data.taskId])"
+          />
+        </template>
+      </Column>
 
-          <!-- Inline editing is intentionally not enabled here because replenishment updates regenerate task/allocation allocation server-side. -->
+      <Column field="createdAt" header="Created" sortable filter>
+        <template #body="slotProps">
+          <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
+        </template>
+      </Column>
+
     </AppDataTable>
 
     <Dialog v-model:visible="createDialogVisible" header="Create Replenishment Task" :modal="true" class="w-full max-w-md">
@@ -113,11 +119,6 @@
           <label for="editLocation" class="app-subtitle font-medium">Destination Location</label>
           <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" filter class="w-full" />
         </div>
-
-        <div class="flex flex-col gap-2">
-          <label for="editStatus" class="app-subtitle font-medium">Status</label>
-          <Dropdown id="editStatus" v-model="editingReplenishment.status" :options="statuses" placeholder="Select Status" filter class="w-full" />
-        </div>
       </div>
 
       <template #footer>
@@ -155,7 +156,7 @@ const selectedReplenishments = ref([])
 const products = ref([])
 const locations = ref([])
 const operators = ref([])
-const statuses = ref(['CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'])
+// status list is no longer needed for manual edit, so it's removed
 
 const loading = ref(false)
 const actionLoading = ref(false)
@@ -164,7 +165,11 @@ const editDialogVisible = ref(false)
 const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
+
+// Computed properties for securing actions
 const deletableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => task.status === 'CREATED'))
+const cancelableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)))
+
 const assignmentByTaskId = ref({})
 const replenishmentFilterFields = [
   { field: 'productName', label: 'Product' },
@@ -174,8 +179,19 @@ const replenishmentFilterFields = [
   { field: 'createdAt', label: 'Created' }
 ]
 
-const newReplenishment = ref({ productId: null, requestedQuantity: null, destinationLocationId: null })
-const editingReplenishment = ref({ id: null, taskId: null, productId: null, requestedQuantity: null, status: null, destinationLocationId: null })
+const newReplenishment = ref({
+  productId: null,
+  requestedQuantity: null,
+  destinationLocationId: null
+})
+// status is no longer needed in editing payload
+const editingReplenishment = ref({
+  id: null,
+  taskId: null,
+  productId: null,
+  requestedQuantity: null,
+  destinationLocationId: null
+})
 
 const isCreateFormValid = computed(() => {
   return newReplenishment.value.productId && newReplenishment.value.requestedQuantity > 0 && newReplenishment.value.destinationLocationId
@@ -195,11 +211,17 @@ const formatDate = (ts) => {
 
 const getStatusSeverity = (status) => {
   switch (status) {
-    case 'COMPLETED': return 'success'
+    case 'COMPLETED':
+      return 'success'
+    case 'CANCELED':
+      return 'secondary' // Добавил серый цвет для отмененных
     case 'IN_PROGRESS':
-    case 'ASSIGNED': return 'warning'
-    case 'CREATED': return 'info'
-    default: return 'danger'
+    case 'ASSIGNED':
+      return 'warning'
+    case 'CREATED':
+      return 'info'
+    default:
+      return 'danger'
   }
 }
 
@@ -219,7 +241,12 @@ const loadData = async () => {
 
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Load Failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Load Failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
   } finally {
     loading.value = false
   }
@@ -242,16 +269,16 @@ const applyFilters = async () => {
     )
 
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Filtering Failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
   } finally {
     loading.value = false
   }
 }
-
-// const clearFilters = () => {
-//   filters.value = { productId: null, destinationLocationId: null, status: null }
-//   applyFilters()
-// }
 
 const openCreateDialog = () => {
   newReplenishment.value = { productId: null, requestedQuantity: null, destinationLocationId: null }
@@ -267,11 +294,21 @@ const handleCreate = async () => {
   actionLoading.value = true
   try {
     await replenishmentApi.create(newReplenishment.value)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Replenishment task created.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Replenishment task created.',
+      life: 3000
+    })
     createDialogVisible.value = false
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Creation Failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Creation Failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }
@@ -288,15 +325,24 @@ const handleUpdate = async () => {
     const payload = {
       productId: editingReplenishment.value.productId,
       requestedQuantity: editingReplenishment.value.requestedQuantity,
-      status: editingReplenishment.value.status,
       destinationLocationId: editingReplenishment.value.destinationLocationId
     }
     await replenishmentApi.update(editingReplenishment.value.id, payload)
-    toast.add({ severity: 'success', summary: 'Updated', detail: 'Replenishment updated successfully.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Updated',
+      detail: 'Replenishment updated successfully.',
+      life: 3000
+    })
     editDialogVisible.value = false
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Update Failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Update Failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }
@@ -308,18 +354,29 @@ const assignReplenishment = async (taskId, operatorId) => {
   actionLoading.value = true
   try {
     await replenishmentApi.assign(taskId, operatorId)
-    toast.add({ severity: 'success', summary: 'Assigned', detail: `Task #${taskId} assigned to operator.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Assigned',
+      detail: `Task #${taskId} assigned to operator.`,
+      life: 3000
+    })
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Assign failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }
 }
 
+// Удаление (Hard Delete)
 const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Delete ${deletableSelectedReplenishments.value.length} selected replenishment task(s)? Only CREATED tasks can be deleted.`,
+    message: `Permanently delete ${deletableSelectedReplenishments.value.length} selected task(s)? Only CREATED tasks can be deleted.`,
     header: 'Delete Selected Replenishments',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
@@ -330,12 +387,58 @@ const confirmDeleteSelected = () => {
 const deleteSelectedReplenishments = async () => {
   loading.value = true
   try {
-    await Promise.all(deletableSelectedReplenishments.value.map((task) => replenishmentApi.delete(task.id)))
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `${deletableSelectedReplenishments.value.length} task(s) deleted.`, life: 3000 })
+    // Использование allSettled для большей надежности
+    await Promise.allSettled(deletableSelectedReplenishments.value.map((task) => replenishmentApi.delete(task.id)))
+    toast.add({
+      severity: 'success',
+      summary: 'Deleted',
+      detail: 'Task(s) permanently deleted.',
+      life: 3000
+    })
     selectedReplenishments.value = []
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Deletion Failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Deletion Failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// Отмена (Soft Cancel)
+const confirmCancelSelected = () => {
+  confirm.require({
+    message: `Cancel ${cancelableSelectedReplenishments.value.length} selected task(s)? This will release the reserved stock.`,
+    header: 'Cancel Selected Replenishments',
+    icon: 'pi pi-info-circle',
+    acceptClass: 'p-button-secondary',
+    accept: cancelSelectedReplenishments
+  })
+}
+
+const cancelSelectedReplenishments = async () => {
+  loading.value = true
+  try {
+    await Promise.allSettled(cancelableSelectedReplenishments.value.map((task) => replenishmentApi.cancel(task.id)))
+    toast.add({
+      severity: 'success',
+      summary: 'Canceled',
+      detail: 'Task(s) canceled and stock released.',
+      life: 3000
+    })
+    selectedReplenishments.value = []
+    await applyFilters()
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Cancellation Failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
   } finally {
     loading.value = false
   }
