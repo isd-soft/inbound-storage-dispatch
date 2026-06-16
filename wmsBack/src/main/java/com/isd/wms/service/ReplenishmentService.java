@@ -12,6 +12,7 @@ import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.validation.SecurityFacade;
 
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,12 +30,14 @@ public class ReplenishmentService {
     private final StockRepository stockRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
+    private final AllocationRepository allocationRepository;
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
     private final SecurityFacade securityFacade;
 
-    private static final List<Status> TERMINAL_STATUSES = List.of(Status.COMPLETED);
+
+    private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
@@ -44,11 +47,10 @@ public class ReplenishmentService {
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), null);
-
         Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());
 
         Replenishment replenishment = new Replenishment(task, product, request.requestedQuantity(), destinationLocation);
+        replenishment.setStatus(Status.CREATED);
         replenishment = replenishmentRepository.save(replenishment);
 
         return replenishmentMapper.toResponse(replenishment);
@@ -63,12 +65,8 @@ public class ReplenishmentService {
         Location destinationLocation = getLocation(request.destinationLocationId());
 
         boolean isProductChanged = !request.productId().equals(replenishment.getProduct().getId());
-        boolean isLocationChanged = !request.destinationLocationId().equals(replenishment.getDestinationLocation().getId());
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
 
-        if (isProductChanged || isLocationChanged) {
-            validateNoActiveReplenishment(product.getId(), destinationLocation.getId(), id);
-        }
 
         if (isProductChanged || isQuantityChanged) {
             replenishment.getTask().setRequestedQuantity(request.requestedQuantity());
@@ -77,7 +75,9 @@ public class ReplenishmentService {
 
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
-        replenishment.setStatus(request.status());
+        if (request.status() != null) {
+            replenishment.setStatus(request.status());
+        }
         replenishment.setDestinationLocation(destinationLocation);
 
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
@@ -89,8 +89,8 @@ public class ReplenishmentService {
         if (product.getMinThreshold() == null || product.getReplenishQty() == null) return;
 
         if (locationQty <= product.getMinThreshold()) {
-            boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-                product.getId(), location.getId(), TERMINAL_STATUSES
+            boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusIn(
+                product.getId(), location.getId(), ACTIVE_STATUSES
             );
 
             if (!hasActive) {
@@ -105,30 +105,54 @@ public class ReplenishmentService {
         }
     }
 
-    private void validateNoActiveReplenishment(Long productId, Long locationId, Long excludeReplenishmentId) {
-        boolean hasDuplicate;
-
-        if (excludeReplenishmentId == null) {
-            hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotIn(
-                productId, locationId, TERMINAL_STATUSES
-            );
-        } else {
-            hasDuplicate = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusNotInAndIdNot(
-                productId, locationId, TERMINAL_STATUSES, excludeReplenishmentId
-            );
-        }
-
-        if (hasDuplicate) {
-            log.warn("Replenishment rejected: An active replenishment task already exists for productId={} and locationId={}",
-                productId, locationId);
-            throw new InvalidRequestException("An active replenishment task for this product and destination location already exists.");
-        }
-    }
-
     @Transactional
     public void deleteReplenishment(Long replenishmentId) {
         log.info("Deleting replenishment: id={}", replenishmentId);
-        replenishmentRepository.delete(getReplenishment(replenishmentId));
+        Replenishment replenishment = getReplenishment(replenishmentId);
+
+        if (replenishment.getStatus() != Status.CREATED) {
+            throw new InvalidRequestException("Physical deletion is only allowed for tasks in CREATED status.");
+        }
+
+        Task task = replenishment.getTask();
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+
+        for (Allocation allocation : allocations) {
+            Stock stock = allocation.getStock();
+            stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
+            stockRepository.save(stock);
+        }
+
+        allocationRepository.deleteAll(allocations);
+        replenishmentRepository.delete(replenishment);
+    }
+
+    @Transactional
+    public ReplenishmentResponse cancelReplenishment(Long replenishmentId) {
+        log.info("Canceling replenishment: id={}", replenishmentId);
+        Replenishment replenishment = getReplenishment(replenishmentId);
+
+        if (replenishment.getStatus() == Status.COMPLETED || replenishment.getStatus() == Status.CANCELED) {
+            throw new InvalidRequestException("Cannot cancel a task that is already COMPLETED or CANCELED.");
+        }
+
+        Task task = replenishment.getTask();
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+
+        for (Allocation allocation : allocations) {
+            if (allocation.getStatus() != Status.COMPLETED) {
+                Stock stock = allocation.getStock();
+                stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
+                stockRepository.save(stock);
+
+                allocation.setStatus(Status.CANCELED);
+            }
+        }
+
+        replenishment.setStatus(Status.CANCELED);
+        allocationRepository.saveAll(allocations);
+
+        return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
     }
 
     public ReplenishmentResponse getReplenishmentById(Long replenishmentId) {

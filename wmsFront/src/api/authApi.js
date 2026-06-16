@@ -4,7 +4,7 @@ export const authApi = {
   login(payload) {
     return apiClient.post('/auth/login', payload)
   },
-  verify(token) {
-    return apiClient.get(`/auth/verify?token=${token}`)
+  verify(payload) {
+    return apiClient.post('/auth/verify', payload)
   }
 }

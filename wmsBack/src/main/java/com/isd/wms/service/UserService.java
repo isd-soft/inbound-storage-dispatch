@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -33,34 +34,69 @@ public class UserService {
 
     @Transactional
     public void registerUser(UserCreateRequest request) {
-        if (userRepository.findByUsername(request.username()).isPresent()) {
-            throw new RuntimeException("This username is already taken.");
-        }
-        if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new RuntimeException("This email is already registered.");
-        }
-
         if (request.userRole() == Role.ROLE_DEV) {
             log.warn("Security block: Attempt to create a DEV account via API.");
             throw new AccessDeniedException("Creating DEV accounts via API is strictly prohibited.");
         }
 
-        String verificationToken = UUID.randomUUID().toString();
+        Optional<User> existingUserOpt = userRepository.findByUsername(request.username());
+        Optional<User> existingEmailOpt = userRepository.findByEmail(request.email());
 
-        User newUser = new User(
+        String verificationToken = UUID.randomUUID().toString();
+        String temporaryPassword = UUID.randomUUID().toString();
+
+        User userToSave;
+
+        if (existingUserOpt.isPresent()) {
+            User user = existingUserOpt.get();
+            if (user.getIsActive()) {
+                throw new RuntimeException("This username is already taken by an active user.");
+            }
+            if (existingEmailOpt.isPresent() && !existingEmailOpt.get().getId().equals(user.getId())) {
+                throw new RuntimeException("This email belongs to a different deactivated account. Please use a unique combination.");
+            }
+            userToSave = user;
+            log.info("Reactivating deactivated account for username: {}", request.username());
+
+        } else if (existingEmailOpt.isPresent()) {
+            User user = existingEmailOpt.get();
+            if (user.getIsActive()) {
+                throw new RuntimeException("This email is already registered to an active user.");
+            }
+            userToSave = user;
+            log.info("Reactivating deactivated account for email: {}", request.email());
+
+        } else {
+            userToSave = new User(
                 request.username(),
                 request.email(),
-                passwordEncoder.encode(request.password()),
+                passwordEncoder.encode(temporaryPassword),
                 request.userRole(),
                 false,
                 verificationToken,
                 LocalDateTime.now().plusHours(24)
-        );
-        userRepository.save(newUser);
+            );
+            userToSave.setIsActive(true);
+            userRepository.save(userToSave);
+
+            emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
+            log.info("User '{}' registered, verification email sent to {}", request.username(), request.email());
+            return;
+        }
+
+        userToSave.setUsername(request.username());
+        userToSave.setEmail(request.email());
+        userToSave.setPassword(passwordEncoder.encode(temporaryPassword));
+        userToSave.setUserRole(request.userRole());
+        userToSave.setIsActive(true);
+        userToSave.setEmailVerified(false);
+        userToSave.setVerificationToken(verificationToken);
+        userToSave.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+
+        userRepository.save(userToSave);
 
         emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
-        log.info("User '{}' registered, verification email sent to {}", request.username(), request.email());
-
+        log.info("User '{}' successfully reactivated, new verification email sent to {}", request.username(), request.email());
     }
 
     @Transactional
@@ -72,11 +108,17 @@ public class UserService {
         }
 
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!existingUser.getUsername().equals(request.username()) &&
-                userRepository.findByUsername(request.username()).isPresent()) {
-            throw new RuntimeException("This username is already taken by another user.");
+        if (!existingUser.getUsername().equals(request.username())) {
+            Optional<User> found = userRepository.findByUsername(request.username());
+            if (found.isPresent()) {
+                if (found.get().getIsActive()) {
+                    throw new RuntimeException("This username is already taken by another active user.");
+                } else {
+                    throw new RuntimeException("This username belongs to a deactivated account. Please choose another.");
+                }
+            }
         }
 
         if (request.userRole() == Role.ROLE_DEV && existingUser.getUserRole() != Role.ROLE_DEV) {
@@ -88,13 +130,13 @@ public class UserService {
         existingUser.setUserRole(request.userRole());
 
         log.info("User ID {} successfully updated. New username: {}, New role: {}",
-                userId, request.username(), request.userRole());
+            userId, request.username(), request.userRole());
 
         userRepository.save(existingUser);
     }
 
     @Transactional
-    public boolean verifyEmail(String rawToken) {
+    public boolean verifyEmail(String rawToken, String newPassword) {
         String cleanToken = rawToken != null ? rawToken.trim() : "";
 
         log.info("Attempting to verify email with token: [{}]", cleanToken);
@@ -113,6 +155,7 @@ public class UserService {
         }
 
         user.setEmailVerified(true);
+        user.setPassword(passwordEncoder.encode(newPassword));
         user.setVerificationToken(null);
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
