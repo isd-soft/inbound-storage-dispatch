@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -26,7 +27,7 @@ public class OrderLine extends BaseTimestampEntity {
     private Order order;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "task_id", referencedColumnName = "id")
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,11 +41,14 @@ public class OrderLine extends BaseTimestampEntity {
     @Column(nullable = false)
     private Status status = Status.CREATED;
 
-    public OrderLine(Order order, Task task, Product product, Integer requestedQuantity) {
+    public OrderLine(Order order, Product product, Integer requestedQuantity) {
         this.order = order;
-        this.task = task;
         this.product = product;
         this.requestedQuantity = requestedQuantity;
+    }
+
+    public Optional<Task> getTask() {
+        return Optional.ofNullable(task);
     }
 
     @Override

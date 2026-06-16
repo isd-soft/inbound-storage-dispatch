@@ -32,7 +32,6 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
             AND u.username = :username
             """)
     List<Replenishment> filter(
-        @Param("username") String username,
         @Param("taskId") Long taskId,
         @Param("productId") Long productId,
         @Param("requestedQuantity") Integer requestedQuantity,

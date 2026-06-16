@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -20,7 +21,7 @@ public class Replenishment extends BaseTimestampEntity{
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "task_id", referencedColumnName = "id")
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,11 +39,14 @@ public class Replenishment extends BaseTimestampEntity{
     @JoinColumn(name = "destination_location_id")
     private Location destinationLocation;
 
-    public Replenishment(Task task, Product product, Integer requestedQuantity, Location destinationLocation) {
-        this.task = task;
+    public Replenishment(Product product, Integer requestedQuantity, Location destinationLocation) {
         this.product = product;
         this.requestedQuantity = requestedQuantity;
         this.destinationLocation = destinationLocation;
+    }
+
+    public Optional<Task> getTask() {
+        return Optional.ofNullable(task);
     }
 
     @Override

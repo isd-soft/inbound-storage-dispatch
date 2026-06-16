@@ -27,10 +27,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         AND (:status IS NULL OR o.status = :status)
         AND (:createdAt IS NULL OR o.createdAt = :createdAt)
         AND (:updatedAt IS NULL OR o.updatedAt = :updatedAt)
-        AND u.username = :username
         """)
     List<Order> filter(
-        @Param("username") String username,
         @Param("logicId") String logicId,
         @Param("destinationId") Long destinationId,
         @Param("status") OrderStatus status,
