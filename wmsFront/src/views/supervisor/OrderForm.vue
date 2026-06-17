@@ -64,7 +64,7 @@
             </template>
           </Column>
           <!-- Inline editing is intentionally not enabled here because orders contain nested lines and assignment changes backend task ownership. Operator assignment stays row-scoped by business design. -->
-          <Column header="Assign Operator" style="min-width: 14rem">
+          <Column header="Assigned Operator" style="min-width: 14rem">
             <template #body="{ data }">
               <Dropdown
                 v-model="assignmentByOrderId[data.order.id]"
