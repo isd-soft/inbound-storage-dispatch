@@ -11,18 +11,22 @@ import org.springframework.stereotype.Component;
 public class ReplenishmentMapper {
     public ReplenishmentResponse toResponse(Replenishment replenishment) {
         Product product = replenishment.getProduct();
-        Task task = replenishment.getTask();
+        Task task = getTask(replenishment);
         Location destinationLocation = replenishment.getDestinationLocation();
 
         return new ReplenishmentResponse(
-                replenishment.getId(),
-                task.getId(),
-                product.getId(),
-                replenishment.getRequestedQuantity(),
-                replenishment.getStatus(),
-                destinationLocation.getId(),
-                task.getOperator().map(operator -> operator.getId()).orElse(null),
-                replenishment.getCreatedAt()
+            replenishment.getId(),
+            task.getId(),
+            product.getId(),
+            replenishment.getRequestedQuantity(),
+            replenishment.getStatus(),
+            destinationLocation.getId(),
+            replenishment.getCreatedAt()
         );
+    }
+
+    private Task getTask(Replenishment replenishment) {
+        return replenishment.getTask()
+            .orElse(null);
     }
 }

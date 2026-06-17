@@ -7,19 +7,18 @@ import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.*;
+import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.LocationNotFoundException;
+import com.isd.wms.exception.ProductNotFoundException;
+import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
-import com.isd.wms.service.validation.SecurityFacade;
-
-import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -196,6 +195,7 @@ public class ReplenishmentService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
+    @Transactional
     public void assignReplenishment(Long replenishmentId, Long operatorId) {
         Replenishment replenishment = getReplenishment(replenishmentId);
         Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(), replenishment.getProduct().getId());

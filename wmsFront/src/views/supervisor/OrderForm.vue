@@ -98,7 +98,6 @@
                   <template #body="{ data: line }">
                     <ProductLink
                       :product-id="line.productId"
-                      :barcode="getProduct(line.productId)?.barcode"
                       :name="getProduct(line.productId)?.name || getProductLabel(line.productId)"
                       class="font-semibold"
                     />
@@ -203,9 +202,7 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 
 import Button from 'primevue/button'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'

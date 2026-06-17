@@ -104,7 +104,7 @@ class ReplenishmentServiceTest {
         ReplenishmentUpdateRequest request = new ReplenishmentUpdateRequest(1L, 1L, 20, Status.COMPLETED, 3L);
 
         when(securityFacade.getCurrentUsername()).thenReturn("tester");
-        when(replenishmentRepository.findByIdAndCreatedByUsername(eq(1L), any())).thenReturn(Optional.of(replenishment));
+        when(replenishmentRepository.findById(eq(1L))).thenReturn(Optional.of(replenishment));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(3L)).thenReturn(Optional.of(destinationLocation));
         when(replenishmentRepository.save(replenishment)).thenReturn(replenishment);

@@ -21,16 +21,14 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
     Optional<Replenishment> findByTaskId(Long taskId);
 
     @Query("""
-            SELECT r FROM Replenishment r
-            JOIN r.task t
-            JOIN t.supervisor u
-            WHERE (:taskId IS NULL OR r.task.id = :taskId)
-            AND (:productId IS NULL OR r.product.id = :productId)
-            AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
-            AND (:status IS NULL OR r.status = :status)
-            AND (:destinationLocationId IS NULL OR r.destinationLocation.id = :destinationLocationId)
-            AND u.username = :username
-            """)
+        SELECT r FROM Replenishment r
+        JOIN r.task t
+        WHERE (:taskId IS NULL OR r.task.id = :taskId)
+        AND (:productId IS NULL OR r.product.id = :productId)
+        AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
+        AND (:status IS NULL OR r.status = :status)
+        AND (:destinationLocationId IS NULL OR r.destinationLocation.id = :destinationLocationId)
+        """)
     List<Replenishment> filter(
         @Param("taskId") Long taskId,
         @Param("productId") Long productId,
@@ -47,24 +45,16 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
         """)
     List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);
 
-    @Query("""
-        SELECT r FROM Replenishment r
-        JOIN r.task t
-        JOIN t.supervisor u
-        WHERE r.id = :id AND u.username = :username
-        """)
-    Optional<Replenishment> findByIdAndCreatedByUsername(@Param("id") Long id, @Param("username") String username);
-
     boolean existsByProductIdAndDestinationLocationIdAndStatusIn(
         Long productId, Long destinationLocationId, Collection<Status> statuses
     );
 
     @Modifying
     @Query("""
-        UPDATE Replenishment r
-            SET r.status = com.isd.wms.enums.Status.COMPLETED
-            WHERE r.task = :task
-    """)
+            UPDATE Replenishment r
+                SET r.status = com.isd.wms.enums.Status.COMPLETED
+                WHERE r.task = :task
+        """)
     int updateReplenishmentStatusByTask(
         @Param("task") Task task
     );

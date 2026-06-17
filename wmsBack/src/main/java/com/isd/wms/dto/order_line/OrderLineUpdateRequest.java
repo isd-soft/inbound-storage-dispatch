@@ -6,7 +6,7 @@ import lombok.NonNull;
 
 public record OrderLineUpdateRequest(
         @NonNull Long orderId,
-        @NonNull Long taskId,
+        Long taskId,
         @NonNull Long productId,
         @NonNull
         @Min(0)

@@ -304,8 +304,10 @@ public class AllocationExecutionService {
         boolean readyForCompletion = order.getStatus() == OrderStatus.PICKED
             && orderedAllocations.stream().allMatch(allocation -> allocation.getStatus() == Status.COMPLETED);
 
+
         return new OperatorTaskSummaryResponse(
-            currentAllocation != null ? currentAllocation.getTask().getId() : orderLines.stream().findFirst().map(orderLine -> orderLine.getTask().getId()).orElse(null),
+            currentAllocation != null ? currentAllocation.getTask().getId() : orderLines.stream().findFirst().map(
+                AllocationExecutionService::getTaskId).orElse(null),
             order.getId(),
             order.getLogicId(),
             order.getStatus(),
@@ -318,6 +320,11 @@ public class AllocationExecutionService {
             lineSummaries,
             orderedAllocations.stream().map(allocation -> toAllocationSummary(allocation, order)).toList()
         );
+    }
+
+    private static Long getTaskId(OrderLine orderLine) {
+        return orderLine.getTask().orElseThrow(() -> new InvalidRequestException(
+            "No task found for order line " + orderLine.getId())).getId();
     }
 
     private OperatorTaskSummaryResponse toReplenishmentSummary(Allocation currentAllocation) {
@@ -352,7 +359,7 @@ public class AllocationExecutionService {
 
     private OperatorOrderLineSummaryResponse toLineSummary(Order order, OrderLine orderLine, List<Allocation> orderedAllocations) {
         List<Allocation> lineAllocations = orderedAllocations.stream()
-            .filter(allocation -> allocation.getTask().getId().equals(orderLine.getTask().getId()))
+            .filter(allocation -> allocation.getTask().getId().equals(getTaskId(orderLine)))
             .toList();
 
         int pickedQuantity = lineAllocations.stream()
@@ -366,7 +373,7 @@ public class AllocationExecutionService {
             .toList();
 
         return new OperatorOrderLineSummaryResponse(
-            orderLine.getTask().getId(),
+            getTaskId(orderLine),
             orderLine.getId(),
             orderLine.getProduct().getId(),
             orderLine.getProduct().getName(),

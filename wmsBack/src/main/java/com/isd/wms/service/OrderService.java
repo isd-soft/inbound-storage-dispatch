@@ -15,7 +15,6 @@ import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
-import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
-    private final AllocationRepository  allocationRepository ;
+    private final AllocationRepository allocationRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
     private final TaskService taskService;
@@ -103,9 +102,13 @@ public class OrderService {
     }
 
     private void assignTasks(Order order) {
-        for(OrderLine orderLine : order.getOrderLines()) {
-            Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
-            orderLine.setTask(task);
+        for (OrderLine orderLine : order.getOrderLines()) {
+            try {
+                Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+                orderLine.setTask(task);
+            } catch (Exception e) {
+                orderLine.setStatus(Status.CANCELED);
+            }
         }
         orderLineRepository.saveAllAndFlush(order.getOrderLines());
     }

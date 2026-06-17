@@ -16,24 +16,68 @@
       emptyMessage="No replenishment tasks found."
     >
       <template #toolbar>
-        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadData" />
+        <Button
+          icon="pi pi-refresh"
+          size="small"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          aria-label="Refresh"
+          @click="loadData"
+        />
         <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
 
-        <Button :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
+        <Button
+          :label="editMode ? 'Exit Edit' : 'Edit'"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          @click="toggleEditMode"
+        />
 
-        <Button v-if="editMode" label="Edit Selected" icon="pi pi-pencil" severity="warning" outlined :disabled="selectedReplenishments.length !== 1" @click="openEditDialog(selectedReplenishments[0])" />
+        <Button
+          v-if="editMode"
+          label="Edit Selected"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          :disabled="selectedReplenishments.length !== 1"
+          @click="openEditDialog(selectedReplenishments[0])"
+        />
 
-        <Button v-if="editMode" label="Cancel Selected" icon="pi pi-ban" severity="secondary" outlined :disabled="!cancelableSelectedReplenishments.length" @click="confirmCancelSelected" />
+        <Button
+          v-if="editMode"
+          label="Cancel Selected"
+          icon="pi pi-ban"
+          severity="secondary"
+          outlined
+          :disabled="!cancelableSelectedReplenishments.length"
+          @click="confirmCancelSelected"
+        />
 
-        <Button v-if="editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedReplenishments.length" @click="confirmDeleteSelected" />
+        <Button
+          v-if="editMode"
+          label="Delete Selected"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :disabled="!deletableSelectedReplenishments.length"
+          @click="confirmDeleteSelected"
+        />
 
-        <span v-if="editMode" class="app-muted text-sm">{{ selectedReplenishments.length }} selected</span>
+        <span v-if="editMode" class="app-muted text-sm"
+          >{{ selectedReplenishments.length }} selected</span
+        >
       </template>
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
       <Column field="productName" header="Product" sortable filter>
         <template #body="slotProps">
-          <ProductLink :product-id="slotProps.data.productId" :name="slotProps.data.productName" class="font-semibold" />
+          <ProductLink
+            :product-id="slotProps.data.productId"
+            :name="slotProps.data.productName"
+            class="font-semibold"
+          />
         </template>
       </Column>
 
@@ -51,7 +95,10 @@
 
       <Column field="status" header="Status" sortable filter>
         <template #body="slotProps">
-          <Tag :severity="getStatusSeverity(slotProps.data.status)" :value="slotProps.data.status" />
+          <Tag
+            :severity="getStatusSeverity(slotProps.data.status)"
+            :value="slotProps.data.status"
+          />
         </template>
       </Column>
 
@@ -66,7 +113,12 @@
             filter
             class="w-full"
             :disabled="isAssignmentLocked(slotProps.data)"
-            @change="assignReplenishment(slotProps.data.taskId, assignmentByTaskId[slotProps.data.taskId])"
+            @change="
+              assignReplenishment(
+                slotProps.data.id,
+                assignmentByTaskId[slotProps.data.taskId]
+              )
+            "
           />
         </template>
       </Column>
@@ -76,54 +128,133 @@
           <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
         </template>
       </Column>
-
     </AppDataTable>
 
-    <Dialog v-model:visible="createDialogVisible" header="Create Replenishment Task" :modal="true" class="w-full max-w-md">
+    <Dialog
+      v-model:visible="createDialogVisible"
+      header="Create Replenishment Task"
+      :modal="true"
+      class="w-full max-w-md"
+    >
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
           <label for="product" class="app-subtitle font-medium">Product</label>
-          <Dropdown id="product" v-model="newReplenishment.productId" :options="products" optionLabel="name" optionValue="id" placeholder="Select a Product" filter class="w-full" />
+          <Dropdown
+            id="product"
+            v-model="newReplenishment.productId"
+            :options="products"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Select a Product"
+            filter
+            class="w-full"
+          />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="quantity" class="app-subtitle font-medium">Requested Quantity</label>
-          <InputNumber id="quantity" v-model="newReplenishment.requestedQuantity" :min="1" showButtons placeholder="Enter quantity" class="w-full" />
+          <InputNumber
+            id="quantity"
+            v-model="newReplenishment.requestedQuantity"
+            :min="1"
+            showButtons
+            placeholder="Enter quantity"
+            class="w-full"
+          />
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="location" class="app-subtitle font-medium">Destination Location (Pick Zone)</label>
-          <Dropdown id="location" v-model="newReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" placeholder="Select Destination Zone" filter class="w-full" />
+          <label for="location" class="app-subtitle font-medium"
+            >Destination Location (Pick Zone)</label
+          >
+          <Dropdown
+            id="location"
+            v-model="newReplenishment.destinationLocationId"
+            :options="locations"
+            optionLabel="barcode"
+            optionValue="id"
+            placeholder="Select Destination Zone"
+            filter
+            class="w-full"
+          />
         </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="createDialogVisible = false" />
-        <Button label="Create" icon="pi pi-check" severity="success" :loading="actionLoading" @click="handleCreate" :disabled="!isCreateFormValid" />
+        <Button
+          label="Cancel"
+          icon="pi pi-times"
+          text
+          severity="secondary"
+          @click="createDialogVisible = false"
+        />
+        <Button
+          label="Create"
+          icon="pi pi-check"
+          severity="success"
+          :loading="actionLoading"
+          @click="handleCreate"
+          :disabled="!isCreateFormValid"
+        />
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="editDialogVisible" header="Update Replenishment Task" :modal="true" class="w-full max-w-md">
+    <Dialog
+      v-model:visible="editDialogVisible"
+      header="Update Replenishment Task"
+      :modal="true"
+      class="w-full max-w-md"
+    >
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
           <label class="app-muted font-medium">Product (Read Only)</label>
-          <InputText :value="getProductName(editingReplenishment.productId)" disabled class="w-full" />
+          <InputText
+            :value="getProductName(editingReplenishment.productId)"
+            disabled
+            class="w-full"
+          />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="editQuantity" class="app-subtitle font-medium">Requested Quantity</label>
-          <InputNumber id="editQuantity" v-model="editingReplenishment.requestedQuantity" :min="1" showButtons class="w-full" />
+          <InputNumber
+            id="editQuantity"
+            v-model="editingReplenishment.requestedQuantity"
+            :min="1"
+            showButtons
+            class="w-full"
+          />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="editLocation" class="app-subtitle font-medium">Destination Location</label>
-          <Dropdown id="editLocation" v-model="editingReplenishment.destinationLocationId" :options="locations" optionLabel="barcode" optionValue="id" filter class="w-full" />
+          <Dropdown
+            id="editLocation"
+            v-model="editingReplenishment.destinationLocationId"
+            :options="locations"
+            optionLabel="barcode"
+            optionValue="id"
+            filter
+            class="w-full"
+          />
         </div>
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="editDialogVisible = false" />
-        <Button label="Save Changes" icon="pi pi-check" severity="warning" :loading="actionLoading" @click="handleUpdate" />
+        <Button
+          label="Cancel"
+          icon="pi pi-times"
+          text
+          severity="secondary"
+          @click="editDialogVisible = false"
+        />
+        <Button
+          label="Save Changes"
+          icon="pi pi-check"
+          severity="warning"
+          :loading="actionLoading"
+          @click="handleUpdate"
+        />
       </template>
     </Dialog>
   </div>
@@ -167,8 +298,12 @@ const editMode = ref(false)
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
 // Computed properties for securing actions
-const deletableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => task.status === 'CREATED'))
-const cancelableSelectedReplenishments = computed(() => selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)))
+const deletableSelectedReplenishments = computed(() =>
+  selectedReplenishments.value.filter((task) => task.status === 'CREATED'),
+)
+const cancelableSelectedReplenishments = computed(() =>
+  selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
+)
 
 const assignmentByTaskId = ref({})
 const replenishmentFilterFields = [
@@ -176,36 +311,42 @@ const replenishmentFilterFields = [
   { field: 'requestedQuantity', label: 'Requested Qty' },
   { field: 'locationName', label: 'Destination' },
   { field: 'status', label: 'Status' },
-  { field: 'createdAt', label: 'Created' }
+  { field: 'createdAt', label: 'Created' },
 ]
 
 const newReplenishment = ref({
   productId: null,
   requestedQuantity: null,
-  destinationLocationId: null
+  destinationLocationId: null,
 })
-// status is no longer needed in editing payload
 const editingReplenishment = ref({
   id: null,
   taskId: null,
   productId: null,
   requestedQuantity: null,
-  destinationLocationId: null
+  destinationLocationId: null,
 })
 
 const isCreateFormValid = computed(() => {
-  return newReplenishment.value.productId && newReplenishment.value.requestedQuantity > 0 && newReplenishment.value.destinationLocationId
+  return (
+    newReplenishment.value.productId &&
+    newReplenishment.value.requestedQuantity > 0 &&
+    newReplenishment.value.destinationLocationId
+  )
 })
 
-const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
-const getProductName = (id) => products.value.find(p => p.id === id)?.name || `Product #${id}`
-const getLocationName = (id) => locations.value.find(l => l.id === id)?.barcode || `Location #${id}`
-const getOperatorName = (id) => operators.value.find((operator) => operator.id === id)?.username || ''
+const getErrorMessage = (error) =>
+  error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+const getProductName = (id) => products.value.find((p) => p.id === id)?.name || `Product #${id}`
+const getLocationName = (id) =>
+  locations.value.find((l) => l.id === id)?.barcode || `Location #${id}`
+const getOperatorName = (id) =>
+  operators.value.find((operator) => operator.id === id)?.username || ''
 const formatDate = (ts) => {
   if (!ts) return '-'
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
-    timeStyle: 'short'
+    timeStyle: 'short',
   }).format(new Date(ts))
 }
 
@@ -233,10 +374,10 @@ const loadData = async () => {
     const [productsRes, locsRes, usersRes] = await Promise.all([
       inventoryApi.getProducts(),
       inventoryApi.getLocations(),
-      userApi.getAll()
+      userApi.getAll(),
     ])
     products.value = productsRes.data
-    locations.value = locsRes.data.filter(l => l.available !== false && l.zone === 'PICKING')
+    locations.value = locsRes.data.filter((l) => l.available !== false && l.zone === 'PICKING')
     operators.value = (usersRes.data || []).filter((user) => user.userRole === 'ROLE_OPERATOR')
 
     await applyFilters()
@@ -245,7 +386,7 @@ const loadData = async () => {
       severity: 'error',
       summary: 'Load Failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   } finally {
     loading.value = false
@@ -255,25 +396,26 @@ const loadData = async () => {
 const applyFilters = async () => {
   loading.value = true
   try {
-    const cleanFilters = Object.fromEntries(Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''))
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''),
+    )
     const res = await replenishmentApi.filter(cleanFilters)
 
-    replenishments.value = res.data.map(task => ({
+    replenishments.value = res.data.map((task) => ({
       ...task,
       productName: getProductName(task.productId),
       locationName: getLocationName(task.destinationLocationId),
-      assignedOperatorName: getOperatorName(task.assignedOperatorId)
+      assignedOperatorName: getOperatorName(task.assignedOperatorId),
     }))
     assignmentByTaskId.value = Object.fromEntries(
-      replenishments.value.map((task) => [task.taskId, task.assignedOperatorId || null])
+      replenishments.value.map((task) => [task.taskId, task.assignedOperatorId || null]),
     )
-
   } catch (error) {
     toast.add({
       severity: 'error',
       summary: 'Filtering Failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   } finally {
     loading.value = false
@@ -298,7 +440,7 @@ const handleCreate = async () => {
       severity: 'success',
       summary: 'Success',
       detail: 'Replenishment task created.',
-      life: 3000
+      life: 3000,
     })
     createDialogVisible.value = false
     await applyFilters()
@@ -307,7 +449,7 @@ const handleCreate = async () => {
       severity: 'error',
       summary: 'Creation Failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -323,16 +465,17 @@ const handleUpdate = async () => {
   actionLoading.value = true
   try {
     const payload = {
+      taskId: editingReplenishment.value.taskId,
       productId: editingReplenishment.value.productId,
       requestedQuantity: editingReplenishment.value.requestedQuantity,
-      destinationLocationId: editingReplenishment.value.destinationLocationId
+      destinationLocationId: editingReplenishment.value.destinationLocationId,
     }
     await replenishmentApi.update(editingReplenishment.value.id, payload)
     toast.add({
       severity: 'success',
       summary: 'Updated',
       detail: 'Replenishment updated successfully.',
-      life: 3000
+      life: 3000,
     })
     editDialogVisible.value = false
     await applyFilters()
@@ -341,24 +484,24 @@ const handleUpdate = async () => {
       severity: 'error',
       summary: 'Update Failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
   }
 }
 
-const assignReplenishment = async (taskId, operatorId) => {
+const assignReplenishment = async (id, operatorId) => {
   if (!operatorId) return
 
   actionLoading.value = true
   try {
-    await replenishmentApi.assign(taskId, operatorId)
+    await replenishmentApi.assign(id, operatorId)
     toast.add({
       severity: 'success',
       summary: 'Assigned',
-      detail: `Task #${taskId} assigned to operator.`,
-      life: 3000
+      detail: `Replenishment #${id} assigned to operator.`,
+      life: 3000,
     })
     await applyFilters()
   } catch (error) {
@@ -366,34 +509,34 @@ const assignReplenishment = async (taskId, operatorId) => {
       severity: 'error',
       summary: 'Assign failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
   }
 }
 
-// Удаление (Hard Delete)
 const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Permanently delete ${deletableSelectedReplenishments.value.length} selected task(s)? Only CREATED tasks can be deleted.`,
+    message: `Permanently delete ${deletableSelectedReplenishments.value.length} selected replenishment(s)? Only CREATED replenishments can be deleted.`,
     header: 'Delete Selected Replenishments',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: deleteSelectedReplenishments
+    accept: deleteSelectedReplenishments,
   })
 }
 
 const deleteSelectedReplenishments = async () => {
   loading.value = true
   try {
-    // Использование allSettled для большей надежности
-    await Promise.allSettled(deletableSelectedReplenishments.value.map((task) => replenishmentApi.delete(task.id)))
+    await Promise.allSettled(
+      deletableSelectedReplenishments.value.map((task) => replenishmentApi.delete(task.id)),
+    )
     toast.add({
       severity: 'success',
       summary: 'Deleted',
-      detail: 'Task(s) permanently deleted.',
-      life: 3000
+      detail: 'Replenishment(s) permanently deleted.',
+      life: 3000,
     })
     selectedReplenishments.value = []
     await applyFilters()
@@ -402,7 +545,7 @@ const deleteSelectedReplenishments = async () => {
       severity: 'error',
       summary: 'Deletion Failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   } finally {
     loading.value = false
@@ -412,23 +555,25 @@ const deleteSelectedReplenishments = async () => {
 // Отмена (Soft Cancel)
 const confirmCancelSelected = () => {
   confirm.require({
-    message: `Cancel ${cancelableSelectedReplenishments.value.length} selected task(s)? This will release the reserved stock.`,
+    message: `Cancel ${cancelableSelectedReplenishments.value.length} selected replenishment(s)? This will release the reserved stock.`,
     header: 'Cancel Selected Replenishments',
     icon: 'pi pi-info-circle',
     acceptClass: 'p-button-secondary',
-    accept: cancelSelectedReplenishments
+    accept: cancelSelectedReplenishments,
   })
 }
 
 const cancelSelectedReplenishments = async () => {
   loading.value = true
   try {
-    await Promise.allSettled(cancelableSelectedReplenishments.value.map((task) => replenishmentApi.cancel(task.id)))
+    await Promise.allSettled(
+      cancelableSelectedReplenishments.value.map((task) => replenishmentApi.cancel(task.id)),
+    )
     toast.add({
       severity: 'success',
       summary: 'Canceled',
-      detail: 'Task(s) canceled and stock released.',
-      life: 3000
+      detail: 'Replenishment(s) canceled and stock released.',
+      life: 3000,
     })
     selectedReplenishments.value = []
     await applyFilters()
@@ -437,7 +582,7 @@ const cancelSelectedReplenishments = async () => {
       severity: 'error',
       summary: 'Cancellation Failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   } finally {
     loading.value = false
