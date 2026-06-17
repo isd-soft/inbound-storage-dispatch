@@ -113,4 +113,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> getOrderByTask(
         @Param("task") Task task
     );
+
+    @Modifying
+    @Query("DELETE FROM Order o WHERE o.createdAt < :cutoffDate")
+    int deleteOrdersOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

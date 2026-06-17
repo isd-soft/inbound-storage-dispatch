@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -58,4 +59,8 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
     int updateReplenishmentStatusByTask(
         @Param("task") Task task
     );
+
+    @Modifying
+    @Query("DELETE FROM Replenishment r WHERE r.task.createdAt < :cutoffDate")
+    int deleteReplenishmentsByTaskCreatedAtOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }
