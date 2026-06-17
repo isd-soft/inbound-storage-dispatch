@@ -1,7 +1,7 @@
 package com.isd.wms.service.imports.mapper;
 
 import com.isd.wms.entity.Category;
-import com.isd.wms.service.imports.dto.CategoryInfo;
+import com.isd.wms.service.imports.xlsx.dto.CategoryInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

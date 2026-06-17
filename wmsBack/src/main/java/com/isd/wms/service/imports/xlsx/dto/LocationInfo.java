@@ -1,4 +1,4 @@
-package com.isd.wms.service.imports.dto;
+package com.isd.wms.service.imports.xlsx.dto;
 
 import com.isd.wms.enums.Zone;
 import com.poiji.annotation.ExcelCellName;

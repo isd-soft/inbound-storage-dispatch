@@ -2,12 +2,8 @@ package com.isd.wms.service.imports.mapper;
 
 import com.isd.wms.entity.Category;
 import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
 import com.isd.wms.repository.CategoryRepository;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.service.imports.dto.ProductInfo;
-import com.isd.wms.service.imports.dto.StockInfo;
+import com.isd.wms.service.imports.xlsx.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
