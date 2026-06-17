@@ -14,6 +14,7 @@ public record OperatorTaskSummaryResponse(
     Integer totalAllocations,
     Integer completedAllocations,
     boolean readyForCompletion,
+    boolean tuScanned,
     OperatorAllocationSummaryResponse currentAllocation,
     List<OperatorOrderLineSummaryResponse> orderLines,
     List<OperatorAllocationSummaryResponse> allocations

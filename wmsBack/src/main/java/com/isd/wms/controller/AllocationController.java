@@ -2,17 +2,21 @@ package com.isd.wms.controller;
 
 import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.dto.allocation.*;
+import com.isd.wms.dto.transport_unit.ScanTuRequest;
 import com.isd.wms.repository.projections.AllocationSupervisorProjection;
 import com.isd.wms.service.AllocationExecutionService;
 import com.isd.wms.service.AllocationService;
+import com.isd.wms.service.TransportUnitService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/allocations")
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ public class AllocationController {
 
     private final AllocationService allocationService;
     private final AllocationExecutionService allocationExecutionService;
+    private final TransportUnitService tuService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
@@ -44,7 +49,46 @@ public class AllocationController {
     @PostMapping("/operator/current/start")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<OperatorTaskSummaryResponse> startCurrentTask() {
+        log.info("Operator requested start for current task");
         return ResponseEntity.ok(allocationExecutionService.startCurrentTask());
+    }
+
+    // REVERT LA VARIANTA TA ORIGINALĂ CU BOOLEAN IS_ORDER
+    @PostMapping("/{id}/scan-tu")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ResponseEntity<OperatorTaskSummaryResponse> scanTransportUnit(
+        @PathVariable Long id,
+        @Valid @RequestBody ScanTuRequest request) {
+
+        log.info("Received TU scan for Allocation ID: {}. Barcode: {}", id, request.barcode());
+
+        // Apelăm direct metoda ta stabilă din service utilizând boolean-ul trimis de front
+        tuService.occupyTransportUnit(request.barcode(), id, request.isOrder());
+
+        // Extragem starea proaspătă a task-ului pentru operator
+        OperatorTaskSummaryResponse updatedSummary = allocationExecutionService.getCurrentSummary()
+            .orElseThrow(() -> new IllegalStateException("Could not generate summary after scanning TU"));
+
+        return ResponseEntity.ok(updatedSummary);
+    }
+
+    @PostMapping("/{id}/dispatch")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
+    public ResponseEntity<com.isd.wms.dto.transport_unit.TaskActionResponse> dispatchAllocation(
+        @PathVariable Long id,
+        @RequestParam String currentBarcode) {
+
+        log.info("Initiating DISPATCH process for Allocation ID: {}, linked with TU: {}", id, currentBarcode);
+        tuService.releaseTransportUnit(currentBarcode);
+
+        com.isd.wms.dto.transport_unit.TaskActionResponse response = new com.isd.wms.dto.transport_unit.TaskActionResponse(
+            "COMPLETED",
+            false,
+            null,
+            "Drop TU at dispatch",
+            "Task completed successfully. Transport Unit has been released."
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/operator/current/complete")

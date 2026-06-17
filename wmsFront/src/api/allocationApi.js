@@ -21,5 +21,14 @@ export const allocationApi = {
   },
   confirmPickedQuantity(allocationId, pickedQuantity) {
     return apiClient.post(`/v1/allocations/${allocationId}/confirm-quantity`, { pickedQuantity })
+  },
+  scanTransportUnit(id, barcode, isOrder) {
+    return apiClient.post(`/v1/allocations/${id}/scan-tu`, {
+      barcode: barcode,
+      isOrder: isOrder,
+    })
+  },
+  dispatchAllocation(id, currentBarcode) {
+    return apiClient.post(`/v1/allocations/${id}/dispatch?currentBarcode=${currentBarcode}`)
   }
 }
