@@ -133,7 +133,7 @@ class InventoryServiceTest {
         when(stockRepository.save(stock)).thenReturn(stock);
 
         StockResponse response = inventoryService.addStock(new AddStockRequest(
-                1L, 2L, 3, null, null, 3L
+                1L, 2L, 3, 0, null, null, 3L
         ));
 
         assertThat(response.getQuantity()).isEqualTo(10);
@@ -143,7 +143,7 @@ class InventoryServiceTest {
     @Test
     void rejectsAddStockWithInvalidQuantity() {
         assertThat(validator.validate(new AddStockRequest(
-                1L, 2L, 0, null, null, 3L
+                1L, 2L, 0, 0, null, null, 3L
         ))).isNotEmpty();
     }
 
@@ -152,7 +152,7 @@ class InventoryServiceTest {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
-                99L, 2L, 5, null, null, 3L
+                99L, 2L, 5, 0, null, null, 3L
         ))).isInstanceOf(ProductNotFoundException.class);
     }
 
@@ -162,7 +162,7 @@ class InventoryServiceTest {
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.addStock(new AddStockRequest(
-                1L, 99L, 5, null, null, 3L
+                1L, 99L, 5, 0, null, null, 3L
         ))).isInstanceOf(LocationNotFoundException.class);
     }
 

@@ -12,11 +12,11 @@ import java.time.LocalDate;
 public class StockInfo {
     @ExcelCellName("Product")
     @NonNull
-    private Long productId;
+    private String productName;
 
     @ExcelCellName("Location")
     @NonNull
-    private Long locationId;
+    private String locationName;
 
     @ExcelCellName("Quantity")
     @NonNull
