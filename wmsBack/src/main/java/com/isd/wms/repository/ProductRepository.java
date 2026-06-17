@@ -1,5 +1,6 @@
 package com.isd.wms.repository;
 
+import com.isd.wms.enums.Zone;
 import com.isd.wms.repository.projections.ProductWithQuantityProjection;
 import com.isd.wms.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,10 +24,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             SELECT p.id AS id, p.name AS name, p.barcode AS barcode, SUM(s.quantity - s.reservedQuantity) AS quantity FROM Product p
             JOIN Stock s ON p = s.product
+            JOIN Location l ON l = s.location
+            WHERE l.zone = :zone AND l.available = true
             GROUP BY p.id, p.name, p.barcode
             HAVING SUM(s.quantity - s.reservedQuantity) > 0
             """)
-    List<ProductWithQuantityProjection> getProductsWithQuantities();
+    List<ProductWithQuantityProjection> getProductsWithQuantities(
+        @Param("zone") Zone zone
+        );
     boolean existsByBarcodeIgnoreCase(String barcode);
 
     boolean existsByBarcodeIgnoreCaseAndIdNot(String barcode, Long id);

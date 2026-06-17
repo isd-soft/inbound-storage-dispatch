@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.isd.wms.enums.InventoryAdjustmentReason;
 
 @Getter
 @Setter
@@ -22,6 +23,11 @@ public class AdjustStockRequest {
 
     @NotNull(message = "User id is required")
     private Long userId;
+
+    @NotNull(message = "Adjustment reason is required")
+    private InventoryAdjustmentReason reason;
+
+    private String comment;
 
     private LocalDate manufactureDate;
     private LocalDate expirationDate;

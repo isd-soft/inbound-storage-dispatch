@@ -4,6 +4,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
+import com.isd.wms.entity.Task;
 import com.isd.wms.service.ReplenishmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,13 @@ public class ReplenishmentController {
     @PostMapping("/search")
     public ResponseEntity<List<ReplenishmentResponse>> searchReplenishmentsFromBody(@RequestBody ReplenishmentSearchRequest request) {
         return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
+    }
+
+    @PostMapping("/{replenishmentId}/operators/{operatorId}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> assignReplenishment(@PathVariable Long replenishmentId, @PathVariable Long operatorId) {
+        replenishmentService.assignReplenishment(replenishmentId, operatorId);
+        return ResponseEntity.ok("Replenishment assigned with success.");
     }
 
     @PostMapping("/{id}/cancel")

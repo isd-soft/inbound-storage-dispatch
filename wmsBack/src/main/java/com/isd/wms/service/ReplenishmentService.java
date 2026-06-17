@@ -7,12 +7,12 @@ import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
-import com.isd.wms.exception.*;
+import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.exception.LocationNotFoundException;
+import com.isd.wms.exception.ProductNotFoundException;
+import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
-import com.isd.wms.service.validation.SecurityFacade;
-
-import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,8 +34,6 @@ public class ReplenishmentService {
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
-    private final SecurityFacade securityFacade;
-
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
@@ -47,9 +45,7 @@ public class ReplenishmentService {
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
-        Task task = taskService.createTask(TaskType.REPLENISHMENT, request.requestedQuantity(), request.productId());
-
-        Replenishment replenishment = new Replenishment(task, product, request.requestedQuantity(), destinationLocation);
+        Replenishment replenishment = new Replenishment(product, request.requestedQuantity(), destinationLocation);
         replenishment.setStatus(Status.CREATED);
         replenishment = replenishmentRepository.save(replenishment);
 
@@ -69,18 +65,20 @@ public class ReplenishmentService {
 
 
         if (isProductChanged || isQuantityChanged) {
-            replenishment.getTask().setRequestedQuantity(request.requestedQuantity());
-            workflowService.updateTask(replenishment.getTask(), request.productId(), request.requestedQuantity());
+            getTask(replenishment).setRequestedQuantity(request.requestedQuantity());
+            workflowService.updateTask(getTask(replenishment), request.productId(), request.requestedQuantity());
         }
 
-        replenishment.setProduct(product);
-        replenishment.setRequestedQuantity(request.requestedQuantity());
-        if (request.status() != null) {
-            replenishment.setStatus(request.status());
-        }
-        replenishment.setDestinationLocation(destinationLocation);
+        updateReplenishment(request, replenishment, product, destinationLocation);
 
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
+    }
+
+    private static void updateReplenishment(ReplenishmentUpdateRequest request, Replenishment replenishment, Product product, Location destinationLocation) {
+        replenishment.setProduct(product);
+        replenishment.setRequestedQuantity(request.requestedQuantity());
+        replenishment.setStatus(request.status());
+        replenishment.setDestinationLocation(destinationLocation);
     }
 
     @Transactional
@@ -114,7 +112,7 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Physical deletion is only allowed for tasks in CREATED status.");
         }
 
-        Task task = replenishment.getTask();
+        Task task = getTask(replenishment);
         List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
 
         for (Allocation allocation : allocations) {
@@ -136,7 +134,7 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Cannot cancel a task that is already COMPLETED or CANCELED.");
         }
 
-        Task task = replenishment.getTask();
+        Task task = getTask(replenishment);
         List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
 
         for (Allocation allocation : allocations) {
@@ -155,19 +153,23 @@ public class ReplenishmentService {
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
     }
 
+    private Task getTask(Replenishment replenishment) {
+        return replenishment.getTask()
+            .orElseThrow(() -> new InvalidRequestException("There are no allocations for this request yet."));
+    }
+
     public ReplenishmentResponse getReplenishmentById(Long replenishmentId) {
         return replenishmentMapper.toResponse(getReplenishment(replenishmentId));
     }
 
     public List<ReplenishmentResponse> getAllReplenishments() {
-        return replenishmentRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
+        return replenishmentRepository.findAll().stream()
             .map(replenishmentMapper::toResponse)
             .toList();
     }
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
         List<Replenishment> tasks = replenishmentRepository.filter(
-            securityFacade.getCurrentUsername(),
             request.taskId(),
             request.productId(),
             request.requestedQuantity(),
@@ -179,7 +181,7 @@ public class ReplenishmentService {
     }
 
     private Replenishment getReplenishment(Long replenishmentId) {
-        return replenishmentRepository.findByIdAndCreatedByUsername(replenishmentId, securityFacade.getCurrentUsername())
+        return replenishmentRepository.findById(replenishmentId)
             .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
     }
 
@@ -191,5 +193,14 @@ public class ReplenishmentService {
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
             .orElseThrow(() -> new LocationNotFoundException(locationId));
+    }
+
+    @Transactional
+    public void assignReplenishment(Long replenishmentId, Long operatorId) {
+        Replenishment replenishment = getReplenishment(replenishmentId);
+        Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(), replenishment.getProduct().getId());
+        replenishment.setTask(task);
+        replenishmentRepository.saveAndFlush(replenishment);
+        taskService.assignTask(task.getId(), operatorId);
     }
 }

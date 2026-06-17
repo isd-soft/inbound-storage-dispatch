@@ -12,12 +12,33 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     List<Allocation> findAllByTaskId(Long taskId);
+
+    List<Allocation> findAllByStockId(Long stockId);
+
+    @Query("""
+            SELECT a FROM Allocation a
+            WHERE a.task.id = :taskId
+            ORDER BY a.createdAt, a.id
+        """)
+    List<Allocation> findAllByTaskIdOrderByCreatedAtAscIdAsc(@Param("taskId") Long taskId);
+
+    @Query("""
+            SELECT a FROM Allocation a
+            WHERE a.stock.id = :stockId
+              AND a.status NOT IN (:excludedStatuses)
+            ORDER BY a.createdAt, a.id
+        """)
+    List<Allocation> findActiveByStockId(
+        @Param("stockId") Long stockId,
+        @Param("excludedStatuses") List<Status> excludedStatuses
+    );
 
     void deleteByTaskId(Long taskId);
 
@@ -151,19 +172,20 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
             a.stock.id AS stockId,
             a.stock.product.name AS productName,
             a.stock.location.name AS locationName,
-            a.quantity AS quantity,
-            a.status AS status,
+            COALESCE(ol.requestedQuantity, a.quantity) AS requestedQuantity,
+            COALESCE(ol.deliveredQuantity, a.pickedQuantity, CASE WHEN a.status = com.isd.wms.enums.Status.COMPLETED THEN a.quantity ELSE 0 END) AS deliveredQuantity,
+            COALESCE(ol.status, a.status) AS status,
             a.sourceLocationScanned AS sourceLocationScanned,
-            a.productScanned AS productScanned,
-            a.pickedQuantity AS pickedQuantity
+            a.productScanned AS productScanned
         FROM Allocation a
         JOIN Task t ON a.task = t
         JOIN User u ON u = t.supervisor
         LEFT JOIN OrderLine ol ON ol.task = a.task
         LEFT JOIN Replenishment r ON r.task = a.task
-        WHERE u.username = :username
         """)
-    List<AllocationSupervisorProjection> getAllAllocationsSupervisor(
-        @Param("username") String username
-    );
+    List<AllocationSupervisorProjection> getAllAllocations();
+
+    @Modifying
+    @Query("DELETE FROM Allocation a WHERE a.createdAt < :cutoffDate")
+    int deleteAllocationsOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -44,8 +45,12 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
               AND NOT EXISTS (
                   SELECT 1 FROM Allocation a
                   WHERE a.task = t
-                    AND a.status NOT IN (CANCELED, COMPLETED)
+                    AND a.status NOT IN (CANCELED, COMPLETED, PARTIALLY_COMPLETED)
               )
         """)
     int markTaskAsCompleted(@Param("taskId") Long taskId);
+
+    @Modifying
+    @Query("DELETE FROM Task t WHERE t.createdAt < :cutoffDate")
+    int deleteTasksOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

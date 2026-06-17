@@ -13,8 +13,11 @@ export const inventoryApi = {
   removeStock(payload) {
     return apiClient.post('/inventory/remove', payload)
   },
-  adjustStock(payload) {
-    return apiClient.put('/inventory/adjust', payload)
+  adjustStock(stockId, payload) {
+    return apiClient.patch(`/inventory/${stockId}/adjust`, payload)
+  },
+  previewAdjustment(stockId, payload) {
+    return apiClient.post(`/inventory/${stockId}/adjust/preview`, payload)
   },
   deleteStock(stockId) {
     return apiClient.delete(`/inventory/${stockId}`)
