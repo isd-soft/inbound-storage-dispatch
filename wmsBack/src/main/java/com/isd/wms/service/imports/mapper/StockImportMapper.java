@@ -1,30 +1,27 @@
 package com.isd.wms.service.imports.mapper;
 
-import com.isd.wms.entity.Stock;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.service.imports.dto.StockInfo;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class StockImportMapper implements ImportMapper<StockInfo, Stock> {
+public class StockImportMapper implements ImportMapper<StockInfo, AddStockRequest> {
 
-    private final ProductRepository productRepository;
-    private final LocationRepository locationRepository;
+    private final SecurityFacade securityFacade;
 
     @Override
-    public Stock toEntity(StockInfo info) {
-        return new Stock(
-            productRepository.findById(info.getProductId())
-                .orElseThrow(),
-            locationRepository.findById(info.getLocationId())
-                .orElseThrow(),
+    public AddStockRequest toEntity(StockInfo info) {
+        return new AddStockRequest(
+            info.getProductId(),
+            info.getLocationId(),
             info.getQuantity(),
             info.getReservedQuantity(),
             info.getManufactureDate(),
-            info.getExpirationDate()
+            info.getExpirationDate(),
+            securityFacade.getCurrentUser().getId()
         );
     }
 

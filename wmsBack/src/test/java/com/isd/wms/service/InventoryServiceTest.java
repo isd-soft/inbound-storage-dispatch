@@ -104,7 +104,7 @@ class InventoryServiceTest {
         });
 
         StockResponse response = inventoryService.addStock(new AddStockRequest(
-                1L, 2L, 5,
+                1L, 2L, 5, 0,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 3L
         ));
 

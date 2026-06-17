@@ -474,7 +474,7 @@ const submitAction = async (payload) => {
 
   actionLoading.value = true
   try {
-    const requestPayload = { ...payload, userId }
+    const requestPayload = { ...payload, userId, 'reservedQuantity': 0 }
     if (dialogMode.value === 'add') {
       await inventoryApi.addStock(requestPayload)
       toast.add({

@@ -69,22 +69,24 @@ public class InventoryService {
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
-            request.getProductId(), request.getLocationId(), request.getQuantity(), request.getUserId());
+            request.productId(), request.locationId(), request.quantity(), request.userId());
 
-        Product product = getProduct(request.getProductId());
-        Location location = getLocation(request.getLocationId());
-        User user = getUser(request.getUserId());
+        Product product = getProduct(request.productId());
+        Location location = getLocation(request.locationId());
+        User user = getUser(request.userId());
 
         Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
             .orElseGet(() -> new Stock(product, location));
 
-        stock.setQuantity(stock.getQuantity() + request.getQuantity());
-        stock.setManufactureDate(request.getManufactureDate());
-        stock.setExpirationDate(request.getExpirationDate());
+        Integer reservedQuantity = request.quantity() == null ? 0 : request.quantity();
+        stock.setQuantity(stock.getQuantity() + reservedQuantity);
+        stock.setReservedQuantity(stock.getReservedQuantity() + request.reservedQuantity());
+        stock.setManufactureDate(request.manufactureDate());
+        stock.setExpirationDate(request.expirationDate());
 
         Stock savedStock = stockRepository.save(stock);
 
-        createHistory(savedStock, request.getQuantity(), savedStock.getQuantity(), null, location,
+        createHistory(savedStock, request.quantity(), savedStock.getQuantity(), null, location,
             InventoryOperationType.ADD_STOCK, user);
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
@@ -246,9 +248,11 @@ public class InventoryService {
 
     @Transactional
     public void importStocksFromFile(MultipartFile file) {
-        List<Stock> stocks = importService.importData(file, StockInfo.class);
+        List<AddStockRequest> stocks = importService.importData(file, StockInfo.class);
         try {
-            stockRepository.saveAllAndFlush(stocks);
+            for(AddStockRequest stockRequest: stocks) {
+                addStock(stockRequest);
+            }
         } catch (DataIntegrityViolationException e) {
             throw new InvalidRequestException("The imported file contains invalid stock data.");
         }
