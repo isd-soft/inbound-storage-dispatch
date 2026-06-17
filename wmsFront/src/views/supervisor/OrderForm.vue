@@ -52,7 +52,7 @@
       </template>
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
       <Column expander style="width: 3rem">
-        <template #body="{ data }">
+        <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
             :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
@@ -60,7 +60,7 @@
             rounded
             size="small"
             aria-label="Toggle order lines"
-            @click="toggleOrderExpansion(data)"
+            @click="toggleOrderExpansion(data, rowTogglerCallback, $event)"
           />
         </template>
       </Column>
@@ -127,16 +127,20 @@
               <template #body="{ data: line }">
                 <ProductLink
                   :product-id="line.productId"
-                  :name="getProduct(line.productId)?.name || getProductLabel(line.productId)"
+                  :barcode="getProduct(line.productId)?.barcode"
+                  :name="getProduct(line.productId)?.name || String(line.productId || '-')"
                   class="font-semibold"
                 />
               </template>
             </Column>
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                  line.requestedQuantity ?? line.quantity ?? 0
-                }}</span>
+                <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
+              </template>
+            </Column>
+            <Column field="deliveredQuantity" header="Delivered Qty" filter>
+              <template #body="{ data: line }">
+                <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="status" header="Status" filter>
@@ -230,7 +234,6 @@
               <InputNumber
                 v-model="data.quantity"
                 :min="1"
-                :max="getMaxAllowedForLine(data)"
                 showButtons
                 buttonLayout="horizontal"
                 class="w-full"
@@ -271,7 +274,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -353,12 +356,17 @@ const loadOrders = async () => {
   try {
     const response = await orderApi.getAll()
     orders.value = (response.data || []).map(normalizeOrder)
+    const currentOrderIds = new Set(orders.value.map((entry) => entry.order?.id).filter(Boolean))
+    expandedRows.value = Object.fromEntries(
+      Object.entries(expandedRows.value).filter(([orderId, isExpanded]) => isExpanded && currentOrderIds.has(Number(orderId))),
+    )
 
     orders.value.forEach((entry) => {
       assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
     })
   } catch (error) {
     orders.value = []
+    expandedRows.value = {}
     loadError.value = getErrorMessage(error)
   } finally {
     loading.value = false
@@ -444,20 +452,6 @@ const getAvailableQuantity = (productId) => {
   return Number(product?.quantity ?? 0)
 }
 
-const getTotalRequestedQuantity = (productId, excludeLineId = null) => {
-  return formData.lines
-    .filter((line) => line.product === productId && line.id !== excludeLineId)
-    .reduce((sum, line) => sum + (line.quantity || 0), 0)
-}
-
-const getMaxAllowedForLine = (line) => {
-  const availableQuantity = getAvailableQuantity(line.product)
-  if (!availableQuantity) return 1
-
-  const alreadyUsed = getTotalRequestedQuantity(line.product, line.id)
-  return Math.max(1, availableQuantity - alreadyUsed)
-}
-
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(
     (total, line) => total + Number(line.requestedQuantity ?? line.quantity ?? 0),
@@ -468,19 +462,9 @@ const hasExpandableLines = (order) => (order.lines || []).length > 0
 
 const isExpanded = (order) => Boolean(expandedRows.value[order.order.id])
 
-const toggleOrderExpansion = (order) => {
-  const orderId = order.order.id
-  if (!orderId || !hasExpandableLines(order)) return
-
-  expandedRows.value = {
-    ...expandedRows.value,
-    [orderId]: isExpanded(order) ? undefined : true,
-  }
-
-  if (!expandedRows.value[orderId]) {
-    const { [orderId]: _removed, ...rest } = expandedRows.value
-    expandedRows.value = rest
-  }
+const toggleOrderExpansion = (order, rowTogglerCallback, event) => {
+  if (!order?.order?.id || !hasExpandableLines(order)) return
+  rowTogglerCallback?.(event)
 }
 
 const getLocationLabel = (locationId) => {
@@ -489,7 +473,7 @@ const getLocationLabel = (locationId) => {
 }
 
 const isAssignmentLocked = (order) =>
-  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(order?.status || order?.Status)
+  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(order?.status || order?.Status)
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
@@ -555,6 +539,9 @@ const getStatusSeverity = (status) =>
     CREATED: 'info',
     ASSIGNED: 'warning',
     IN_PROGRESS: 'warning',
+    ALLOCATED: 'success',
+    PARTIALLY_COMPLETED: 'warning',
+    SHORTAGE: 'warning',
     COMPLETED: 'success',
     CANCELED: 'danger',
     CANCELLED: 'danger',
@@ -567,19 +554,6 @@ const formatDate = (value) =>
         timeStyle: 'short',
       }).format(new Date(value))
     : '-'
-
-watch(
-  () => formData.lines,
-  (lines) => {
-    lines.forEach((line) => {
-      const max = getMaxAllowedForLine(line)
-      if (line.quantity > max) {
-        line.quantity = max
-      }
-    })
-  },
-  { deep: true },
-)
 
 const onSubmit = async () => {
   submitted.value = true

@@ -72,4 +72,16 @@ public class OrderController {
     public ResponseEntity<List<OrderResponse>> searchOrders(@ModelAttribute OrderSearchRequest request) {
         return ResponseEntity.ok(orderService.searchOrders(request));
     }
+
+    @GetMapping("/shortages")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<List<com.isd.wms.dto.order.shortage.ShortageOrderResponse>> getShortageOrders() {
+        return ResponseEntity.ok(orderService.getShortageOrders());
+    }
+
+    @GetMapping("/{id}/shortage-details")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<com.isd.wms.dto.order.shortage.ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getShortageDetails(id));
+    }
 }

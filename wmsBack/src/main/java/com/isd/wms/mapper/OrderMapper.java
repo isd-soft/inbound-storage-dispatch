@@ -29,7 +29,7 @@ public class OrderMapper {
     private static @Nullable Long getOperatorId(Order order) {
         return order.getOrderLines().stream()
             .map(OrderLine::getTask)
-            .flatMap(Optional::stream)
+            .filter(task -> task != null)
             .map(Task::getOperator)
             .flatMap(Optional::stream)
             .map(User::getId)

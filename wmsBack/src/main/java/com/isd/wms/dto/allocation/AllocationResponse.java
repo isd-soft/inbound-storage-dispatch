@@ -7,6 +7,7 @@ public record AllocationResponse(
         String productName,
         String barcode,
         String locationBarcode,
-        Integer quantity,
+        Integer requestedQuantity,
+        Integer deliveredQuantity,
         Status status) {
 }

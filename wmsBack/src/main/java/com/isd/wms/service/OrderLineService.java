@@ -3,18 +3,24 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Product;
+import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
+import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.OrderLineNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.mapper.OrderLineMapper;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -32,11 +38,15 @@ public class OrderLineService {
     private final OrderLineMapper orderLineMapper;
     private final ProductRepository productRepository;
     private final TaskRepository taskRepository;
+    private final AllocationRepository allocationRepository;
+    private final StockRepository stockRepository;
+    private final TaskService taskService;
 
     @Transactional
     public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
-        OrderLine orderLine = new OrderLine(order, product, request.requestedQuantity());
+        Task task = taskService.createTask(TaskType.PICKING_ORDER, request.requestedQuantity(), request.productId());
+        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity());
         orderLineRepository.save(orderLine);
     }
 
@@ -58,7 +68,9 @@ public class OrderLineService {
     }
 
     public void deleteOrderLine(Long orderLineId) {
-        orderLineRepository.deleteById(orderLineId);
+        OrderLine orderLine = getOrderLine(orderLineId);
+        releaseReservedStock(orderLine);
+        orderLineRepository.delete(orderLine);
     }
 
     public List<OrderLineResponse> getAll() {
@@ -89,5 +101,21 @@ public class OrderLineService {
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
             .orElseThrow(() -> new TaskNotFoundException(taskId));
+    }
+
+    private void releaseReservedStock(OrderLine orderLine) {
+        if (orderLine.getTask() == null) {
+            return;
+        }
+
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask().getId());
+        for (Allocation allocation : allocations) {
+            if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
+                continue;
+            }
+            Stock stock = allocation.getStock();
+            stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - allocation.getQuantity()));
+            stockRepository.save(stock);
+        }
     }
 }

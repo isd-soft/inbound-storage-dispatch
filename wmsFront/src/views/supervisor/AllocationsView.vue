@@ -46,18 +46,18 @@
 
       <Column field="locationName" header="Location" sortable filter />
 
-      <Column field="quantity" header="Quantity" sortable>
+      <Column field="requestedQuantity" header="Requested Qty" sortable>
         <template #body="{ data }">
           <span class="font-bold">
-            {{ data.quantity }}
+            {{ data.requestedQuantity }}
           </span>
         </template>
       </Column>
 
-      <Column field="pickedQuantity" header="Picked Qty" sortable>
+      <Column field="deliveredQuantity" header="Delivered Qty" sortable>
         <template #body="{ data }">
           <span class="font-bold">
-            {{ data.pickedQuantity ?? 0 }}
+            {{ data.deliveredQuantity ?? 0 }}
           </span>
         </template>
       </Column>
@@ -127,6 +127,11 @@ const statusSeverity = (status) => {
   switch (status) {
     case 'COMPLETED':
       return 'success'
+    case 'PARTIALLY_COMPLETED':
+      return 'warning'
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'danger'
     case 'IN_PROGRESS':
       return 'warn'
     case 'ASSIGNED':

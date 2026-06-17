@@ -45,7 +45,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
               AND NOT EXISTS (
                   SELECT 1 FROM Allocation a
                   WHERE a.task = t
-                    AND a.status NOT IN (CANCELED, COMPLETED)
+                    AND a.status NOT IN (CANCELED, COMPLETED, PARTIALLY_COMPLETED)
               )
         """)
     int markTaskAsCompleted(@Param("taskId") Long taskId);
