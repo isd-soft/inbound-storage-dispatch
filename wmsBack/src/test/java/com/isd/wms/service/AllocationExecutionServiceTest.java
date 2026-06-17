@@ -49,7 +49,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class allocationExecutionServiceTest {
+class AllocationExecutionServiceTest {
 
     @Mock
     private AllocationRepository  allocationRepository ;
@@ -106,7 +106,7 @@ class allocationExecutionServiceTest {
         allocation = allocation(50L, operator, task, stock, 10, Status.ASSIGNED);
         ReflectionTestUtils.setField(allocation, "createdAt", LocalDateTime.of(2026, 6, 15, 9, 0));
         order = order(60L, OrderStatus.IN_PROGRESS);
-        orderLine = orderLine(70L, order, task, product, Status.IN_PROGRESS);
+        orderLine = orderLine(70L, order, product, Status.IN_PROGRESS);
         ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
 
         Task nextTask = new Task(null, TaskType.PICKING_ORDER, 4);
@@ -408,8 +408,8 @@ class allocationExecutionServiceTest {
         return order;
     }
 
-    private OrderLine orderLine(Long id, Order order, Task task, Product product, Status status) {
-        OrderLine orderLine = new OrderLine(order, task, product, 10);
+    private OrderLine orderLine(Long id, Order order, Product product, Status status) {
+        OrderLine orderLine = new OrderLine(order, product, 10);
         ReflectionTestUtils.setField(orderLine, "id", id);
         ReflectionTestUtils.setField(orderLine, "status", status);
         return orderLine;
