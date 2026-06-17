@@ -22,7 +22,7 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
 
     @Query("""
         SELECT r FROM Replenishment r
-        JOIN r.task t
+        LEFT JOIN r.task t
         WHERE (:taskId IS NULL OR r.task.id = :taskId)
         AND (:productId IS NULL OR r.product.id = :productId)
         AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
