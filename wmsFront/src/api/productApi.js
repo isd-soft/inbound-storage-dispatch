@@ -19,12 +19,6 @@ export const productApi = {
   searchProducts(params) {
     return apiClient.get('/products/search', { params })
   },
-  getCategories() {
-    return apiClient.get('/categories')
-  },
-  createCategory(payload) {
-    return apiClient.post('/categories', payload)
-  },
   getAllProductsWithQuantityInZone(zone) {
     return apiClient.get('/products/quantities', {
       params: { zone },
@@ -32,6 +26,17 @@ export const productApi = {
   },
   importProducts(payload) {
     return apiClient.post('/products/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getCategories() {
+    return apiClient.get('/categories')
+  },
+  createCategory(payload) {
+    return apiClient.post('/categories', payload)
+  },
+  importCategories(payload) {
+    return apiClient.post('/categories/imports', payload, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },

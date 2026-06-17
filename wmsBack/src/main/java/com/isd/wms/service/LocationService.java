@@ -4,6 +4,8 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
+import com.isd.wms.entity.Product;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateBarcodeException;
@@ -11,10 +13,15 @@ import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.dto.LocationInfo;
+import com.isd.wms.service.imports.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +33,7 @@ public class LocationService {
     private final LocationRepository locationRepository;
     private final LocationMapper locationMapper;
     private final StockRepository stockRepository;
+    private final ImportService importService;
 
 
     @Transactional
@@ -107,9 +115,18 @@ public class LocationService {
         return locationRepository.getLocationDispatch();
     }
 
-
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
             .orElseThrow(() -> new LocationNotFoundException(locationId));
+    }
+
+    @Transactional
+    public void importLocationsFromFile(MultipartFile file) {
+        List<Location> locations = importService.importData(file, LocationInfo.class);
+        try {
+            locationRepository.saveAllAndFlush(locations);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid location data.");
+        }
     }
 }

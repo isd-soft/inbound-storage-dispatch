@@ -4,6 +4,7 @@ import com.isd.wms.dto.category.CategoryCreateRequest;
 import com.isd.wms.dto.category.CategoryResponse;
 import com.isd.wms.dto.category.CategoryUpdateRequest;
 import com.isd.wms.entity.Category;
+import com.isd.wms.entity.Product;
 import com.isd.wms.exception.CategoryInUseException;
 import com.isd.wms.exception.CategoryNotFoundException;
 import com.isd.wms.exception.DuplicateCategoryNameException;
@@ -11,10 +12,14 @@ import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.mapper.CategoryMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.dto.CategoryInfo;
+import com.isd.wms.service.imports.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +32,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final CategoryMapper categoryMapper;
+    private final ImportService importService;
 
 
     @Transactional
@@ -89,6 +95,16 @@ public class CategoryService {
             return categoryRepository.save(category);
         } catch (DataIntegrityViolationException exception) {
             throw new DuplicateCategoryNameException(name);
+        }
+    }
+
+    @Transactional
+    public void importCategoriesFromFile(MultipartFile file) {
+        List<Category> categories = importService.importData(file, CategoryInfo.class);
+        try {
+            categoryRepository.saveAllAndFlush(categories);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid category data.");
         }
     }
 }

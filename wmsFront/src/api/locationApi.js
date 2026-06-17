@@ -15,5 +15,10 @@ export const locationApi = {
   },
   delete(id) {
     return apiClient.delete(`/locations/${id}`)
-  }
+  },
+  importLocations(payload) {
+    return apiClient.post('/locations/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
