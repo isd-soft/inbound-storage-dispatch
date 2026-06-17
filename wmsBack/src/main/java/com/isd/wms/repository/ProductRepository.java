@@ -22,9 +22,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("""
             SELECT p.id AS id, p.name AS name, p.barcode AS barcode, SUM(s.quantity - s.reservedQuantity) AS quantity FROM Product p
-            JOIN Stock s
-            JOIN Location l
-            WHERE l.zone = :zone
+            JOIN Stock s ON p = s.product
+            JOIN Location l ON l = s.location
+            WHERE l.zone = :zone AND l.available = true
             GROUP BY p.id, p.name, p.barcode
             HAVING SUM(s.quantity - s.reservedQuantity) > 0
             """)

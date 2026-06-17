@@ -25,7 +25,9 @@ export const productApi = {
   createCategory(payload) {
     return apiClient.post('/categories', payload)
   },
-  getAllProductsWithQuantityInZone(payload) {
-    return apiClient.post('/quantities', payload)
-  }
+  getAllProductsWithQuantityInZone(zone) {
+    return apiClient.get('/products/quantities', {
+      params: { zone },
+    })
+  },
 }
