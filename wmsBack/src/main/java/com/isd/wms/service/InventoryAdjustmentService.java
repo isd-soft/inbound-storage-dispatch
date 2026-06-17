@@ -19,7 +19,6 @@ import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
-import com.isd.wms.enums.TaskType;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.StockNotFoundException;
@@ -246,7 +245,9 @@ public class InventoryAdjustmentService {
         boolean allFulfilled = shortageQuantity == 0;
         boolean revalidationRequired = task.getStatus() == TaskStatus.IN_PROGRESS && (reducedFromModified > 0 || allocatedFromAlternatives > 0 || shortageQuantity > 0);
 
-        Status lineStatus = task.getStatus() == TaskStatus.IN_PROGRESS ? Status.IN_PROGRESS : Status.ASSIGNED;
+        Status lineStatus = shortageQuantity > 0
+            ? (finalAllocated > 0 ? Status.PARTIALLY_COMPLETED : Status.CANCELED)
+            : orderLine.getStatus();
 
         Long reallocatedLocationId = plans.isEmpty() ? null : plans.getFirst().stockId();
         String reallocatedLocationBarcode = plans.isEmpty() ? null : getStockBarcode(plans.getFirst().stockId());
@@ -322,7 +323,9 @@ public class InventoryAdjustmentService {
         for (TaskImpact impact : simulation.taskImpacts()) {
             impact.orderLine().setDeliveredQuantity(impact.finalAllocatedQuantity());
             impact.orderLine().setShortageQuantity(impact.shortageQuantity());
-            impact.orderLine().setStatus(impact.lineStatus());
+            if (impact.shortageQuantity() > 0) {
+                impact.orderLine().setStatus(impact.lineStatus());
+            }
             linesToSave.add(impact.orderLine());
 
             if (impact.revalidationRequired()) {
@@ -345,20 +348,11 @@ public class InventoryAdjustmentService {
                 alternativeStock.setReservedQuantity(Optional.ofNullable(alternativeStock.getReservedQuantity()).orElse(0) + alternativePlan.quantity());
                 stocksToSave.add(alternativeStock);
 
-                Task supplementalTask = createSupplementalTask(impact.task(), alternativePlan.quantity());
-                tasksToSave.add(supplementalTask);
-
-                OrderLine supplementalOrderLine = createSupplementalOrderLine(impact.orderLine(), supplementalTask, alternativePlan.quantity());
-                orderLineRepository.save(supplementalOrderLine);
-                linesToSave.add(supplementalOrderLine);
-
                 Allocation newAllocation = new Allocation(
-                    supplementalTask,
+                    impact.task(),
                     alternativeStock,
                     alternativePlan.quantity(),
-                    impact.task().getOperator().isPresent()
-                        ? (impact.task().getStatus() == TaskStatus.IN_PROGRESS ? Status.IN_PROGRESS : Status.ASSIGNED)
-                        : Status.CREATED
+                    resolveAllocationStatusForTask(impact.task())
                 );
                 allocationsToSave.add(newAllocation);
             }
@@ -401,29 +395,14 @@ public class InventoryAdjustmentService {
         return savedHistory.getId();
     }
 
-    private Task createSupplementalTask(Task sourceTask, int quantity) {
-        Task supplementalTask = new Task(
-            Objects.requireNonNull(sourceTask.getSupervisor(), "Supervisor is required for supplemental order line"),
-            TaskType.PICKING_ORDER,
-            quantity
-        );
-        sourceTask.getOperator().ifPresent(operator -> {
-            supplementalTask.setOperator(operator);
-            supplementalTask.setStatus(sourceTask.getStatus() == TaskStatus.IN_PROGRESS ? TaskStatus.IN_PROGRESS : TaskStatus.ASSIGNED);
-        });
-        return supplementalTask;
-    }
-
-    private OrderLine createSupplementalOrderLine(OrderLine sourceOrderLine, Task supplementalTask, int quantity) {
-        OrderLine supplementalOrderLine = new OrderLine(sourceOrderLine.getOrder(), supplementalTask, sourceOrderLine.getProduct(), quantity);
-        supplementalOrderLine.setDeliveredQuantity(quantity);
-        supplementalOrderLine.setShortageQuantity(0);
-        supplementalOrderLine.setStatus(supplementalTask.getStatus() == TaskStatus.IN_PROGRESS
-            ? Status.IN_PROGRESS
-            : supplementalTask.getStatus() == TaskStatus.ASSIGNED
-                ? Status.ALLOCATED
-                : Status.CREATED);
-        return supplementalOrderLine;
+    private Status resolveAllocationStatusForTask(Task task) {
+        return switch (task.getStatus()) {
+            case IN_PROGRESS -> Status.IN_PROGRESS;
+            case ASSIGNED, REQUIRES_REVALIDATION -> Status.ASSIGNED;
+            case COMPLETED -> Status.COMPLETED;
+            case CANCELED -> Status.CANCELED;
+            default -> Status.CREATED;
+        };
     }
 
     private OrderStatus determineOrderStatus(Order order) {
