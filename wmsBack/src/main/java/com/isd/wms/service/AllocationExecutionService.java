@@ -88,19 +88,46 @@ public class AllocationExecutionService {
             throw new InvalidRequestException("Order has no lines to complete");
         }
 
-        boolean allLinesCompleted = orderLines.stream().allMatch(line -> line.getStatus() == Status.COMPLETED);
-        if (!allLinesCompleted) {
-            throw new InvalidRequestException("All order lines must be completed before final confirmation");
+        boolean allLinesTerminal = orderLines.stream().allMatch(line ->
+            line.getStatus() == Status.COMPLETED
+                || line.getStatus() == Status.CANCELED
+                || line.getStatus() == Status.PARTIALLY_COMPLETED
+        );
+        if (!allLinesTerminal) {
+            throw new InvalidRequestException("All order lines must be completed or canceled before final confirmation");
         }
 
         List<Allocation> allocations = allocationRepository.findAllByOrder(order);
-        boolean allAllocationsCompleted = allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.COMPLETED);
+        boolean allAllocationsCompleted = allocations.stream().allMatch(allocation ->
+            allocation.getStatus() == Status.COMPLETED
+                || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                || allocation.getStatus() == Status.CANCELED
+        );
         if (!allAllocationsCompleted) {
             throw new InvalidRequestException("All allocations must be completed before final confirmation");
         }
 
-        order.setStatus(OrderStatus.COMPLETED);
+        boolean allCanceled = orderLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
+        boolean hasPartialHistory = orderLines.stream().anyMatch(line ->
+            line.getStatus() == Status.CANCELED
+                || resolveDeliveredQuantity(line) < line.getRequestedQuantity()
+                || line.getShortageQuantity() > 0
+                || line.getStatus() == Status.PARTIALLY_COMPLETED
+        );
+        order.setStatus(allCanceled ? OrderStatus.CANCELED : hasPartialHistory ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED);
         orderRepository.save(order);
+    }
+
+    private int resolveDeliveredQuantity(OrderLine line) {
+        Integer deliveredQuantity = line.getDeliveredQuantity();
+        if (deliveredQuantity != null && deliveredQuantity > 0) {
+            return deliveredQuantity;
+        }
+
+        return line.getTask().getAllocations().stream()
+            .filter(allocation -> allocation.getStatus() != Status.CANCELED)
+            .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
+            .sum();
     }
 
     public List<AllocationExecutionResponse> getAssignedAllocations() {
@@ -210,7 +237,7 @@ public class AllocationExecutionService {
 
         validatePickedQuantityForAllocation(allocation, allocation.getPickedQuantity());
 
-        allocation.setStatus(Status.COMPLETED);
+        allocation.setStatus(resolveAllocationStatus(allocation));
         Allocation savedAllocation = allocationRepository.save(allocation);
 
         AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
@@ -302,7 +329,11 @@ public class AllocationExecutionService {
             .count();
 
         boolean readyForCompletion = order.getStatus() == OrderStatus.PICKED
-            && orderedAllocations.stream().allMatch(allocation -> allocation.getStatus() == Status.COMPLETED);
+            && orderedAllocations.stream().allMatch(allocation ->
+                allocation.getStatus() == Status.COMPLETED
+                    || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                    || allocation.getStatus() == Status.CANCELED
+            );
 
 
         return new OperatorTaskSummaryResponse(
@@ -323,8 +354,10 @@ public class AllocationExecutionService {
     }
 
     private static Long getTaskId(OrderLine orderLine) {
-        return orderLine.getTask().orElseThrow(() -> new InvalidRequestException(
-            "No task found for order line " + orderLine.getId())).getId();
+        if (orderLine.getTask() == null) {
+            throw new InvalidRequestException("No task found for order line " + orderLine.getId());
+        }
+        return orderLine.getTask().getId();
     }
 
     private OperatorTaskSummaryResponse toReplenishmentSummary(Allocation currentAllocation) {
@@ -443,12 +476,17 @@ public class AllocationExecutionService {
         if (pickedQuantity > allocation.getQuantity()) {
             throw new InvalidRequestException("Picked quantity cannot exceed required quantity");
         }
-        if (allocation.getTask().getTaskType() == TaskType.PICKING_ORDER && !pickedQuantity.equals(allocation.getQuantity())) {
-            throw new InvalidRequestException("Picked quantity must match required quantity for picking tasks");
-        }
         if (allocation.getStock().getQuantity() < pickedQuantity) {
             throw new InvalidRequestException("Not enough stock available");
         }
+    }
+
+    private Status resolveAllocationStatus(Allocation allocation) {
+        Integer pickedQuantity = allocation.getPickedQuantity();
+        if (pickedQuantity == null) {
+            return Status.COMPLETED;
+        }
+        return pickedQuantity < allocation.getQuantity() ? Status.PARTIALLY_COMPLETED : Status.COMPLETED;
     }
 
     private void autoAdvanceGroupedPickingFlow(Allocation completedAllocation) {

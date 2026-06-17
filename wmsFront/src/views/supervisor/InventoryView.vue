@@ -3,6 +3,31 @@
     <Toast />
     <ConfirmDialog />
 
+    <Card v-if="lastAdjustmentResult" class="mb-4">
+      <template #title>Latest stock adjustment</template>
+      <template #content>
+        <div class="flex flex-col gap-2 text-sm">
+          <div>{{ lastAdjustmentResult.message }}</div>
+          <div class="flex flex-wrap gap-2">
+            <Tag :severity="lastAdjustmentResult.reallocationSucceeded ? 'success' : 'warning'" :value="lastAdjustmentResult.reallocationSucceeded ? 'Reallocation succeeded' : 'Reallocation incomplete'" />
+            <Tag v-if="lastAdjustmentResult.partialShortageCreated" severity="warning" value="Partial completion created" />
+            <Tag v-if="lastAdjustmentResult.orderCancelled" severity="danger" value="Order cancelled" />
+          </div>
+          <div v-if="lastAdjustmentResult.affectedOrders?.length" class="flex flex-col gap-1">
+            <div class="font-semibold">Affected orders</div>
+            <div class="flex flex-wrap gap-2">
+              <Tag
+                v-for="order in lastAdjustmentResult.affectedOrders"
+                :key="order.orderId"
+                :severity="getOrderSeverity(order.status)"
+                :value="`${order.orderNumber} · ${order.status} · ${order.shortageLines}/${order.totalLines} lines`"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+    </Card>
+
     <AppDataTable
       v-model:selection="selectedStockItems"
       :value="stockItems"
@@ -85,6 +110,7 @@
               <InputText v-model="data[field]" type="date" class="w-full" />
             </template>
           </Column>
+
     </AppDataTable>
 
     <StockActionDialog
@@ -107,8 +133,10 @@ import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
+import Card from 'primevue/card'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
+import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 
 import StockActionDialog from '@/components/inventory/StockActionDialog.vue'
@@ -131,6 +159,7 @@ const modifiedStockIds = ref(new Set())
 const dialogVisible = ref(false)
 const dialogMode = ref('add')
 const selectedStock = ref(null)
+const lastAdjustmentResult = ref(null)
 const canManageStock = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
 const inventoryFilterFields = [
   { field: 'productName', label: 'Product' },
@@ -234,14 +263,6 @@ const onCellEditComplete = ({ data, newValue, field }) => {
   refreshModifiedState(data)
 }
 
-const buildAdjustPayload = (stock, userId) => ({
-  stockId: stock.id,
-  newQuantity: stock.quantity,
-  manufactureDate: stock.manufactureDate || null,
-  expirationDate: stock.expirationDate || null,
-  userId
-})
-
 const confirmSubmitChanges = () => {
   confirm.require({
     message: `Submit ${modifiedStockIds.value.size} changed stock item(s)?`,
@@ -268,7 +289,14 @@ const submitQuantityChanges = async () => {
       return
     }
 
-    await Promise.all(changedStocks.map((stock) => inventoryApi.adjustStock(buildAdjustPayload(stock, userId))))
+    await Promise.all(changedStocks.map((stock) => inventoryApi.adjustStock(stock.id, {
+      newQuantity: stock.quantity,
+      manufactureDate: stock.manufactureDate || null,
+      expirationDate: stock.expirationDate || null,
+      userId,
+      reason: 'INVENTORY_MISMATCH',
+      comment: null
+    })))
 
     toast.add({ severity: 'success', summary: 'Inventory updated', detail: `${changedStocks.length} stock item(s) updated.`, life: 3000 })
     editMode.value = false
@@ -321,6 +349,10 @@ const deleteSelectedStocks = async () => {
   }
 }
 
+const handleStockAction = (payload) => {
+  submitAction(payload)
+}
+
 const submitAction = async (payload) => {
   const userId = currentUserId()
   if (!userId) {
@@ -330,11 +362,8 @@ const submitAction = async (payload) => {
 
   actionLoading.value = true
   try {
-    const requestPayload = { ...payload, userId }
-    if (dialogMode.value === 'add') {
-      await inventoryApi.addStock(requestPayload)
-      toast.add({ severity: 'success', summary: 'Stock added', detail: 'Inventory stock was added.', life: 3000 })
-    }
+    await inventoryApi.addStock({ ...payload, userId })
+    toast.add({ severity: 'success', summary: 'Stock added', detail: 'Inventory stock was added.', life: 3000 })
     dialogVisible.value = false
     selectedStockItems.value = []
     await loadInventoryData()
@@ -345,8 +374,11 @@ const submitAction = async (payload) => {
   }
 }
 
-const handleStockAction = (payload) => {
-  submitAction(payload)
+const getOrderSeverity = (status) => {
+  if (status === 'SHORTAGE' || status === 'PARTIALLY_COMPLETED') return 'warning'
+  if (status === 'CANCELED' || status === 'CANCELLED') return 'danger'
+  if (status === 'IN_PROGRESS' || status === 'ASSIGNED' || status === 'ALLOCATED') return 'info'
+  return 'secondary'
 }
 
 onMounted(loadInventoryData)

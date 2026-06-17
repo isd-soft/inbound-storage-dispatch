@@ -11,6 +11,7 @@ public record OrderLineResponse(
         Long taskId,
         Long productId,
         Integer requestedQuantity,
+        Integer deliveredQuantity,
         Status status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

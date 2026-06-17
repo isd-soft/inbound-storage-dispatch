@@ -13,6 +13,9 @@ import com.isd.wms.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class PickingAllocationCompletionStrategy implements AllocationCompletionStrategy {
@@ -25,10 +28,21 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
         OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new RuntimeException("No order found for task!"));
 
-        orderLine.setStatus(Status.COMPLETED);
+        orderLine.setStatus(resolveLineStatus(orderLine));
         orderLineRepository.save(orderLine);
 
-        return orderRepository.markOrderAsCompleted(orderLine.getOrder(), OrderStatus.COMPLETED) > 0;
+        Order order = orderLine.getOrder();
+        List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
+        if (orderLines.stream().anyMatch(line -> line.getStatus() != Status.COMPLETED
+            && line.getStatus() != Status.CANCELED
+            && line.getStatus() != Status.PARTIALLY_COMPLETED)) {
+            return false;
+        }
+
+        OrderStatus finalStatus = computeFinalStatus(orderLines);
+        order.setStatus(finalStatus);
+        orderRepository.save(order);
+        return true;
     }
 
     @Override
@@ -36,7 +50,9 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
         Order order = orderRepository.getOrderByTask(task)
             .orElseThrow(() -> new RuntimeException("No order found for task with id " + task.getId()));
         return new AllocationCompletionResult(
-            order.getStatus() == OrderStatus.COMPLETED ? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.PICKING,
+            order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED || order.getStatus() == OrderStatus.CANCELED
+                ? AllocationCompletionStatus.COMPLETED
+                : AllocationCompletionStatus.PICKING,
             TaskType.PICKING_ORDER,
             order.getId()
         );
@@ -45,5 +61,44 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
     @Override
     public boolean support(TaskType taskType) {
         return taskType == TaskType.PICKING_ORDER;
+    }
+
+    private OrderStatus computeFinalStatus(List<OrderLine> orderLines) {
+        boolean allCanceled = !orderLines.isEmpty() && orderLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
+        if (allCanceled) {
+            return OrderStatus.CANCELED;
+        }
+
+        boolean hasPartialHistory = orderLines.stream().anyMatch(line ->
+            line.getStatus() == Status.CANCELED
+                || resolveDeliveredQuantity(line) < line.getRequestedQuantity()
+                || line.getShortageQuantity() > 0
+                || line.getStatus() == Status.PARTIALLY_COMPLETED
+        );
+        return hasPartialHistory ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED;
+    }
+
+    private int resolveDeliveredQuantity(OrderLine line) {
+        Integer deliveredQuantity = line.getDeliveredQuantity();
+        if (deliveredQuantity != null && deliveredQuantity > 0) {
+            return deliveredQuantity;
+        }
+
+        return line.getTask().getAllocations().stream()
+            .filter(allocation -> allocation.getStatus() != Status.CANCELED)
+            .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
+            .sum();
+    }
+
+    private Status resolveLineStatus(OrderLine orderLine) {
+        int deliveredQuantity = resolveDeliveredQuantity(orderLine);
+        int requestedQuantity = Optional.ofNullable(orderLine.getRequestedQuantity()).orElse(0);
+        if (deliveredQuantity <= 0) {
+            return Status.CANCELED;
+        }
+        if (deliveredQuantity < requestedQuantity) {
+            return Status.PARTIALLY_COMPLETED;
+        }
+        return Status.COMPLETED;
     }
 }

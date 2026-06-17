@@ -37,18 +37,27 @@ public class OrderLine extends BaseTimestampEntity {
     @Column(name = "requested_quantity", nullable = false)
     private Integer requestedQuantity;
 
+    @Column(name = "delivered_quantity", nullable = false)
+    private Integer deliveredQuantity = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.CREATED;
+
+    @Column(name = "shortage_quantity", nullable = false)
+    private Integer shortageQuantity = 0;
+
+    public OrderLine(Order order, Task task, Product product, Integer requestedQuantity) {
+        this.order = order;
+        this.task = task;
+        this.product = product;
+        this.requestedQuantity = requestedQuantity;
+    }
 
     public OrderLine(Order order, Product product, Integer requestedQuantity) {
         this.order = order;
         this.product = product;
         this.requestedQuantity = requestedQuantity;
-    }
-
-    public Optional<Task> getTask() {
-        return Optional.ofNullable(task);
     }
 
     @Override

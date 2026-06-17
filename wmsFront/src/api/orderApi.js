@@ -28,4 +28,10 @@ export const orderApi = {
   getLocationsForDispatch() {
     return apiClient.get('/locations/dispatches')
   },
+  getShortageOrders() {
+    return apiClient.get('/v1/orders/shortages')
+  },
+  getShortageDetails(orderId) {
+    return apiClient.get(`/v1/orders/${orderId}/shortage-details`)
+  },
 }

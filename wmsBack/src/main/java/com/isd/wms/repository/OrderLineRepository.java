@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
     List<OrderLine> findAllByOrderId(Long orderId);
 
+    List<OrderLine> findAllByOrderIdAndStatusNotIn(Long orderId, List<Status> statuses);
+
     Optional<OrderLine> findByTaskId(Long taskId);
 
     @Modifying

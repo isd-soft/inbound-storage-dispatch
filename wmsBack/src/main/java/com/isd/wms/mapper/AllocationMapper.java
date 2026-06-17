@@ -46,6 +46,7 @@ public class AllocationMapper {
             product.getBarcode(),
             stock.getLocation().getBarcode(),
             allocation.getQuantity(),
+            allocation.getPickedQuantity() != null ? allocation.getPickedQuantity() : 0,
             allocation.getStatus()
         );
     }
