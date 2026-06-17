@@ -25,6 +25,12 @@
           aria-label="Refresh"
           @click="loadData"
         />
+        <Button
+          label="Import"
+          icon="pi pi-file-import"
+          severity="info"
+          @click="importDialogVisible = true"
+        />
         <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
 
         <Button
@@ -254,6 +260,11 @@
         />
       </template>
     </Dialog>
+    <UploadFile
+      v-model:visible="importDialogVisible"
+      :apiCall="handleImport"
+      @success="loadInventoryData"
+    />
   </div>
 </template>
 
@@ -276,7 +287,10 @@ import { replenishmentApi } from '@/api/replenishmentApi'
 import { inventoryApi } from '@/api/inventoryApi'
 import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
+import UploadFile from '@/components/UploadFile.vue'
+import StockActionDialog from '@/components/inventory/StockActionDialog.vue'
 
+const importDialogVisible = ref(false)
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -301,6 +315,14 @@ const deletableSelectedReplenishments = computed(() =>
 const cancelableSelectedReplenishments = computed(() =>
   selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
 )
+
+const handleImport = async (formData) => {
+  if (!(formData instanceof FormData)) {
+    throw new Error('Expected FormData')
+  }
+
+  return replenishmentApi.importReplenishments(formData)
+}
 
 const assignmentByTaskId = ref({})
 
@@ -373,7 +395,7 @@ const loadData = async () => {
   loading.value = true
   try {
     const [productsRes, locsRes, usersRes] = await Promise.all([
-      productApi.getAllProductsWithQuantityInZone('REPLENISHMENT'),
+      productApi.getAllProducts(),
       inventoryApi.getLocations(),
       userApi.getAll(),
     ])

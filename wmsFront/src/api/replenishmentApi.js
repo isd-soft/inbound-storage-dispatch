@@ -24,5 +24,10 @@ export const replenishmentApi = {
   },
   filter(filters) {
     return apiClient.post('/replenishments/filter', null, { params: filters })
-  }
+  },
+  importReplenishments(payload) {
+    return apiClient.post('/replenishments/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
