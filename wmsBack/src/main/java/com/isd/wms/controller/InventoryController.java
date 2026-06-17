@@ -7,7 +7,6 @@ import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.service.InventoryService;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.StockInfo;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -71,7 +70,7 @@ public class InventoryController {
     @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(("hasAnyRole('SUPERVISOR', 'DEV')"))
     public ResponseEntity<String> importStockFromFile(@RequestParam("file") MultipartFile file) {
-        inventoryService.importStockFromFile(file);
+        inventoryService.importStocksFromFile(file);
         return ResponseEntity.ok("Stocks were successfully imported.");
     }
 }

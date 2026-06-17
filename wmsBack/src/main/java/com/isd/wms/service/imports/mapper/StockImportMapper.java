@@ -3,7 +3,7 @@ package com.isd.wms.service.imports.mapper;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.service.imports.xlsx.StockInfo;
+import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

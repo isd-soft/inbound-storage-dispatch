@@ -13,30 +13,27 @@ import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.mapper.ProductMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.dto.ProductInfo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 @Slf4j
+@RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
-
-    public ProductService(
-            ProductRepository productRepository,
-            CategoryRepository categoryRepository,
-            ProductMapper productMapper
-    ) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.productMapper = productMapper;
-    }
+    private final ImportService importService;
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
@@ -138,4 +135,13 @@ public class ProductService {
                 });
     }
 
+    @Transactional
+    public void importProductsFromFile(MultipartFile file) {
+        List<Product> products = importService.importData(file, ProductInfo.class);
+        try {
+            productRepository.saveAllAndFlush(products);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid product data.");
+        }
+    }
 }

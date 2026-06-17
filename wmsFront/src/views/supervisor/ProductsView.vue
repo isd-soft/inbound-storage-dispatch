@@ -19,85 +19,171 @@
       @cell-edit-complete="onCellEditComplete"
     >
       <template #toolbar>
-        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadProducts" />
-        <Button v-if="canManageProducts" label="Add Category" icon="pi pi-folder-plus" severity="secondary" outlined @click="openCategoryDialog" />
-        <Button v-if="canManageProducts" label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
-        <Button v-if="canManageProducts" :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
-        <Button v-if="canManageProducts && editMode" label="Edit Details" icon="pi pi-list" severity="warning" outlined :disabled="selectedProducts.length !== 1 || hasPendingChanges" @click="openEditDialog(selectedProducts[0])" />
-        <Button v-if="canManageProducts && editMode" label="Submit" icon="pi pi-check" severity="success" :disabled="!hasPendingChanges" :loading="actionLoading" @click="confirmSubmitChanges" />
-        <Button v-if="canManageProducts && editMode" label="Reset" icon="pi pi-refresh" severity="secondary" outlined :disabled="!hasPendingChanges" @click="confirmResetChanges" />
-        <Button v-if="canManageProducts && editMode" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!selectedProducts.length" @click="confirmDeleteSelected" />
-        <span v-if="canManageProducts && editMode" class="app-muted text-sm">{{ selectedProducts.length }} selected</span>
+        <Button
+          icon="pi pi-refresh"
+          size="small"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          aria-label="Refresh"
+          @click="loadProducts"
+        />
+        <Button
+          v-if="canManageProducts"
+          label="Import"
+          icon="pi pi-file-import"
+          severity="info"
+          @click="importDialogVisible = true"
+        />
+        <Button
+          v-if="canManageProducts"
+          label="Add Category"
+          icon="pi pi-folder-plus"
+          severity="secondary"
+          outlined
+          @click="openCategoryDialog"
+        />
+        <Button
+          v-if="canManageProducts"
+          label="Create"
+          icon="pi pi-plus"
+          severity="success"
+          @click="openCreateDialog"
+        />
+        <Button
+          v-if="canManageProducts"
+          :label="editMode ? 'Exit Edit' : 'Edit'"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          @click="toggleEditMode"
+        />
+        <Button
+          v-if="canManageProducts && editMode"
+          label="Edit Details"
+          icon="pi pi-list"
+          severity="warning"
+          outlined
+          :disabled="selectedProducts.length !== 1 || hasPendingChanges"
+          @click="openEditDialog(selectedProducts[0])"
+        />
+        <Button
+          v-if="canManageProducts && editMode"
+          label="Submit"
+          icon="pi pi-check"
+          severity="success"
+          :disabled="!hasPendingChanges"
+          :loading="actionLoading"
+          @click="confirmSubmitChanges"
+        />
+        <Button
+          v-if="canManageProducts && editMode"
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :disabled="!hasPendingChanges"
+          @click="confirmResetChanges"
+        />
+        <Button
+          v-if="canManageProducts && editMode"
+          label="Delete Selected"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :disabled="!selectedProducts.length"
+          @click="confirmDeleteSelected"
+        />
+        <span v-if="canManageProducts && editMode" class="app-muted text-sm"
+          >{{ selectedProducts.length }} selected</span
+        >
       </template>
-          <Column v-if="canManageProducts && editMode" selectionMode="multiple" headerStyle="width: 3rem" />
-          <Column field="name" header="Product" sortable filter>
-            <template #body="slotProps">
-              <span v-if="editMode" class="font-semibold text-primary">{{ slotProps.data.name }}</span>
-              <ProductLink v-else :product-id="slotProps.data.id" :barcode="slotProps.data.barcode" :name="slotProps.data.name" class="font-semibold" />
-            </template>
-            <template #editor="{ data, field }">
-              <InputText v-model="data[field]" class="w-full" autofocus />
-            </template>
-          </Column>
-          <Column field="categoryId" filterField="categoryName" header="Category" sortable filter>
-            <template #body="slotProps">
-              <Tag severity="info" :value="slotProps.data.categoryName" />
-            </template>
-            <template #editor="{ data }">
-              <Dropdown
-                v-model="data.categoryId"
-                :options="categories"
-                optionLabel="name"
-                optionValue="id"
-                filter
-                class="w-full"
-              />
-            </template>
-          </Column>
-          <Column field="barcode" header="Barcode" sortable filter>
-            <template #editor="{ data, field }">
-              <InputText v-model="data[field]" class="w-full" />
-            </template>
-          </Column>
-          
-          <Column field="autoReplenish" header="Auto Replenish" sortable filter>
-            <template #body="slotProps">
-              <Tag :severity="slotProps.data.autoReplenish ? 'success' : 'secondary'" :value="slotProps.data.autoReplenish ? 'Active' : 'Disabled'" />
-            </template>
-            <template #editor="{ data, field }">
-              <Dropdown
-                v-model="data[field]"
-                :options="autoReplenishOptions"
-                optionLabel="label"
-                optionValue="value"
-                class="w-full"
-              />
-            </template>
-          </Column>
+      <Column
+        v-if="canManageProducts && editMode"
+        selectionMode="multiple"
+        headerStyle="width: 3rem"
+      />
+      <Column field="name" header="Product" sortable filter>
+        <template #body="slotProps">
+          <span v-if="editMode" class="font-semibold text-primary">{{ slotProps.data.name }}</span>
+          <ProductLink
+            v-else
+            :product-id="slotProps.data.id"
+            :barcode="slotProps.data.barcode"
+            :name="slotProps.data.name"
+            class="font-semibold"
+          />
+        </template>
+        <template #editor="{ data, field }">
+          <InputText v-model="data[field]" class="w-full" autofocus />
+        </template>
+      </Column>
+      <Column field="categoryId" filterField="categoryName" header="Category" sortable filter>
+        <template #body="slotProps">
+          <Tag severity="info" :value="slotProps.data.categoryName" />
+        </template>
+        <template #editor="{ data }">
+          <Dropdown
+            v-model="data.categoryId"
+            :options="categories"
+            optionLabel="name"
+            optionValue="id"
+            filter
+            class="w-full"
+          />
+        </template>
+      </Column>
+      <Column field="barcode" header="Barcode" sortable filter>
+        <template #editor="{ data, field }">
+          <InputText v-model="data[field]" class="w-full" />
+        </template>
+      </Column>
 
-          <Column field="minThreshold" header="Min Threshold" sortable filter>
-            <template #body="slotProps">
-              <span class="app-subtitle">{{ slotProps.data.autoReplenish ? (slotProps.data.minThreshold ?? '-') : '-' }}</span>
-            </template>
-            <template #editor="{ data, field }">
-              <InputNumber v-model="data[field]" :min="0" class="w-full" />
-            </template>
-          </Column>
+      <Column field="autoReplenish" header="Auto Replenish" sortable filter>
+        <template #body="slotProps">
+          <Tag
+            :severity="slotProps.data.autoReplenish ? 'success' : 'secondary'"
+            :value="slotProps.data.autoReplenish ? 'Active' : 'Disabled'"
+          />
+        </template>
+        <template #editor="{ data, field }">
+          <Dropdown
+            v-model="data[field]"
+            :options="autoReplenishOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+          />
+        </template>
+      </Column>
 
-          <Column field="replenishQty" header="Replenish Qty" sortable filter>
-            <template #body="slotProps">
-              <span class="app-subtitle">{{ slotProps.data.autoReplenish ? (slotProps.data.replenishQty ?? '-') : '-' }}</span>
-            </template>
-            <template #editor="{ data, field }">
-              <InputNumber v-model="data[field]" :min="1" class="w-full" />
-            </template>
-          </Column>
+      <Column field="minThreshold" header="Min Threshold" sortable filter>
+        <template #body="slotProps">
+          <span class="app-subtitle">{{
+            slotProps.data.autoReplenish ? (slotProps.data.minThreshold ?? '-') : '-'
+          }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputNumber v-model="data[field]" :min="0" class="w-full" />
+        </template>
+      </Column>
 
-          <Column field="createdAt" header="Created" sortable filter>
-            <template #body="slotProps">
-              <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
-            </template>
-          </Column>
+      <Column field="replenishQty" header="Replenish Qty" sortable filter>
+        <template #body="slotProps">
+          <span class="app-subtitle">{{
+            slotProps.data.autoReplenish ? (slotProps.data.replenishQty ?? '-') : '-'
+          }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputNumber v-model="data[field]" :min="1" class="w-full" />
+        </template>
+      </Column>
+
+      <Column field="createdAt" header="Created" sortable filter>
+        <template #body="slotProps">
+          <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
+        </template>
+      </Column>
     </AppDataTable>
 
     <Dialog
@@ -108,83 +194,195 @@
       @hide="resetForm"
     >
       <form class="flex flex-col gap-4 mt-2" @submit.prevent="submitProduct">
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
             <label for="productName" class="app-subtitle font-medium">Product Name *</label>
-            <InputText id="productName" v-model.trim="form.name" placeholder="Product name" class="w-full" autofocus />
-            <small v-if="submitted && !form.name" class="text-red-500">Product name is required.</small>
+            <InputText
+              id="productName"
+              v-model.trim="form.name"
+              placeholder="Product name"
+              class="w-full"
+              autofocus
+            />
+            <small v-if="submitted && !form.name" class="text-red-500"
+              >Product name is required.</small
+            >
           </div>
 
           <div class="flex flex-col gap-2">
             <label for="productBarcode" class="app-subtitle font-medium">Barcode *</label>
             <div class="flex gap-2">
-              <InputText id="productBarcode" v-model.trim="form.barcode" placeholder="Product Barcode" class="w-full" />
-              <Button icon="pi pi-camera" severity="secondary" outlined aria-label="Scan barcode" type="button" @click="scannerVisible = true" />
+              <InputText
+                id="productBarcode"
+                v-model.trim="form.barcode"
+                placeholder="Product Barcode"
+                class="w-full"
+              />
+              <Button
+                icon="pi pi-camera"
+                severity="secondary"
+                outlined
+                aria-label="Scan barcode"
+                type="button"
+                @click="scannerVisible = true"
+              />
             </div>
-            <small v-if="submitted && !form.barcode" class="text-red-500">Barcode is required.</small>
+            <small v-if="submitted && !form.barcode" class="text-red-500"
+              >Barcode is required.</small
+            >
           </div>
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="productCategory" class="app-subtitle font-medium">Category *</label>
           <div class="flex gap-2">
-            <Dropdown id="productCategory" v-model="form.categoryId" :options="categories" optionLabel="name" optionValue="id" placeholder="Select category" class="w-full" filter />
-            <Button icon="pi pi-plus" severity="secondary" outlined aria-label="Create category" type="button" @click="openCategoryDialog" />
+            <Dropdown
+              id="productCategory"
+              v-model="form.categoryId"
+              :options="categories"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select category"
+              class="w-full"
+              filter
+            />
+            <Button
+              icon="pi pi-plus"
+              severity="secondary"
+              outlined
+              aria-label="Create category"
+              type="button"
+              @click="openCategoryDialog"
+            />
           </div>
-          <small v-if="submitted && !form.categoryId" class="text-red-500">Category is required.</small>
+          <small v-if="submitted && !form.categoryId" class="text-red-500"
+            >Category is required.</small
+          >
         </div>
 
-        <div class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-50 dark:bg-surface-900 mt-2">
+        <div
+          class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-50 dark:bg-surface-900 mt-2"
+        >
           <div class="flex items-center gap-3 mb-4">
             <InputSwitch inputId="autoReplenish" v-model="form.autoReplenish" />
-            <label for="autoReplenish" class="font-semibold cursor-pointer">Enable Auto-Replenishment</label>
+            <label for="autoReplenish" class="font-semibold cursor-pointer"
+              >Enable Auto-Replenishment</label
+            >
           </div>
 
           <div v-if="form.autoReplenish" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
               <label class="app-subtitle text-sm font-medium">Min Threshold (Trigger)</label>
-              <InputNumber v-model="form.minThreshold" :min="0" placeholder="e.g. 5" class="w-full" />
-              <small class="app-muted text-xs">When total stock falls below this, a task is created.</small>
-              <small v-if="submitted && form.autoReplenish && form.minThreshold === null" class="text-red-500">Required</small>
+              <InputNumber
+                v-model="form.minThreshold"
+                :min="0"
+                placeholder="e.g. 5"
+                class="w-full"
+              />
+              <small class="app-muted text-xs"
+                >When total stock falls below this, a task is created.</small
+              >
+              <small
+                v-if="submitted && form.autoReplenish && form.minThreshold === null"
+                class="text-red-500"
+                >Required</small
+              >
             </div>
             <div class="flex flex-col gap-2">
               <label class="app-subtitle text-sm font-medium">Replenishment Quantity</label>
-              <InputNumber v-model="form.replenishQty" :min="1" placeholder="e.g. 20" class="w-full" />
+              <InputNumber
+                v-model="form.replenishQty"
+                :min="1"
+                placeholder="e.g. 20"
+                class="w-full"
+              />
               <small class="app-muted text-xs">How many items to bring from storage.</small>
-              <small v-if="submitted && form.autoReplenish && !form.replenishQty" class="text-red-500">Required (>0)</small>
+              <small
+                v-if="submitted && form.autoReplenish && !form.replenishQty"
+                class="text-red-500"
+                >Required (>0)</small
+              >
             </div>
           </div>
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="productDescription" class="app-subtitle font-medium">Description</label>
-          <Textarea id="productDescription" v-model.trim="form.description" placeholder="Short operational description" rows="2" class="w-full" />
+          <Textarea
+            id="productDescription"
+            v-model.trim="form.description"
+            placeholder="Short operational description"
+            rows="2"
+            class="w-full"
+          />
         </div>
       </form>
 
       <template #footer>
-        <Button label="Cancel" severity="secondary" text :disabled="actionLoading" @click="closeDialog" />
-        <Button :label="dialogMode === 'create' ? 'Create Product' : 'Save Changes'" :loading="actionLoading" @click="submitProduct" />
+        <Button
+          label="Cancel"
+          severity="secondary"
+          text
+          :disabled="actionLoading"
+          @click="closeDialog"
+        />
+        <Button
+          :label="dialogMode === 'create' ? 'Create Product' : 'Save Changes'"
+          :loading="actionLoading"
+          @click="submitProduct"
+        />
       </template>
     </Dialog>
 
     <Dialog v-model:visible="scannerVisible" header="Scan Barcode" modal class="w-full max-w-lg">
       <BarcodeScanner @detected="handleBarcodeDetected" />
-      <p class="app-muted text-sm mt-3">Point the camera at a barcode. The barcode field will be filled automatically after detection.</p>
+      <p class="app-muted text-sm mt-3">
+        Point the camera at a barcode. The barcode field will be filled automatically after
+        detection.
+      </p>
     </Dialog>
 
-    <Dialog v-model:visible="categoryDialogVisible" header="Create Category" modal class="w-full max-w-md" @hide="resetCategoryForm">
+    <Dialog
+      v-model:visible="categoryDialogVisible"
+      header="Create Category"
+      modal
+      class="w-full max-w-md"
+      @hide="resetCategoryForm"
+    >
       <form class="flex flex-col gap-2" @submit.prevent="submitCategory">
         <label for="categoryName" class="app-subtitle font-medium">Category Name</label>
-        <InputText id="categoryName" v-model.trim="categoryForm.name" placeholder="e.g. Packaging" class="w-full" autofocus />
-        <small v-if="categorySubmitted && !categoryForm.name" class="app-danger">Category name is required.</small>
+        <InputText
+          id="categoryName"
+          v-model.trim="categoryForm.name"
+          placeholder="e.g. Packaging"
+          class="w-full"
+          autofocus
+        />
+        <small v-if="categorySubmitted && !categoryForm.name" class="app-danger"
+          >Category name is required.</small
+        >
       </form>
       <template #footer>
-        <Button label="Cancel" severity="secondary" text :disabled="categoryLoading" @click="categoryDialogVisible = false" />
-        <Button label="Create Category" icon="pi pi-check" :loading="categoryLoading" @click="submitCategory" />
+        <Button
+          label="Cancel"
+          severity="secondary"
+          text
+          :disabled="categoryLoading"
+          @click="categoryDialogVisible = false"
+        />
+        <Button
+          label="Create Category"
+          icon="pi pi-check"
+          :loading="categoryLoading"
+          @click="submitCategory"
+        />
       </template>
     </Dialog>
+    <UploadFile
+      v-model:visible="importDialogVisible"
+      :apiCall="handleImport"
+      @success="loadProducts"
+    />
   </div>
 </template>
 
@@ -195,10 +393,8 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
 import Button from 'primevue/button'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
@@ -211,12 +407,14 @@ import Toast from 'primevue/toast'
 import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import { productApi } from '@/api/productApi'
 import { useAuthStore } from '@/stores/auth'
+import UploadFile from '@/components/UploadFile.vue'
 
 const authStore = useAuthStore()
 const route = useRoute()
 const toast = useToast()
 const confirm = useConfirm()
 
+const importDialogVisible = ref(false)
 const products = ref([])
 const originalProducts = ref([])
 const categories = ref([])
@@ -236,7 +434,7 @@ const categorySubmitted = ref(false)
 
 const filters = reactive({
   name: '',
-  categoryId: null
+  categoryId: null,
 })
 
 const form = reactive({
@@ -246,17 +444,19 @@ const form = reactive({
   categoryId: null,
   autoReplenish: false,
   minThreshold: null,
-  replenishQty: null
+  replenishQty: null,
 })
 
 const categoryForm = reactive({ name: '' })
 const autoReplenishOptions = [
   { label: 'Active', value: true },
-  { label: 'Disabled', value: false }
+  { label: 'Disabled', value: false },
 ]
 
 const canManageProducts = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
-const highlightedProductId = computed(() => route.query.productId ? Number(route.query.productId) : null)
+const highlightedProductId = computed(() =>
+  route.query.productId ? Number(route.query.productId) : null,
+)
 const productFilterFields = [
   { field: 'name', label: 'Product' },
   { field: 'barcode', label: 'Barcode' },
@@ -264,16 +464,27 @@ const productFilterFields = [
   { field: 'autoReplenish', label: 'Auto Replenish' },
   { field: 'minThreshold', label: 'Min Threshold' },
   { field: 'replenishQty', label: 'Replenish Qty' },
-  { field: 'createdAt', label: 'Created' }
+  { field: 'createdAt', label: 'Created' },
 ]
 
-const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
-const categoryName = (categoryId) => categories.value.find((c) => c.id === categoryId)?.name || `Category #${categoryId}`
+const handleImport = async (formData) => {
+  if (!(formData instanceof FormData)) {
+    throw new Error('Expected FormData')
+  }
+
+  return productApi.importProducts(formData)
+}
+
+const getErrorMessage = (error) =>
+  error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+const categoryName = (categoryId) =>
+  categories.value.find((c) => c.id === categoryId)?.name || `Category #${categoryId}`
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
-const enrichProducts = (items) => (items || []).map((product) => ({
-  ...product,
-  categoryName: categoryName(product.categoryId)
-}))
+const enrichProducts = (items) =>
+  (items || []).map((product) => ({
+    ...product,
+    categoryName: categoryName(product.categoryId),
+  }))
 const snapshotProducts = () => {
   originalProducts.value = cloneRows(products.value)
   modifiedProductIds.value = new Set()
@@ -284,7 +495,7 @@ const formatDate = (dateValue) => {
   if (!dateValue) return '-'
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
-    timeStyle: 'short'
+    timeStyle: 'short',
   }).format(new Date(dateValue))
 }
 
@@ -300,7 +511,12 @@ const loadProducts = async () => {
     products.value = enrichProducts(response.data)
     snapshotProducts()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Products load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Products load failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }
@@ -328,8 +544,9 @@ const applyRouteProductFilter = async () => {
 }
 
 const productRowClass = (product) => ({
-  'app-row-highlight': highlightedProductId.value && Number(product.id) === highlightedProductId.value,
-  'app-row-modified': modifiedProductIds.value.has(product.id)
+  'app-row-highlight':
+    highlightedProductId.value && Number(product.id) === highlightedProductId.value,
+  'app-row-modified': modifiedProductIds.value.has(product.id),
 })
 
 const hasPendingChanges = computed(() => modifiedProductIds.value.size > 0)
@@ -340,7 +557,7 @@ const normalizeProduct = (product) => ({
   categoryId: product.categoryId || null,
   autoReplenish: product.autoReplenish === true,
   minThreshold: product.autoReplenish ? (product.minThreshold ?? null) : null,
-  replenishQty: product.autoReplenish ? (product.replenishQty ?? null) : null
+  replenishQty: product.autoReplenish ? (product.replenishQty ?? null) : null,
 })
 
 const refreshModifiedState = (product) => {
@@ -348,14 +565,16 @@ const refreshModifiedState = (product) => {
   if (!original) return
 
   const nextIds = new Set(modifiedProductIds.value)
-  if (JSON.stringify(normalizeProduct(product)) !== JSON.stringify(normalizeProduct(original))) nextIds.add(product.id)
+  if (JSON.stringify(normalizeProduct(product)) !== JSON.stringify(normalizeProduct(original)))
+    nextIds.add(product.id)
   else nextIds.delete(product.id)
   modifiedProductIds.value = nextIds
 }
 
 const onCellEditComplete = ({ data, newValue, field }) => {
   if (!editMode.value) return
-  if (newValue !== undefined) data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
+  if (newValue !== undefined)
+    data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
   if (field === 'categoryId') data.categoryName = categoryName(data.categoryId)
   if (field === 'autoReplenish' && !data.autoReplenish) {
     data.minThreshold = null
@@ -388,38 +607,61 @@ const confirmSubmitChanges = () => {
     header: 'Submit Product Changes',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-success',
-    accept: submitProductChanges
+    accept: submitProductChanges,
   })
 }
 
 const submitProductChanges = async () => {
   actionLoading.value = true
   try {
-    const changedProducts = products.value.filter((product) => modifiedProductIds.value.has(product.id))
-    const invalidProduct = changedProducts.find((product) => (
-      !product.name?.trim() ||
-      !product.barcode?.trim() ||
-      !product.categoryId ||
-      (product.autoReplenish && (product.minThreshold === null || !product.replenishQty || product.replenishQty < 1))
-    ))
+    const changedProducts = products.value.filter((product) =>
+      modifiedProductIds.value.has(product.id),
+    )
+    const invalidProduct = changedProducts.find(
+      (product) =>
+        !product.name?.trim() ||
+        !product.barcode?.trim() ||
+        !product.categoryId ||
+        (product.autoReplenish &&
+          (product.minThreshold === null || !product.replenishQty || product.replenishQty < 1)),
+    )
     if (invalidProduct) {
-      toast.add({ severity: 'error', summary: 'Validation failed', detail: `Check required fields for ${invalidProduct.name || 'selected product'}.`, life: 5000 })
+      toast.add({
+        severity: 'error',
+        summary: 'Validation failed',
+        detail: `Check required fields for ${invalidProduct.name || 'selected product'}.`,
+        life: 5000,
+      })
       return
     }
-    await Promise.all(changedProducts.map((product) => productApi.updateProduct(product.id, {
-      name: product.name,
-      barcode: product.barcode,
-      description: product.description || null,
-      categoryId: product.categoryId,
-      autoReplenish: product.autoReplenish,
-      minThreshold: product.autoReplenish ? product.minThreshold : null,
-      replenishQty: product.autoReplenish ? product.replenishQty : null
-    })))
-    toast.add({ severity: 'success', summary: 'Changes saved', detail: `${changedProducts.length} product(s) updated.`, life: 3000 })
+    await Promise.all(
+      changedProducts.map((product) =>
+        productApi.updateProduct(product.id, {
+          name: product.name,
+          barcode: product.barcode,
+          description: product.description || null,
+          categoryId: product.categoryId,
+          autoReplenish: product.autoReplenish,
+          minThreshold: product.autoReplenish ? product.minThreshold : null,
+          replenishQty: product.autoReplenish ? product.replenishQty : null,
+        }),
+      ),
+    )
+    toast.add({
+      severity: 'success',
+      summary: 'Changes saved',
+      detail: `${changedProducts.length} product(s) updated.`,
+      life: 3000,
+    })
     editMode.value = false
     await applySearch()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Submit failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Submit failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   } finally {
     actionLoading.value = false
   }
@@ -434,9 +676,14 @@ const confirmResetChanges = (afterReset) => {
     accept: () => {
       products.value = cloneRows(originalProducts.value)
       modifiedProductIds.value = new Set()
-      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved product changes were discarded.', life: 2500 })
+      toast.add({
+        severity: 'info',
+        summary: 'Changes reset',
+        detail: 'Unsaved product changes were discarded.',
+        life: 2500,
+      })
       if (typeof afterReset === 'function') afterReset()
-    }
+    },
   })
 }
 
@@ -451,11 +698,19 @@ const applySearch = async () => {
 
   loading.value = true
   try {
-    const response = await productApi.searchProducts({ ...(name ? { name } : {}), ...(categoryId ? { categoryId } : {}) })
+    const response = await productApi.searchProducts({
+      ...(name ? { name } : {}),
+      ...(categoryId ? { categoryId } : {}),
+    })
     products.value = enrichProducts(response.data)
     snapshotProducts()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Search failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Search failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }
@@ -517,7 +772,12 @@ const resetCategoryForm = () => {
 const handleBarcodeDetected = (barcode) => {
   form.barcode = barcode
   scannerVisible.value = false
-  toast.add({ severity: 'success', summary: 'Barcode scanned', detail: `Barcode set to ${barcode}`, life: 2500 })
+  toast.add({
+    severity: 'success',
+    summary: 'Barcode scanned',
+    detail: `Barcode set to ${barcode}`,
+    life: 2500,
+  })
 }
 
 const submitCategory = async () => {
@@ -532,9 +792,19 @@ const submitCategory = async () => {
     snapshotProducts()
     form.categoryId = response.data?.id ?? form.categoryId
     categoryDialogVisible.value = false
-    toast.add({ severity: 'success', summary: 'Category created', detail: response.data?.name || categoryForm.name, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Category created',
+      detail: response.data?.name || categoryForm.name,
+      life: 3000,
+    })
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Category creation failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Category creation failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     categoryLoading.value = false
   }
@@ -542,8 +812,10 @@ const submitCategory = async () => {
 
 const submitProduct = async () => {
   submitted.value = true
-  
-  const isAutoValid = !form.autoReplenish || (form.minThreshold !== null && form.replenishQty !== null && form.replenishQty > 0)
+
+  const isAutoValid =
+    !form.autoReplenish ||
+    (form.minThreshold !== null && form.replenishQty !== null && form.replenishQty > 0)
   if (!form.name || !form.barcode || !form.categoryId || !isAutoValid) return
 
   actionLoading.value = true
@@ -554,7 +826,7 @@ const submitProduct = async () => {
     categoryId: form.categoryId,
     autoReplenish: form.autoReplenish,
     minThreshold: form.autoReplenish ? form.minThreshold : null,
-    replenishQty: form.autoReplenish ? form.replenishQty : null
+    replenishQty: form.autoReplenish ? form.replenishQty : null,
   }
 
   try {
@@ -568,7 +840,12 @@ const submitProduct = async () => {
     dialogVisible.value = false
     await applySearch()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     actionLoading.value = false
   }
@@ -580,7 +857,7 @@ const confirmDeleteSelected = () => {
     header: 'Delete Selected Products',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
-    accept: deleteSelectedProducts
+    accept: deleteSelectedProducts,
   })
 }
 
@@ -588,11 +865,21 @@ const deleteSelectedProducts = async () => {
   actionLoading.value = true
   try {
     await Promise.all(selectedProducts.value.map((product) => productApi.deleteProduct(product.id)))
-    toast.add({ severity: 'success', summary: 'Products deleted', detail: `${selectedProducts.value.length} product(s) deleted.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Products deleted',
+      detail: `${selectedProducts.value.length} product(s) deleted.`,
+      life: 3000,
+    })
     selectedProducts.value = []
     await applySearch()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Delete failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     actionLoading.value = false
   }
@@ -604,7 +891,12 @@ onMounted(async () => {
     await loadCategories()
     await applyRouteProductFilter()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Products setup failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Products setup failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }

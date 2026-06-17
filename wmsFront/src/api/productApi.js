@@ -30,4 +30,9 @@ export const productApi = {
       params: { zone },
     })
   },
+  importProducts(payload) {
+    return apiClient.post('/products/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

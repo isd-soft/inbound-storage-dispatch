@@ -27,15 +27,13 @@ import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.StockInfo;
+import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FilenameUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -247,7 +245,7 @@ public class InventoryService {
     }
 
     @Transactional
-    public void importStockFromFile(MultipartFile file) {
+    public void importStocksFromFile(MultipartFile file) {
         List<Stock> stocks = importService.importData(file, StockInfo.class);
         try {
             stockRepository.saveAllAndFlush(stocks);
