@@ -2,8 +2,7 @@
   <div class="fixed bottom-6 right-6 z-50">
 
     <transition name="fade-slide">
-      <div v-if="isOpen" class="absolute bottom-0 right-0 origin-bottom-right app-card shadow-2xl rounded-2xl w-[450px] h-[600px] flex flex-col border border-white/10 overflow-hidden bg-gray-900">
-        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
+      <div v-if="isOpen" class="absolute bottom-0 right-0 origin-bottom-right app-card shadow-2xl rounded-2xl w-[90vw] md:w-[600px] h-[650px] flex flex-col border border-white/10 overflow-hidden bg-gray-900">        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
           <h2 class="text-lg font-bold text-white flex items-center gap-2 m-0">
             <i class="pi pi-sparkles"></i> WMS Assistant
           </h2>
@@ -139,6 +138,9 @@ const sendMessage = async () => {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 :deep(.markdown-body th) {

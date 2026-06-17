@@ -14,11 +14,16 @@ import org.springframework.stereotype.Service;
 public class ChatbotService {
 
     private final ChatClient chatClient;
-    private final WmsAiTools wmsAiTools;
     private final SecurityFacade securityFacade;
 
-    public ChatbotService(ChatModel chatModel, WmsAiTools wmsAiTools, SecurityFacade securityFacade) {
-        this.wmsAiTools = wmsAiTools;
+    public ChatbotService(
+        ChatModel chatModel,
+        SecurityFacade securityFacade,
+        InventoryAiTools inventoryAiTools,
+        OrderAiTools orderAiTools,
+        ReplenishmentAiTools replenishmentAiTools,
+        WarehouseAiTools warehouseAiTools
+    ) {
         this.securityFacade = securityFacade;
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
@@ -32,35 +37,31 @@ public class ChatbotService {
 
                     CRITICAL WMS DOMAIN KNOWLEDGE:
                     - 'REPLENISHMENT' (REPL) zones are bulk STORAGE locations.
-                    - 'PICK' zones are where operators assemble customer orders. The PICK zone is replenished FROM the REPLENISHMENT zone.
-                    - 'DISPATCH' zones are where completed customer orders are dropped off to be shipped.
-                    - If a product is 'Reserved' in a REPL location, it means a Replenishment Task is moving it OUT of REPL and INTO a PICK location. (REPL is the SOURCE, PICK is the DESTINATION).
-                    - If a product is 'Reserved' in a PICK location, it means a Picking Order Task is moving it OUT of PICK and INTO a DISPATCH location.
+                    - 'PICK' zones are where operators assemble customer orders.
+                    - 'DISPATCH' zones are where completed orders go.
 
                     FORMATTING RULES:
-                    1. Always format your responses using Markdown.
-                    2. Use Markdown tables when returning lists of data.
-                    3. ALWAYS format product names as clickable links using their barcode: [Product Name](/supervisor/products?barcode=THE_BARCODE)
-                    4. NEVER display internal database IDs (like Task ID, Replenishment ID, or Order ID) in your responses or tables to the user, unless explicitly asked. The supervisor only cares about Product Names, Quantities, and Locations. Keep the IDs in your memory to use with tools, but hide them in the UI.
+                    1. The tools you use will return pre-formatted Markdown tables and relative links (e.g. /supervisor/products...).
+                    2. YOU MUST OUTPUT THESE TABLES AND LINKS EXACTLY AS PROVIDED. DO NOT prepend "https://example.com" or any other domain to the links. Keep them strictly as relative paths starting with "/".
+                    3. NEVER display internal database IDs (like Task ID or Order ID) in your text responses, unless explicitly asked. (Ref IDs inside tables are allowed).
+                    4. If a tool returns an 'Error' or 'Failed' message, you MUST inform the user exactly what went wrong. Never pretend an action was successful if it failed.
+                    5. NEVER guess missing parameters. If the user says "assign an order" but doesn't specify WHICH order or WHICH operator, YOU MUST ASK them to clarify.
 
                     REASONING RULE (Chain of Thought):
-                    Before answering complex questions about stock movements, reservations, or destinations, briefly think step-by-step about the warehouse logic, then provide the final clear answer.
-                """)
+                    Before answering complex questions, briefly think step-by-step about the warehouse logic, then provide the final clear answer.
+                    """)
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+            .defaultTools(inventoryAiTools, orderAiTools, replenishmentAiTools, warehouseAiTools)
             .build();
     }
 
     public String askQuestion(String userMessage) {
         try {
-            String conversationId = securityFacade.getCurrentUsername();
-
             return chatClient.prompt()
                 .user(userMessage)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                .tools(wmsAiTools)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, securityFacade.getCurrentUsername()))
                 .call()
                 .content();
-
         } catch (Exception e) {
             log.error("AI interaction failed: {}", e.getMessage(), e);
             return "Sorry, I am currently unable to process your request. Please try again later.";
