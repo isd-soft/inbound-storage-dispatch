@@ -443,7 +443,7 @@ public class SupervisorDashboardService {
 
     private boolean orderHasOperator(Order order, User operator) {
         return Optional.ofNullable(order.getOrderLines()).orElseGet(List::of).stream()
-                .map(orderLine -> orderLine.getTask() == null ? Optional.<User>empty() : orderLine.getTask().getOperator())
+                .map(orderLine -> orderLine.getTask().isEmpty() ? Optional.<User>empty() : orderLine.getTask().flatMap(Task::getOperator))
                 .flatMap(Optional::stream)
                 .map(User::getId)
                 .anyMatch(operatorId -> Objects.equals(operatorId, operator.getId()));
