@@ -1,21 +1,21 @@
 <template>
   <div class="app-shell font-sans flex">
-    <aside class="app-sidebar w-64 shadow-xl flex-col justify-between hidden md:flex">
-      <div class="min-h-0">
+    <aside class="app-sidebar app-sidebar-desktop w-64 shadow-xl hidden md:flex md:flex-col md:shrink-0">
+      <div class="app-sidebar-scroll min-h-0 flex-1">
         <SidebarBrand />
-        <SidebarNavigation :items="menuItems" />
-      </div>
-
-      <div class="p-4 border-t border-white/10 flex flex-col gap-3">
-        <ThemeToggle show-label class="w-full justify-center" />
-        <Button
-          icon="pi pi-sign-out"
-          label="Logout"
-          severity="danger"
-          text
-          class="w-full justify-start"
-          @click="handleLogout"
-        />
+        <div class="px-4 pb-4 flex flex-col gap-2">
+          <SidebarNavigation :items="menuItems" />
+          <div class="app-sidebar-divider"></div>
+          <ThemeToggle show-label class="w-full justify-start sidebar-action-btn" />
+          <Button
+            icon="pi pi-sign-out"
+            label="Logout"
+            severity="secondary"
+            text
+            class="w-full justify-start sidebar-action-btn"
+            @click="handleLogout"
+          />
+        </div>
       </div>
     </aside>
 
@@ -26,10 +26,10 @@
     ></div>
 
     <aside
-      class="app-sidebar mobile-sidebar shadow-xl flex flex-col justify-between md:hidden"
+      class="app-sidebar mobile-sidebar shadow-xl flex flex-col md:hidden"
       :class="{ 'mobile-sidebar--open': mobileMenuOpen }"
     >
-      <div class="min-h-0">
+      <div class="app-sidebar-scroll min-h-0 flex-1">
         <div class="flex items-center justify-between border-b border-white/10">
           <SidebarBrand />
           <Button
@@ -42,19 +42,19 @@
             @click="closeMobileMenu"
           />
         </div>
-        <SidebarNavigation :items="menuItems" @navigate="closeMobileMenu" />
-      </div>
-
-      <div class="p-4 border-t border-white/10 flex flex-col gap-3">
-        <ThemeToggle show-label class="w-full justify-center" />
-        <Button
-          icon="pi pi-sign-out"
-          label="Logout"
-          severity="danger"
-          text
-          class="w-full justify-start"
-          @click="handleLogout"
-        />
+        <div class="px-4 pb-4 flex flex-col gap-2">
+          <SidebarNavigation :items="menuItems" @navigate="closeMobileMenu" />
+          <div class="app-sidebar-divider"></div>
+          <ThemeToggle show-label class="w-full justify-start sidebar-action-btn" />
+          <Button
+            icon="pi pi-sign-out"
+            label="Logout"
+            severity="secondary"
+            text
+            class="w-full justify-start sidebar-action-btn"
+            @click="handleLogout"
+          />
+        </div>
       </div>
     </aside>
 
@@ -126,7 +126,7 @@ const SidebarNavigation = defineComponent({
     return () =>
       h(
         'nav',
-        { class: 'p-4 flex flex-col gap-2' },
+        { class: 'flex flex-col gap-2' },
         props.items.map((item) =>
           h(
             RouterLink,
@@ -153,7 +153,7 @@ const menuItems = computed(() => {
   }
 
   const items = [
-    { to: '/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
+    { to: '/supervisor/dashboard', label: 'Dashboard', icon: 'pi pi-chart-bar', exact: true },
     { to: '/supervisor/orders', label: 'Order', icon: 'pi pi-cart-arrow-down' },
     { to: '/supervisor/replenishments', label: 'Replenishments', icon: 'pi pi-sync' },
     { to: '/supervisor/allocations', label: 'Allocations', icon: 'pi pi-list' },
@@ -192,6 +192,26 @@ watch(
 </script>
 
 <style scoped>
+.app-sidebar-desktop {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.app-sidebar-scroll {
+  overflow-y: auto;
+}
+
+.app-sidebar-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0.5rem 0;
+}
+
+.sidebar-action-btn:deep(.p-button) {
+  justify-content: flex-start;
+  width: 100%;
+}
+
 .mobile-sidebar {
   bottom: 0;
   left: 0;

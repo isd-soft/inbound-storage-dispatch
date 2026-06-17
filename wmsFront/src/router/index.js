@@ -50,6 +50,7 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: SUPERVISOR_OR_DEV },
       children: [
         { path: '', alias: '/dashboard', name: 'supervisor-dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
+        { path: 'dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'inventory', alias: '/inventory', name: 'inventory', component: InventoryView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'allocations', name: 'allocations', component: AllocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
         { path: 'replenishments', name: 'replenishments', component: ReplenishmentsView, meta: { roles: SUPERVISOR_OR_DEV } },
