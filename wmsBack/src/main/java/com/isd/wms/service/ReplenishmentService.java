@@ -199,6 +199,8 @@ public class ReplenishmentService {
     public void assignReplenishment(Long replenishmentId, Long operatorId) {
         Replenishment replenishment = getReplenishment(replenishmentId);
         Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(), replenishment.getProduct().getId());
+        replenishment.setTask(task);
+        replenishmentRepository.saveAndFlush(replenishment);
         taskService.assignTask(task.getId(), operatorId);
     }
 }
