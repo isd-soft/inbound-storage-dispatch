@@ -5,8 +5,4 @@ public interface ProductWithQuantityProjection {
     String getName();
     String getBarcode();
     Integer getQuantity();
-
-    default String getSku() {
-        return getBarcode();
-    }
 }

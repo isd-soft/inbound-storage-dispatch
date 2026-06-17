@@ -162,11 +162,8 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
         JOIN User u ON u = t.supervisor
         LEFT JOIN OrderLine ol ON ol.task = a.task
         LEFT JOIN Replenishment r ON r.task = a.task
-        WHERE u.username = :username
         """)
-    List<AllocationSupervisorProjection> getAllAllocationsSupervisor(
-        @Param("username") String username
-    );
+    List<AllocationSupervisorProjection> getAllAllocations();
 
     @Modifying
     @Query("DELETE FROM Allocation a WHERE a.createdAt < :cutoffDate")

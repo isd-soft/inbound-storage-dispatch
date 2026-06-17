@@ -3,6 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.product.ProductCreateRequest;
 import com.isd.wms.dto.product.ProductResponse;
 import com.isd.wms.dto.product.ProductUpdateRequest;
+import com.isd.wms.enums.Zone;
 import com.isd.wms.repository.projections.ProductWithQuantityProjection;
 import com.isd.wms.service.ProductService;
 import jakarta.validation.Valid;
@@ -38,8 +39,8 @@ public class ProductController {
     }
 
     @GetMapping("/quantities")
-    public List<ProductWithQuantityProjection> getAllProductsWithQuantity() {
-        return productService.getAllProductsWithQuantity();
+    public List<ProductWithQuantityProjection> getAllProductsWithQuantity(@RequestParam Zone zone) {
+        return productService.getAllProductsWithQuantity(zone);
     }
 
     @GetMapping("/{id}")

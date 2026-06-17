@@ -4,15 +4,17 @@ import com.isd.wms.dto.order.*;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
+import com.isd.wms.entity.OrderLine;
+import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
-import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,10 +34,10 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LocationRepository locationRepository;
     private final OrderLineService orderLineService;
-    private final AllocationRepository  allocationRepository ;
+    private final AllocationRepository allocationRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
-    private final SecurityFacade securityFacade;
+    private final TaskService taskService;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -73,7 +75,7 @@ public class OrderService {
     }
 
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
+        return orderRepository.findAll().stream()
             .map(orderMapper::toResponse)
             .toList();
     }
@@ -83,7 +85,7 @@ public class OrderService {
     }
 
     public Order getOrder(@NonNull Long orderId) {
-        return orderRepository.findByIdAndCreatedByUsername(orderId, securityFacade.getCurrentUsername())
+        return orderRepository.findById(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
@@ -94,6 +96,24 @@ public class OrderService {
             throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS or COMPLETED orders");
         }
 
+        assignTasks(order);
+
+        assignOrderCascade(orderId, operatorId);
+    }
+
+    private void assignTasks(Order order) {
+        for (OrderLine orderLine : order.getOrderLines()) {
+            try {
+                Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+                orderLine.setTask(task);
+            } catch (Exception e) {
+                orderLine.setStatus(Status.CANCELED);
+            }
+        }
+        orderLineRepository.saveAllAndFlush(order.getOrderLines());
+    }
+
+    private void assignOrderCascade(Long orderId, Long operatorId) {
         int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
         if (updated == 0) {
             throw new OrderNotFoundException(orderId);
@@ -115,14 +135,12 @@ public class OrderService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
-    public ExtendedOrderResponse getExtendedOrderById(Long id) {
-        Order order = getOrder(id);
-        return extendedOrderMapper.toResponse(order);
+    public ExtendedOrderResponse getExtendedOrderById(Long orderId) {
+        return extendedOrderMapper.toResponse(getOrder(orderId));
     }
 
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(
-                securityFacade.getCurrentUsername(),
                 request.logicId(),
                 request.destinationLocationId(),
                 request.status(),
@@ -134,7 +152,7 @@ public class OrderService {
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
-        List<Order> orders = orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername());
+        List<Order> orders = orderRepository.findAll();
         return orders.stream()
             .map(extendedOrderMapper::toResponse)
             .toList();

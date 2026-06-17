@@ -13,6 +13,7 @@ import com.isd.wms.repository.projections.AllocationSupervisorProjection;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,7 @@ public class AllocationService {
     private final ReplenishmentRepository replenishmentRepository;
 
     public List<AllocationSupervisorProjection> getAllAllocations() {
-        return allocationRepository.getAllAllocationsSupervisor(securityFacade.getCurrentUsername());
+        return allocationRepository.getAllAllocations();
     }
 
     public AllocationOperatorResponse getAllocationsOperator() {
@@ -46,6 +47,22 @@ public class AllocationService {
         String logicalId = null;
         String destinationLocationBarcode = null;
 
+        Result result = getResult(taskType, task, username, logicalId, destinationLocationBarcode, total, current);
+
+        return new AllocationOperatorResponse(
+            result.total(), result.current(), result.logicalId(), taskType.name(), result.destinationLocationBarcode(),
+            new ShortAllocationResponse(
+                allocation.getId(),
+                allocation.getStock().getProduct().map(Product::getName).orElse(null),
+                allocation.getStock().getProduct().map(Product::getBarcode).orElse(null),
+                allocation.getStock().getLocation().getName(),
+                allocation.getStock().getLocation().getBarcode(),
+                allocation.getQuantity()
+            )
+        );
+    }
+
+    private @NonNull Result getResult(TaskType taskType, Task task, String username, String logicalId, String destinationLocationBarcode, Integer total, Integer current) {
         if (taskType == TaskType.PICKING_ORDER) {
             OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
                 .orElseThrow(() -> new AllocationsNotFoundException(username));
@@ -59,18 +76,7 @@ public class AllocationService {
                 .orElseThrow(() -> new AllocationsNotFoundException(username));
             destinationLocationBarcode = replenishment.getDestinationLocation().getBarcode();
         }
-
-        return new AllocationOperatorResponse(
-            total, current, logicalId, taskType.name(), destinationLocationBarcode,
-            new ShortAllocationResponse(
-                allocation.getId(),
-                allocation.getStock().getProduct().map(product -> product.getName()).orElse(null),
-                allocation.getStock().getProduct().map(product -> product.getBarcode()).orElse(null),
-                allocation.getStock().getLocation().getName(),
-                allocation.getStock().getLocation().getBarcode(),
-                allocation.getQuantity()
-            )
-        );
+        return new Result(total, current, logicalId, destinationLocationBarcode);
     }
 
     private Allocation getAllocationsForOperator(String username) {
@@ -79,5 +85,8 @@ public class AllocationService {
                 java.util.List.of(Status.ASSIGNED, Status.IN_PROGRESS)
             )
             .orElseThrow(() -> new AllocationsNotFoundException(username));
+    }
+
+    private record Result(Integer total, Integer current, String logicalId, String destinationLocationBarcode) {
     }
 }

@@ -52,7 +52,9 @@ public class TaskService {
 
         var allocations = allocationRepository.findAllByTaskId(taskId);
         allocations.forEach((allocation) -> allocation.setStatus(Status.ASSIGNED));
+
         allocationRepository.saveAll(allocations);
+
         replenishmentRepository.findByTaskId(taskId).ifPresent(replenishment -> {
             replenishment.setStatus(Status.ASSIGNED);
             replenishmentRepository.save(replenishment);

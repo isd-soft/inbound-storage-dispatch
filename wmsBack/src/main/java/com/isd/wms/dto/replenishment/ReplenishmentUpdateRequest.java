@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Min;
 import lombok.NonNull;
 
 public record ReplenishmentUpdateRequest(
-        @NonNull Long taskId,
+        Long taskId,
         @NonNull Long productId,
         @NonNull @Min(0) Integer requestedQuantity,
         @NonNull Status status,
