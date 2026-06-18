@@ -31,7 +31,7 @@ public class TaskService {
         Task task = new Task(supervisor, type, requestedQuantity);
         task = taskRepository.save(task);
 
-        workflowService.generateAllocationsForTask(task, productId, requestedQuantity);
+        workflowService.generateAllocationsForTask(task, productId);
 
         return task;
     }

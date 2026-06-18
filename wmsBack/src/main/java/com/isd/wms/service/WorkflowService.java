@@ -25,7 +25,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkflowService {
     private final AllocationRepository allocationRepository;
-    private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
 
@@ -33,62 +32,58 @@ public class WorkflowService {
     private final List<StockAllocationStrategy> allocationStrategies;
 
     @Transactional
-    public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
+    public void generateAllocationsForTask(Task task, Long productId) {
         StockAllocationStrategy strategy = allocationStrategies.stream()
-            .filter(s -> s.support(task.getTaskType()))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("No allocation strategy found for task type: " + task.getTaskType()));
+                .filter(s -> s.support(task.getTaskType()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No allocation strategy found for task type: " + task.getTaskType()));
 
         List<Stock> availableStocks = new ArrayList<>(
-            stockRepository.findAvailableStocksByProductIdAndZone(productId, strategy.getSourceZone())
+                stockRepository.findAvailableStocksByProductIdAndZone(productId, strategy.getSourceZone())
         );
 
         if (availableStocks.isEmpty()) {
             throw new InvalidRequestException(
-                String.format("Insufficient stock for Product ID: %d in %s zone.", productId, strategy.getSourceZone().name())
+                    String.format("Insufficient stock for Product ID: %d in %s zone.", productId, strategy.getSourceZone().name())
             );
         }
 
         strategy.sortStocks(availableStocks);
 
-        List<Allocation> allocationsToSave = allocateStockToAllocations(task, availableStocks, remainingQuantity, productId, strategy.getSourceZone().name());
-
-        allocationRepository.saveAll(allocationsToSave);
-        stockRepository.saveAll(availableStocks);
+        allocateStockToAllocations(task, availableStocks, productId);
     }
 
-    private List<Allocation> allocateStockToAllocations(Task task, List<Stock> availableStocks, int quantityNeeded, Long productId, String zoneName) {
-        List<Allocation> allocations = new ArrayList<>();
-        int qtyNeeded = quantityNeeded;
-
+    private void allocateStockToAllocations(Task task,
+                                           List<Stock> availableStocks,
+                                           Long productId) {
+        int quantityNeeded = task.getNotAllocatedQuantity();
         for (Stock stock : availableStocks) {
-            if (qtyNeeded <= 0) break;
+            if (quantityNeeded <= 0) break;
 
             int available = stock.getQuantity() - stock.getReservedQuantity();
             if (available <= 0) continue;
 
-            int quantityToTake = Math.min(available, qtyNeeded);
+            int quantityToTake = Math.min(available, quantityNeeded);
 
             Allocation allocation = new Allocation(task, stock, quantityToTake, Status.CREATED);
-            allocations.add(allocation);
+            task.addAllocation(allocation);
 
             stock.setReservedQuantity(stock.getReservedQuantity() + quantityToTake);
-            qtyNeeded -= quantityToTake;
+            quantityNeeded -= quantityToTake;
         }
 
-        if (qtyNeeded > 0) {
+        if (quantityNeeded > 0) {
             throw new InvalidRequestException(
-                String.format("Insufficient stock for Product ID: %d in %s zone. Missing %d pcs.",
-                    productId, zoneName, qtyNeeded)
+                    String.format("Insufficient stock for Product ID: %d. Missing %d pcs.",
+                            productId, quantityNeeded)
             );
         }
-        return allocations;
     }
 
     @Transactional
-    public void updateTask(Task task, Long productId, Integer requestedQuantity) {
+    public void updateTask(Task task, Long productId) {
         allocationRepository.deleteByTaskId(task.getId());
-        generateAllocationsForTask(task, productId, requestedQuantity);
+        generateAllocationsForTask(task, productId);
     }
 
     @Transactional
@@ -103,12 +98,12 @@ public class WorkflowService {
         Task task = allocation.getTask();
 
         AllocationCompletionStrategy strategy = allocationCompletionStrategies.stream()
-            .filter(s -> s.support(task.getTaskType()))
-            .findFirst()
-            .orElseThrow(() ->
-                new IllegalStateException(
-                    "No completion strategy found for task type: " + task.getTaskType()
-                ));
+                .filter(s -> s.support(task.getTaskType()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "No completion strategy found for task type: " + task.getTaskType()
+                        ));
 
         strategy.handle(allocation);
 

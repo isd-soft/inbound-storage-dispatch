@@ -9,6 +9,7 @@ import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.service.InventoryService;
 import com.isd.wms.service.InventoryAdjustmentService;
+import com.isd.wms.service.StockQuantityService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
+    private final StockQuantityService stockQuantityService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
@@ -65,20 +67,12 @@ public class InventoryController {
 
     @PatchMapping("/{stockId}/adjust")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
+    public ResponseEntity<Void> adjustStock(
         @PathVariable Long stockId,
         @Valid @RequestBody InventoryAdjustmentRequest request
     ) {
-        return ResponseEntity.ok(inventoryAdjustmentService.adjustStock(stockId, request));
-    }
-
-    @PostMapping("/{stockId}/adjust/preview")
-    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<InventoryAdjustmentResponse> previewAdjustment(
-        @PathVariable Long stockId,
-        @Valid @RequestBody InventoryAdjustmentRequest request
-    ) {
-        return ResponseEntity.ok(inventoryAdjustmentService.previewAdjustment(stockId, request));
+        stockQuantityService.edit(stockId, request.newQuantity());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/history")

@@ -73,6 +73,7 @@ public class Stock extends BaseTimestampEntity {
         this.version = version;
     }
 
+    //todo: remove optional
     public Optional<Product> getProduct() {
         return Optional.ofNullable(product);
     }

@@ -61,6 +61,17 @@ public class Task extends BaseTimestampEntity {
         this.requestedQuantity = requestedQuantity;
     }
 
+    public void addAllocation(Allocation allocation) {
+        this.allocations.add(allocation);
+    }
+
+    public int getNotAllocatedQuantity() {
+        int allocatedQuantity = this.allocations.stream()
+                .mapToInt(Allocation::getQuantity)
+                .sum();
+        return requestedQuantity - allocatedQuantity;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

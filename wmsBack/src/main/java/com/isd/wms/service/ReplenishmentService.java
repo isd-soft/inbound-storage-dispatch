@@ -66,7 +66,7 @@ public class ReplenishmentService {
 
         if (isProductChanged || isQuantityChanged) {
             getTask(replenishment).setRequestedQuantity(request.requestedQuantity());
-            workflowService.updateTask(getTask(replenishment), request.productId(), request.requestedQuantity());
+            workflowService.updateTask(getTask(replenishment), request.productId());
         }
 
         updateReplenishment(request, replenishment, product, destinationLocation);

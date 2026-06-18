@@ -49,6 +49,10 @@ public class Allocation extends BaseTimestampEntity{
         this.status = status;
     }
 
+    public Product getProduct() {
+        return this.stock.getProduct().get();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -1,5 +1,6 @@
 package com.isd.wms.repository;
 
+import com.isd.wms.entity.Stock;
 import com.isd.wms.repository.projections.AllocationSupervisorProjection;
 import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Order;
@@ -21,6 +22,8 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     List<Allocation> findAllByTaskId(Long taskId);
 
     List<Allocation> findAllByStockId(Long stockId);
+
+    List<Allocation> findAllByStockAndStatusIn(Stock stock, List<Status> statuses);
 
     @Query("""
             SELECT a FROM Allocation a
