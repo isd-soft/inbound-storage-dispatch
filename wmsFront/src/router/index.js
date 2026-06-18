@@ -14,7 +14,7 @@ import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
 import DevDashboard from '../views/dev/DevDashboard.vue'
 import VerifyEmailView from '../views/auth/VerifyEmailView.vue'
-import OrderForm from '@/views/supervisor/OrderForm.vue'
+import OrderForm from '@/views/supervisor/OrderView.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
 import AllocationsView from '@/views/supervisor/AllocationsView.vue'
 

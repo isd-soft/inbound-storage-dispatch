@@ -26,6 +26,26 @@
         {{ loadError }}
       </Message>
 
+      <div v-else-if="showTuScan" class="app-card rounded-2xl w-full text-left p-5 sm:p-6 flex flex-col gap-5 box-border">
+        <div class="text-center flex flex-col items-center gap-2">
+          <span class="text-xs font-bold px-3 py-1.5 rounded-xl tracking-wide app-pill" :class="taskBadgeClass">
+            {{ isReplenishmentTask ? 'Replenishment' : 'Order' }}
+          </span>
+          <h2 class="text-base font-bold mt-2 app-title">Step 1: Scan Transport Unit</h2>
+          <p class="app-muted text-xs">Required prefix: 'TU' followed by 6 digits (e.g., TU100001)</p>
+        </div>
+
+        <ScanSection
+          v-model="tuInput"
+          :loading="actionLoading"
+          :error-message="actionError"
+          submit-label="Confirm"
+          placeholder="Scan TU barcode"
+          @submit="submitTuScan"
+          class="mt-1"
+        />
+      </div>
+
       <div v-else-if="showFinalSummary" class="app-card rounded-2xl w-full text-left p-5 sm:p-6 flex flex-col gap-5 box-border">
         <div class="text-center px-3 py-2.5 rounded-xl app-type-banner" :class="lastTaskType === 'REPLENISHMENT' ? 'app-type-banner--repl' : 'app-type-banner--pick'">
           <div class="text-base font-bold tracking-wide flex items-center justify-center gap-2.5">
@@ -99,6 +119,11 @@
           </span>
           <h2 class="text-base font-bold mt-2 app-title">Final Step: Scan Destination Location</h2>
           <p class="app-muted text-xs">Please drop off items and scan the target zone to complete task</p>
+        </div>
+
+        <div class="w-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-3 flex items-center justify-center gap-2 text-blue-700 dark:text-blue-400 text-xs font-bold tracking-wide uppercase">
+          <i class="pi pi-info-circle text-sm"></i>
+          Drop TU at dispatch
         </div>
 
         <div class="app-muted-panel rounded-xl p-5 text-center my-1">
@@ -215,142 +240,143 @@
             />
           </div>
 
-          <div v-else-if="currentAllocation" class="w-full flex flex-col gap-4">
-            <div class="w-full pt-2 mb-6 px-4">
-              <div class="flex items-center justify-center w-full max-w-md mx-auto">
-                <div class="flex flex-col items-center flex-initial relative">
-                  <div
-                    class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
-                    :class="activeStep === 1 ? 'app-step-circle--active' : (activeStep > 1 ? 'app-step-circle--done' : 'app-step-circle--pending')"
-                  >
-                    <span>1</span>
+          <template v-else-if="currentAllocation">
+            <div class="w-full flex flex-col gap-4">
+              <div class="w-full pt-2 mb-6 px-4">
+                <div class="flex items-center justify-center w-full max-w-md mx-auto">
+                  <div class="flex flex-col items-center flex-initial relative">
+                    <div
+                      class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
+                      :class="activeStep === 1 ? 'app-step-circle--active' : (activeStep > 1 ? 'app-step-circle--done' : 'app-step-circle--pending')"
+                    >
+                      <span>1</span>
+                    </div>
+                    <div class="w-0 min-w-[90px] text-center mt-3.5">
+                      <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 1 ? 'app-warm font-extrabold' : 'app-muted'">
+                        Source Loc.
+                      </span>
+                    </div>
                   </div>
-                  <div class="w-0 min-w-[90px] text-center mt-3.5">
-                    <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 1 ? 'app-warm font-extrabold' : 'app-muted'">
-                      Source Loc.
-                    </span>
-                  </div>
-                </div>
 
-                <div class="flex-1 h-[2px] mx-2 mb-3.5 app-step-line" :class="activeStep > 1 ? 'app-step-line--done' : ''"></div>
+                  <div class="flex-1 h-[2px] mx-2 mb-3.5 app-step-line" :class="activeStep > 1 ? 'app-step-line--done' : ''"></div>
 
-                <div class="flex flex-col items-center flex-initial relative">
-                  <div
-                    class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
-                    :class="activeStep === 2 ? 'app-step-circle--active' : (activeStep > 2 ? 'app-step-circle--done' : 'app-step-circle--pending')"
-                  >
-                    <span>2</span>
+                  <div class="flex flex-col items-center flex-initial relative">
+                    <div
+                      class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
+                      :class="activeStep === 2 ? 'app-step-circle--active' : (activeStep > 2 ? 'app-step-circle--done' : 'app-step-circle--pending')"
+                    >
+                      <span>2</span>
+                    </div>
+                    <div class="w-0 min-w-[90px] text-center mt-3.5">
+                      <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 2 ? 'app-warm font-extrabold' : 'app-muted'">
+                        Product Code
+                      </span>
+                    </div>
                   </div>
-                  <div class="w-0 min-w-[90px] text-center mt-3.5">
-                    <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 2 ? 'app-warm font-extrabold' : 'app-muted'">
-                      Product Code
-                    </span>
-                  </div>
-                </div>
 
-                <div class="flex-1 h-[2px] mx-2 mb-3.5 app-step-line" :class="activeStep > 2 ? 'app-step-line--done' : ''"></div>
+                  <div class="flex-1 h-[2px] mx-2 mb-3.5 app-step-line" :class="activeStep > 2 ? 'app-step-line--done' : ''"></div>
 
-                <div class="flex flex-col items-center flex-initial relative">
-                  <div
-                    class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
-                    :class="activeStep === 3 ? 'app-step-circle--active' : 'app-step-circle--pending'"
-                  >
-                    <span>3</span>
-                  </div>
-                  <div class="w-0 min-w-[90px] text-center mt-3.5">
-                    <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 3 ? 'app-warm font-extrabold' : 'app-muted'">
-                      Quantity
-                    </span>
+                  <div class="flex flex-col items-center flex-initial relative">
+                    <div
+                      class="app-step-circle w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 flex-shrink-0"
+                      :class="activeStep === 3 ? 'app-step-circle--active' : 'app-step-circle--pending'"
+                    >
+                      <span>3</span>
+                    </div>
+                    <div class="w-0 min-w-[90px] text-center mt-3.5">
+                      <span class="text-[10px] font-bold tracking-wider uppercase block leading-tight" :class="activeStep === 3 ? 'app-warm font-extrabold' : 'app-muted'">
+                        Quantity
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="w-full">
-              <div v-if="activeStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4 text-center items-center w-full box-border">
-                <div>
-                  <div class="text-xs app-muted uppercase font-bold tracking-wider">Go to location & scan:</div>
-                  <div class="font-mono font-bold app-accent text-2xl mt-2 tracking-wide">
-                    {{ currentAllocation.sourceLocationBarcode }}
+              <div class="w-full">
+                <div v-if="activeStep === 1" class="app-card rounded-xl p-5 flex flex-col gap-4 text-center items-center w-full box-border">
+                  <div>
+                    <div class="text-xs app-muted uppercase font-bold tracking-wider">Go to location & scan:</div>
+                    <div class="font-mono font-bold app-accent text-2xl mt-2 tracking-wide">
+                      {{ currentAllocation.sourceLocationBarcode }}
+                    </div>
                   </div>
-                </div>
-                <ScanSection
-                  v-model="barcodeInput"
-                  :loading="actionLoading"
-                  :error-message="actionError"
-                  submit-label="Confirm"
-                  placeholder="Source barcode"
-                  @submit="submitBarcodeStep"
-                  class="w-full mt-2"
-                />
-              </div>
-
-              <div v-if="activeStep === 2" class="app-card rounded-xl p-5 flex flex-col gap-4 text-center items-center w-full box-border">
-                <div>
-                  <div class="text-xs app-muted uppercase font-bold tracking-wider">Scan product barcode</div>
-                  <div class="font-mono font-bold app-warm text-2xl mt-2 tracking-wide">
-                    {{ currentAllocation.productBarcode || 'No barcode' }}
-                  </div>
-                </div>
-                <ScanSection
-                  v-model="barcodeInput"
-                  :loading="actionLoading"
-                  :error-message="actionError"
-                  submit-label="Confirm"
-                  placeholder="Product barcode"
-                  @submit="submitBarcodeStep"
-                  class="w-full mt-2"
-                />
-              </div>
-
-              <div v-if="activeStep === 3" class="app-card rounded-xl p-5 flex flex-col gap-5 text-center items-center w-full box-border">
-                <div>
-                  <div class="text-xs app-muted uppercase font-bold tracking-wider">Confirm picked quantity</div>
-                  <div class="text-xs font-normal app-muted mt-2.5">Required: <strong class="app-warm text-sm font-bold">{{ currentAllocation.requiredQuantity }} u.</strong></div>
-                </div>
-
-                <div class="w-full max-w-xs flex flex-col gap-4 items-center mt-1">
-                  <InputNumber
-                    v-model="pickedQuantity"
-                    :min="0"
-                    :max="currentAllocation.requiredQuantity"
-                    fluid
-                    readonly
-                    inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
+                  <ScanSection
+                    v-model="barcodeInput"
+                    :loading="actionLoading"
+                    :error-message="actionError"
+                    submit-label="Confirm"
+                    placeholder="Source barcode"
+                    @submit="submitBarcodeStep"
+                    class="w-full mt-2"
                   />
-                  <div class="flex gap-5 w-full justify-center mt-1">
-                    <Button
-                      icon="pi pi-minus"
-                      severity="danger"
-                      class="w-12 h-12 rounded-full"
-                      @click="decrementQuantity"
-                      :disabled="pickedQuantity <= 0"
-                    />
-                    <Button
-                      icon="pi pi-plus"
-                      severity="success"
-                      class="w-12 h-12 rounded-full"
-                      @click="incrementQuantity(currentAllocation.requiredQuantity)"
-                      :disabled="pickedQuantity >= currentAllocation.requiredQuantity"
-                    />
-                  </div>
                 </div>
 
-                <Message v-if="actionError" severity="error" :closable="false" class="w-full text-xs mt-2">
-                  {{ actionError }}
-                </Message>
+                <div v-if="activeStep === 2" class="app-card rounded-xl p-5 flex flex-col gap-4 text-center items-center w-full box-border">
+                  <div>
+                    <div class="text-xs app-muted uppercase font-bold tracking-wider">Scan product barcode</div>
+                    <div class="font-mono font-bold app-warm text-2xl mt-2 tracking-wide">
+                      {{ currentAllocation.productBarcode || 'No barcode' }}
+                    </div>
+                  </div>
+                  <ScanSection
+                    v-model="barcodeInput"
+                    :loading="actionLoading"
+                    :error-message="actionError"
+                    submit-label="Confirm"
+                    placeholder="Product barcode"
+                    @submit="submitBarcodeStep"
+                    class="w-full mt-2"
+                  />
+                </div>
 
-                <Button
-                  label="Confirm"
-                  icon="pi pi-check-circle"
-                  class="mt-4 w-full font-bold py-3 text-sm tracking-wide"
-                  :loading="actionLoading"
-                  @click="confirmQuantity"
-                />
+                <div v-if="activeStep === 3" class="app-card rounded-xl p-5 flex flex-col gap-5 text-center items-center w-full box-border">
+                  <div>
+                    <div class="text-xs app-muted uppercase font-bold tracking-wider">Confirm picked quantity</div>
+                    <div class="text-xs font-normal app-muted mt-2.5">Required: <strong class="app-warm text-sm font-bold">{{ currentAllocation.requiredQuantity }} u.</strong></div>
+                  </div>
+
+                  <div class="w-full max-w-xs flex flex-col gap-4 items-center mt-1">
+                    <InputNumber
+                      v-model="pickedQuantity"
+                      :min="0"
+                      :max="currentAllocation.requiredQuantity"
+                      fluid
+                      readonly
+                      inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
+                    />
+                    <div class="flex gap-5 w-full justify-center mt-1">
+                      <Button
+                        icon="pi pi-minus"
+                        severity="danger"
+                        class="w-12 h-12 rounded-full"
+                        @click="decrementQuantity"
+                        :disabled="pickedQuantity <= 0"
+                      />
+                      <Button
+                        icon="pi pi-plus"
+                        severity="success"
+                        class="w-12 h-12 rounded-full"
+                        @click="incrementQuantity(currentAllocation.requiredQuantity)"
+                        :disabled="pickedQuantity >= currentAllocation.requiredQuantity"
+                      />
+                    </div>
+                  </div>
+
+                  <Message v-if="actionError" severity="error" :closable="false" class="w-full text-xs mt-2">
+                    {{ actionError }}
+                  </Message>
+
+                  <Button
+                    label="Confirm"
+                    icon="pi pi-check-circle"
+                    class="mt-4 w-full font-bold py-3 text-sm tracking-wide"
+                    :loading="actionLoading"
+                    @click="confirmQuantity"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
+          </template>
         </div>
       </template>
     </main>
@@ -432,19 +458,27 @@ const actionError = ref('')
 const summary = ref(null)
 const barcodeInput = ref('')
 const destinationInput = ref('')
+const tuInput = ref('')
 const pickedQuantity = ref(1)
 
 const finalAllocationsSummary = ref([])
+const showTuScan = ref(false)
 const showDestinationScan = ref(false)
 const showFinalSummary = ref(false)
 
 const lastTaskType = ref('')
 const savedDestinationBarcode = ref('')
+const activeTuBarcode = ref(localStorage.getItem('active_tu_barcode') || '')
+
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
+}
 
 const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuantity.value++ }
 const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.value-- }
 
-const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value)
+const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 const currentAllocation = computed(() => summary.value?.currentAllocation || null)
 const orderedAllocations = computed(() => summary.value?.allocations || [])
 const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT' || lastTaskType.value === 'REPLENISHMENT')
@@ -488,7 +522,7 @@ const hydrateState = (payload) => {
 }
 
 const loadCurrentTask = async () => {
-  if (showFinalSummary.value || showDestinationScan.value) {
+  if (showFinalSummary.value || showDestinationScan.value || showTuScan.value) {
     loading.value = false
     return
   }
@@ -507,7 +541,21 @@ const loadCurrentTask = async () => {
       }
       return
     }
+
     hydrateState(response.data)
+
+    if (response.data.status === 'STARTED' || (response.data.currentAllocation && response.data.currentAllocation.status === 'IN_PROGRESS')) {
+      const isTuScannedOnBackend = response.data.currentAllocation?.tuScanned
+
+      // MODIFICARE DE SIGURANȚĂ:
+      // Chiar dacă backend-ul întoarce tuScanned fals (la linii/alocări noi),
+      // dacă noi avem deja codul TU salvat local în starea aplicației, nu mai forțăm ecranul de scanare TU.
+      if (!isTuScannedOnBackend && !activeTuBarcode.value) {
+        showTuScan.value = true
+      } else {
+        showTuScan.value = false
+      }
+    }
   } catch (error) {
     if (error?.response?.status === 204) {
       if (savedDestinationBarcode.value) {
@@ -528,10 +576,14 @@ const loadCurrentTask = async () => {
 }
 
 const forceRefreshTask = () => {
+  localStorage.removeItem('active_tu_barcode')
+  showTuScan.value = false
   showDestinationScan.value = false
   showFinalSummary.value = false
   lastTaskType.value = ''
   savedDestinationBarcode.value = ''
+  activeTuBarcode.value = ''
+  tuInput.value = ''
   finalAllocationsSummary.value = []
   loadCurrentTask()
 }
@@ -542,11 +594,12 @@ const goToDestinationScanScreen = () => {
 }
 
 const startTask = async () => {
+  if (actionLoading.value) return
   actionLoading.value = true
   actionError.value = ''
   try {
-    const response = await allocationApi.startCurrentTask()
-    hydrateState(response.data)
+    await allocationApi.startCurrentTask()
+    showTuScan.value = true
   } catch (error) {
     actionError.value = getErrorMessage(error, 'Failed to start task.')
   } finally {
@@ -554,7 +607,57 @@ const startTask = async () => {
   }
 }
 
+const submitTuScan = async () => {
+  if (actionLoading.value) return
+
+  if (!tuInput.value?.trim()) {
+    actionError.value = 'Transport Unit barcode is required.'
+    return
+  }
+
+  const cleanTu = tuInput.value.trim().toUpperCase()
+  const tuRegex = /^TU\d{6}$/
+
+  if (!tuRegex.test(cleanTu)) {
+    actionError.value = "Invalid format! Must start with 'TU' followed by 6 digits."
+    return
+  }
+
+  actionLoading.value = true
+  actionError.value = ''
+
+  try {
+    const isOrderParam = !isReplenishmentTask.value
+    const allocationId = summary.value?.allocations[0]?.allocationId
+
+    if (!allocationId) {
+      throw new Error('No active allocation instance found to attach TU.')
+    }
+
+    const response = await allocationApi.scanTransportUnit(allocationId, cleanTu, isOrderParam)
+
+    activeTuBarcode.value = cleanTu
+    localStorage.setItem('active_tu_barcode', cleanTu)
+
+    if (response && response.data) {
+      hydrateState(response.data)
+    }
+
+    showTuScan.value = false
+
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      actionError.value = `Scanned barcode does not exist in database: ${cleanTu}`
+    } else {
+      actionError.value = getErrorMessage(error, 'Transport Unit validation failed.')
+    }
+  } finally {
+    actionLoading.value = false
+  }
+}
+
 const submitBarcodeStep = async () => {
+  if (actionLoading.value) return
   if (!currentAllocation.value || !barcodeInput.value?.trim()) {
     actionError.value = 'Barcode is required.'
     return
@@ -579,6 +682,7 @@ const submitBarcodeStep = async () => {
 }
 
 const confirmQuantity = async () => {
+  if (actionLoading.value) return
   if (!currentAllocation.value) return
 
   if (pickedQuantity.value === 0) {
@@ -616,6 +720,7 @@ const confirmQuantity = async () => {
 }
 
 const submitDestinationScan = async () => {
+  if (actionLoading.value) return
   if (!destinationInput.value?.trim()) {
     actionError.value = 'Destination barcode is required.'
     return
@@ -631,11 +736,19 @@ const submitDestinationScan = async () => {
   }
 
   try {
-    showDestinationScan.value = false
+    const allocationId = finalAllocationsSummary.value[0]?.allocationId
+    if (allocationId && activeTuBarcode.value) {
+      await allocationApi.dispatchAllocation(allocationId, activeTuBarcode.value)
+    }
 
+    localStorage.removeItem('active_tu_barcode')
+
+    showDestinationScan.value = false
     summary.value = null
     lastTaskType.value = ''
     savedDestinationBarcode.value = ''
+    activeTuBarcode.value = ''
+    tuInput.value = ''
     finalAllocationsSummary.value = []
 
     await loadCurrentTask()
@@ -644,11 +757,6 @@ const submitDestinationScan = async () => {
   } finally {
     actionLoading.value = false
   }
-}
-
-const handleLogout = () => {
-  authStore.logout()
-  router.push({ name: 'login', query: { loggedOut: '1' } })
 }
 
 onMounted(() => {

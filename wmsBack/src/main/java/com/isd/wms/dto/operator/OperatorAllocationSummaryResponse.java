@@ -15,6 +15,7 @@ public record OperatorAllocationSummaryResponse(
     Integer pickedQuantity,
     Status status,
     boolean sourceLocationScanned,
-    boolean productScanned
+    boolean productScanned,
+    boolean isTuScanned
 ) {
 }
