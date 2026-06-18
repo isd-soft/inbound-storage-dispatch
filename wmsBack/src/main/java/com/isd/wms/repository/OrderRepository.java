@@ -1,7 +1,6 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -67,14 +66,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query(value = """
-        SELECT DISTINCT o.* FROM orders o
-        JOIN order_lines ol ON o.id = ol.order_id
-        JOIN tasks t ON ol.task_id = t.id
-        WHERE t.operator_id = :operatorId
-          AND o.status = 'PICKED'
-        ORDER BY o.created_at, o.id
-        LIMIT 1
-    """, nativeQuery = true)
+            SELECT DISTINCT o.* FROM orders o
+            JOIN order_lines ol ON o.id = ol.order_id
+            JOIN tasks t ON ol.task_id = t.id
+            WHERE t.operator_id = :operatorId
+              AND o.status = 'PICKED'
+            ORDER BY o.created_at, o.id
+            LIMIT 1
+        """, nativeQuery = true)
     Optional<Order> findOldestPickedOrderAssignedToOperator(
         @Param("operatorId") Long operatorId
     );
@@ -106,10 +105,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query("""
-        SELECT o FROM Order o
-        JOIN OrderLine ol ON ol.order = o
-        WHERE ol.task = :task
-    """)
+            SELECT o FROM Order o
+            JOIN OrderLine ol ON ol.order = o
+            WHERE ol.task = :task
+        """)
     Optional<Order> getOrderByTask(
         @Param("task") Task task
     );
@@ -117,4 +116,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Modifying
     @Query("DELETE FROM Order o WHERE o.createdAt < :cutoffDate")
     int deleteOrdersOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    Optional<Order> findByLogicId(String logicId);
 }

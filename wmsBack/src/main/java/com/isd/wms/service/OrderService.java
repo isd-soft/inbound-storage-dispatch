@@ -61,6 +61,9 @@ public class OrderService {
 
     @Transactional
     public Order addOrder(OrderCreateRequest request) {
+        if(orderRepository.findByLogicId(request.logicId()).isPresent()) {
+            throw new InvalidRequestException("An order with logicId " + request.logicId() + " already exists");
+        }
         Order order = new Order(request.logicId(), getLocation(request.destinationLocationId()));
         return orderRepository.save(order);
     }
