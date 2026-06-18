@@ -32,5 +32,10 @@ export const orderApi = {
     return apiClient.post('/v1/orders/imports', payload, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+  getShortageOrders() {
+    return apiClient.get('/v1/orders/shortages')
+  },
+  getShortageDetails(orderId) {
+    return apiClient.get(`/v1/orders/${orderId}/shortage-details`)
   },
 }

@@ -5,6 +5,8 @@ public enum OrderStatus {
     ASSIGNED,
     IN_PROGRESS,
     PICKED,
+    SHORTAGE,
+    PARTIALLY_COMPLETED,
     COMPLETED,
     CANCELED
 }

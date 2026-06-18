@@ -165,7 +165,7 @@ const getErrorMessage = (error) => {
 
 const getStatusSeverity = (status) => {
   if (status === 'COMPLETED') return 'success'
-  if (status === 'IN_PROGRESS' || status === 'ASSIGNED') return 'warning'
+  if (status === 'IN_PROGRESS' || status === 'ASSIGNED' || status === 'REQUIRES_REVALIDATION') return 'warning'
   if (status === 'CREATED') return 'info'
   return 'danger'
 }

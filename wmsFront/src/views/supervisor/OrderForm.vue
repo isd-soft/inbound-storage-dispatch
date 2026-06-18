@@ -58,7 +58,7 @@
       </template>
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
       <Column expander style="width: 3rem">
-        <template #body="{ data }">
+        <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
             :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
@@ -66,7 +66,7 @@
             rounded
             size="small"
             aria-label="Toggle order lines"
-            @click="toggleOrderExpansion(data)"
+            @click="toggleOrderExpansion(data, rowTogglerCallback, $event)"
           />
         </template>
       </Column>
@@ -133,16 +133,20 @@
               <template #body="{ data: line }">
                 <ProductLink
                   :product-id="line.productId"
-                  :name="getProduct(line.productId)?.name || getProductLabel(line.productId)"
+                  :barcode="getProduct(line.productId)?.barcode"
+                  :name="getProduct(line.productId)?.name || String(line.productId || '-')"
                   class="font-semibold"
                 />
               </template>
             </Column>
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                  line.requestedQuantity ?? line.quantity ?? 0
-                }}</span>
+                <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
+              </template>
+            </Column>
+            <Column field="deliveredQuantity" header="Delivered Qty" filter>
+              <template #body="{ data: line }">
+                <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="status" header="Status" filter>
@@ -197,18 +201,17 @@
           </div>
         </div>
 
-        <div class="flex justify-end">
-          <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
-        </div>
         <AppDataTable
           :value="formData.lines"
           :filterFields="orderCreateLineFilterFields"
           class="p-datatable-sm"
           dataKey="id"
+          :showSearch="false"
+          :showPaginator="false"
           responsiveLayout="scroll"
           emptyMessage="Add at least one order line."
         >
-          <Column header="Product" style="min-width: 18rem">
+          <Column header="Product" style="width: 12rem">
             <template #body="{ data }">
               <Select
                 v-model="data.product"
@@ -217,7 +220,7 @@
                 optionValue="id"
                 placeholder="Choose product"
                 filter
-                class="w-full"
+                class="w-full min-w-0"
                 :invalid="submitted && !data.product"
                 @change="data.quantity = 1"
               />
@@ -233,7 +236,7 @@
                 :min="1"
                 showButtons
                 buttonLayout="horizontal"
-                class="w-full"
+                class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
               <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400"
@@ -257,14 +260,19 @@
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
-        <Button
-          label="Submit Order"
-          icon="pi pi-check"
-          severity="success"
-          :loading="actionLoading"
-          @click="onSubmit"
-        />
+        <div class="flex w-full items-center justify-between gap-3">
+          <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
+          <div class="flex items-center gap-2">
+            <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
+            <Button
+              label="Submit Order"
+              icon="pi pi-check"
+              severity="success"
+              :loading="actionLoading"
+              @click="onSubmit"
+            />
+          </div>
+        </div>
       </template>
     </Dialog>
     <UploadFile
@@ -276,7 +284,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -368,12 +376,17 @@ const loadOrders = async () => {
   try {
     const response = await orderApi.getAll()
     orders.value = (response.data || []).map(normalizeOrder)
+    const currentOrderIds = new Set(orders.value.map((entry) => entry.order?.id).filter(Boolean))
+    expandedRows.value = Object.fromEntries(
+      Object.entries(expandedRows.value).filter(([orderId, isExpanded]) => isExpanded && currentOrderIds.has(Number(orderId))),
+    )
 
     orders.value.forEach((entry) => {
       assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
     })
   } catch (error) {
     orders.value = []
+    expandedRows.value = {}
     loadError.value = getErrorMessage(error)
   } finally {
     loading.value = false
@@ -463,19 +476,9 @@ const hasExpandableLines = (order) => (order.lines || []).length > 0
 
 const isExpanded = (order) => Boolean(expandedRows.value[order.order.id])
 
-const toggleOrderExpansion = (order) => {
-  const orderId = order.order.id
-  if (!orderId || !hasExpandableLines(order)) return
-
-  expandedRows.value = {
-    ...expandedRows.value,
-    [orderId]: isExpanded(order) ? undefined : true,
-  }
-
-  if (!expandedRows.value[orderId]) {
-    const { [orderId]: _removed, ...rest } = expandedRows.value
-    expandedRows.value = rest
-  }
+const toggleOrderExpansion = (order, rowTogglerCallback, event) => {
+  if (!order?.order?.id || !hasExpandableLines(order)) return
+  rowTogglerCallback?.(event)
 }
 
 const getLocationLabel = (locationId) => {
@@ -484,7 +487,7 @@ const getLocationLabel = (locationId) => {
 }
 
 const isAssignmentLocked = (order) =>
-  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(order?.status || order?.Status)
+  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(order?.status || order?.Status)
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
@@ -550,6 +553,9 @@ const getStatusSeverity = (status) =>
     CREATED: 'info',
     ASSIGNED: 'warning',
     IN_PROGRESS: 'warning',
+    ALLOCATED: 'success',
+    PARTIALLY_COMPLETED: 'warning',
+    SHORTAGE: 'warning',
     COMPLETED: 'success',
     CANCELED: 'danger',
     CANCELLED: 'danger',

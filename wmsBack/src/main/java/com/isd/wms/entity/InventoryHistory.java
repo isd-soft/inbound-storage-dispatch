@@ -1,6 +1,7 @@
 package com.isd.wms.entity;
 
 import com.isd.wms.enums.InventoryOperationType;
+import com.isd.wms.enums.InventoryAdjustmentReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -50,6 +51,9 @@ public class InventoryHistory{
     @Column(name = "quantity_after_change", nullable = false)
     private Integer quantityAfterChange;
 
+    @Column(name = "previous_quantity")
+    private Integer previousQuantity;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_location_id")
     private Location sourceLocation;
@@ -61,6 +65,13 @@ public class InventoryHistory{
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_type", nullable = false, length = 50)
     private InventoryOperationType operationType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "adjustment_reason", length = 50)
+    private InventoryAdjustmentReason adjustmentReason;
+
+    @Column(length = 500)
+    private String comment;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
@@ -76,14 +87,17 @@ public class InventoryHistory{
         }
     }
 
-    public InventoryHistory(Product product, String barcode, Integer alteredQuantity, Integer quantityAfterChange, Location sourceLocation, Location destinationLocation, InventoryOperationType operationType, User user) {
+    public InventoryHistory(Product product, String barcode, Integer alteredQuantity, Integer quantityAfterChange, Integer previousQuantity, Location sourceLocation, Location destinationLocation, InventoryOperationType operationType, InventoryAdjustmentReason adjustmentReason, String comment, User user) {
         this.product = product;
         this.barcode = barcode;
         this.alteredQuantity = alteredQuantity;
         this.quantityAfterChange = quantityAfterChange;
+        this.previousQuantity = previousQuantity;
         this.sourceLocation = sourceLocation;
         this.destinationLocation = destinationLocation;
         this.operationType = operationType;
+        this.adjustmentReason = adjustmentReason;
+        this.comment = comment;
         this.user = user;
     }
 

@@ -11,9 +11,9 @@ public interface AllocationSupervisorProjection {
     Long getStockId();
     String getProductName();
     String getLocationName();
-    Integer getQuantity();
+    Integer getRequestedQuantity();
+    Integer getDeliveredQuantity();
     Status getStatus();
     Boolean getSourceLocationScanned();
     Boolean getProductScanned();
-    Integer getPickedQuantity();
 }

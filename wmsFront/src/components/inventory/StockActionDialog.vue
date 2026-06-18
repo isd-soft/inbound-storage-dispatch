@@ -40,10 +40,29 @@
 
       <div v-if="selectedStock && mode !== 'add'" class="app-muted-panel rounded-lg p-3 text-sm">
         <div class="app-title font-semibold">{{ selectedStock.productName }}</div>
-        <div>{{ selectedStock.barcode }} · {{ selectedStock.locationBarcode }} · Available qty: {{ availableQuantity }}</div>
+        <div>{{ selectedStock.barcode }} · {{ selectedStock.locationBarcode }} · Current qty: {{ selectedStock.quantity }}</div>
         <div v-if="reservedQuantity > 0" class="app-muted text-xs mt-1">
           {{ reservedQuantity }} reserved quantity is protected and cannot be removed manually.
         </div>
+      </div>
+
+      <div v-if="mode === 'adjust'" class="flex flex-col gap-2">
+        <label for="reason" class="app-subtitle font-medium">Adjustment Reason</label>
+        <Dropdown
+          id="reason"
+          v-model="form.reason"
+          :options="reasonOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select reason"
+          class="w-full"
+        />
+        <small v-if="submitted && !form.reason" class="app-danger">Reason is required.</small>
+      </div>
+
+      <div v-if="mode === 'adjust'" class="flex flex-col gap-2">
+        <label for="comment" class="app-subtitle font-medium">Comment</label>
+        <Textarea id="comment" v-model="form.comment" rows="3" autoResize class="w-full" placeholder="Optional comment" />
       </div>
 
       <div class="flex flex-col gap-2">
@@ -87,6 +106,7 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -105,9 +125,18 @@ const form = reactive({
   locationId: null,
   quantity: null,
   newQuantity: null,
+  reason: null,
+  comment: '',
   manufactureDate: '',
   expirationDate: ''
 })
+
+const reasonOptions = [
+  { label: 'Stolen', value: 'STOLEN' },
+  { label: 'Damaged', value: 'DAMAGED' },
+  { label: 'Lost', value: 'LOST' },
+  { label: 'Inventory mismatch', value: 'INVENTORY_MISMATCH' }
+]
 
 const dialogTitle = computed(() => {
   if (props.mode === 'add') return 'Add Stock'
@@ -117,7 +146,7 @@ const dialogTitle = computed(() => {
 
 const quantityField = computed(() => (props.mode === 'adjust' ? 'newQuantity' : 'quantity'))
 const quantityLabel = computed(() => {
-  if (props.mode === 'adjust') return 'New Available Quantity'
+  if (props.mode === 'adjust') return 'New Physical Quantity'
   if (props.mode === 'remove') return 'Available Quantity to Remove'
   return 'Quantity'
 })
@@ -156,7 +185,9 @@ watch(
     if (visible) {
       submitted.value = false
       if (props.mode === 'adjust' && props.selectedStock) {
-        form.newQuantity = availableQuantity.value
+        form.newQuantity = props.selectedStock.quantity ?? 0
+        form.reason = null
+        form.comment = ''
       }
     }
   }
@@ -168,6 +199,8 @@ const resetForm = () => {
   form.locationId = null
   form.quantity = null
   form.newQuantity = null
+  form.reason = null
+  form.comment = ''
   form.manufactureDate = ''
   form.expirationDate = ''
 }
@@ -180,6 +213,9 @@ const isFormValid = () => {
   if (!isQuantityValid.value) return false
   if (props.mode === 'add') {
     return !!form.productId && !!form.locationId
+  }
+  if (props.mode === 'adjust') {
+    return !!props.selectedStock?.id && !!form.reason
   }
   return !!props.selectedStock?.id
 }
@@ -209,7 +245,9 @@ const submitForm = () => {
 
   emit('submit', {
     stockId: props.selectedStock.id,
-    newQuantity: form.newQuantity + reservedQuantity.value
+    newQuantity: form.newQuantity,
+    reason: form.reason,
+    comment: form.comment || null
   })
 }
 </script>

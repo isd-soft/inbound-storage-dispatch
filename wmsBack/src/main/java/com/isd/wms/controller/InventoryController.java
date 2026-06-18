@@ -2,11 +2,14 @@ package com.isd.wms.controller;
 
 import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.inventory.AdjustStockRequest;
+import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
+import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
 import com.isd.wms.dto.inventory.InventoryHistoryResponse;
 import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.service.InventoryService;
 import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.InventoryAdjustmentService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final ImportService importService;
+    private final InventoryAdjustmentService inventoryAdjustmentService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
@@ -53,6 +57,24 @@ public class InventoryController {
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public StockResponse adjustStock(@Valid @RequestBody AdjustStockRequest request) {
         return inventoryService.adjustStock(request);
+    }
+
+    @PatchMapping("/{stockId}/adjust")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
+        @PathVariable Long stockId,
+        @Valid @RequestBody InventoryAdjustmentRequest request
+    ) {
+        return ResponseEntity.ok(inventoryAdjustmentService.adjustStock(stockId, request));
+    }
+
+    @PostMapping("/{stockId}/adjust/preview")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<InventoryAdjustmentResponse> previewAdjustment(
+        @PathVariable Long stockId,
+        @Valid @RequestBody InventoryAdjustmentRequest request
+    ) {
+        return ResponseEntity.ok(inventoryAdjustmentService.previewAdjustment(stockId, request));
     }
 
     @GetMapping("/history")

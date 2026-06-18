@@ -79,5 +79,15 @@ public class OrderController {
     public ResponseEntity<String> importOrders(@RequestParam("file") MultipartFile file) {
         orderService.importOrdersFromFile(file);
         return ResponseEntity.ok("Orders were successfully imported.");
+    @GetMapping("/shortages")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<List<com.isd.wms.dto.order.shortage.ShortageOrderResponse>> getShortageOrders() {
+        return ResponseEntity.ok(orderService.getShortageOrders());
+    }
+
+    @GetMapping("/{id}/shortage-details")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<com.isd.wms.dto.order.shortage.ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getShortageDetails(id));
     }
 }

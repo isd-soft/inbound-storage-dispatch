@@ -64,7 +64,6 @@
                 :id="`qty-${line.id}`"
                 v-model="line.quantity"
                 :min="1"
-                :max="getMaxAllowedForLine(line)"
                 showButtons
                 buttonLayout="horizontal"
                 fluid
@@ -89,7 +88,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { Form } from '@primevue/forms'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
@@ -174,33 +173,6 @@ const addLine = () => {
 const removeLine = (index) => {
   formData.lines.splice(index, 1)
 }
-
-const getTotalRequestedQuantity = (productId, excludeLineId = null) => {
-  return formData.lines
-    .filter((l) => l.product === productId && l.id !== excludeLineId)
-    .reduce((sum, l) => sum + (l.quantity || 0), 0)
-}
-
-const getMaxAllowedForLine = (line) => {
-  const product = products.value.find((p) => p.id === line.product)
-  if (!product) return 1
-
-  const alreadyUsed = getTotalRequestedQuantity(line.product, line.id)
-  return product.quantity - alreadyUsed
-}
-
-watch(
-  () => formData.lines,
-  (lines) => {
-    lines.forEach((line) => {
-      const max = getMaxAllowedForLine(line)
-      if (line.quantity > max) {
-        line.quantity = max
-      }
-    })
-  },
-  { deep: true },
-)
 
 const submitted = ref(false)
 

@@ -2,6 +2,8 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.inventory.AdjustStockRequest;
+import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
+import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
 import com.isd.wms.dto.inventory.InventoryHistoryResponse;
 import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
@@ -55,6 +57,7 @@ public class InventoryService {
     private final InventoryHistoryMapper inventoryHistoryMapper;
     private final ReplenishmentService replenishmentService;
     private final ImportService importService;
+    private final InventoryAdjustmentService inventoryAdjustmentService;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAll().stream()
@@ -123,35 +126,18 @@ public class InventoryService {
 
     @Transactional
     public StockResponse adjustStock(AdjustStockRequest request) {
-        log.info("Adjusting stock: stockId={}, newQuantity={}, userId={}",
-            request.getStockId(), request.getNewQuantity(), request.getUserId());
-
-        Stock stock = getStock(request.getStockId());
-
-        if (request.getNewQuantity() < stock.getReservedQuantity()) {
-            log.warn("Cannot adjust stock below reserved quantity: stockId={}, newQuantity={}, reservedQuantity={}",
-                stock.getId(), request.getNewQuantity(), stock.getReservedQuantity());
-            throw new InvalidRequestException("Cannot adjust quantity below currently reserved quantity (" + stock.getReservedQuantity() + ")");
-        }
-
-        User user = getUser(request.getUserId());
-        int oldQuantity = stock.getQuantity();
-        int alteredQuantity = request.getNewQuantity() - oldQuantity;
-        stock.setQuantity(request.getNewQuantity());
-        stock.setManufactureDate(request.getManufactureDate());
-        stock.setExpirationDate(request.getExpirationDate());
-        Stock savedStock = stockRepository.save(stock);
-
-        createHistory(savedStock, alteredQuantity, request.getNewQuantity(), savedStock.getLocation(), savedStock.getLocation(),
-            InventoryOperationType.ADJUST_STOCK, user);
-
-        if (alteredQuantity < 0) {
-            triggerReplenishmentCheck(savedStock);
-        }
-
-        log.info("Stock adjusted successfully: stockId={}, oldQuantity={}, newQuantity={}, alteredQuantity={}",
-            savedStock.getId(), oldQuantity, request.getNewQuantity(), alteredQuantity);
-        return stockMapper.toResponse(savedStock);
+        InventoryAdjustmentResponse response = inventoryAdjustmentService.adjustStock(
+            request.getStockId(),
+            new InventoryAdjustmentRequest(
+                request.getNewQuantity(),
+                request.getUserId(),
+                request.getReason(),
+                request.getComment(),
+                request.getManufactureDate(),
+                request.getExpirationDate()
+            )
+        );
+        return response.stock();
     }
 
     public List<InventoryHistoryResponse> getAllHistory() {
@@ -193,9 +179,12 @@ public class InventoryService {
                 product == null ? null : product.getBarcode(),
                 alteredQuantity,
                 quantityAfterChange,
+                stock.getQuantity() - alteredQuantity,
                 sourceLocation,
                 destinationLocation,
                 operationType,
+                null,
+                null,
                 user
         );
         history.setTimestamp(LocalDateTime.now());
