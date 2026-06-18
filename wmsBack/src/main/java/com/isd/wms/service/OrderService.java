@@ -8,6 +8,7 @@ import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
@@ -46,6 +47,7 @@ public class OrderService {
     private final OrderLineRepository orderLineRepository;
     private final ImportService importService;
     private final SecurityFacade securityFacade;
+    private final TaskService taskService;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -63,6 +65,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
         if (!request.status().equals(OrderStatus.CREATED)) {
@@ -79,14 +82,11 @@ public class OrderService {
 
     @Transactional
     public void deleteOrderById(Long id) {
-        Order order = getOrder(id);
-        releaseReservedStock(order);
-        orderRepository.delete(order);
-        log.info("Deleted order and released reserved stock: orderId={}", id);
+        orderRepository.deleteById(id);
     }
 
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
+        return orderRepository.findAll().stream()
             .map(orderMapper::toResponse)
             .toList();
     }
@@ -96,20 +96,34 @@ public class OrderService {
     }
 
     public Order getOrder(@NonNull Long orderId) {
-        return orderRepository.findByIdAndCreatedByUsername(orderId, securityFacade.getCurrentUsername())
+        return orderRepository.findById(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
         Order order = getOrder(orderId);
-        if (order.getStatus() == OrderStatus.IN_PROGRESS
-            || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED
-            || order.getStatus() == OrderStatus.COMPLETED
-            || order.getStatus() == OrderStatus.CANCELED) {
-            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS, PARTIALLY_COMPLETED, COMPLETED or CANCELED orders");
+        if (order.getStatus() == OrderStatus.IN_PROGRESS || order.getStatus() == OrderStatus.COMPLETED) {
+            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS or COMPLETED orders");
         }
 
+        assignTasks(order);
+        assignOrderCascade(orderId, operatorId);
+    }
+
+    private void assignTasks(Order order) {
+        for (OrderLine orderLine : order.getOrderLines()) {
+            try {
+                Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+                orderLine.setTask(task);
+            } catch (Exception e) {
+                orderLine.setStatus(Status.CANCELED);
+            }
+        }
+        orderLineRepository.saveAllAndFlush(order.getOrderLines());
+    }
+
+    private void assignOrderCascade(Long orderId, Long operatorId) {
         int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
         if (updated == 0) {
             throw new OrderNotFoundException(orderId);
@@ -130,7 +144,6 @@ public class OrderService {
         return locationRepository.findById(locationId)
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
-
 
     private void releaseReservedStock(Order order) {
         List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
@@ -156,10 +169,8 @@ public class OrderService {
         return extendedOrderMapper.toResponse(getOrder(orderId));
     }
 
-
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(
-                securityFacade.getCurrentUsername(),
                 request.logicId(),
                 request.destinationLocationId(),
                 request.status(),
@@ -171,7 +182,7 @@ public class OrderService {
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
-        List<Order> orders = orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername());
+        List<Order> orders = orderRepository.findAll();
         return orders.stream()
             .map(extendedOrderMapper::toResponse)
             .toList();
@@ -182,11 +193,10 @@ public class OrderService {
         List<ExtendedOrderCreateRequest> orders = importService.importData(file, ExtendedOrderInfo.class);
         try {
             orders.stream()
-                .collect(Collectors.groupingBy(
-                    ExtendedOrderCreateRequest::order
-                ))
+                .collect(Collectors.groupingBy(r -> r.order().logicId()))
                 .values()
                 .stream()
+                .peek(this::validateSameOrder)
                 .map(group -> new ExtendedOrderCreateRequest(
                     group.getFirst().order(),
                     group.stream()
@@ -197,6 +207,22 @@ public class OrderService {
                 .forEach(this::addExtendedOrder);
         } catch (DataIntegrityViolationException e) {
             throw new InvalidRequestException("The imported file contains invalid order data.");
+        }
+    }
+
+    private void validateSameOrder(List<ExtendedOrderCreateRequest> group) {
+        OrderCreateRequest base = group.getFirst().order();
+
+        boolean inconsistent = group.stream()
+            .map(ExtendedOrderCreateRequest::order)
+            .anyMatch(o ->
+                !Objects.equals(o.destinationLocationId(), base.destinationLocationId())
+            );
+
+        if (inconsistent) {
+            throw new InvalidRequestException(
+                "Invalid import data: same order " + group.getFirst().order().logicId() + " has conflicting field destination."
+            );
         }
     }
 

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record LocationUpdateRequest (
+        @NotBlank(message = "Name is required") String name,
         @NotBlank(message = "Barcode is required") String barcode,
         Zone zone,
         String description,

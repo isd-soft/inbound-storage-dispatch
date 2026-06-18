@@ -1,6 +1,8 @@
 package com.isd.wms.controller;
 
 import com.isd.wms.dto.order.*;
+import com.isd.wms.dto.order.shortage.ShortageDetailsResponse;
+import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -83,13 +85,13 @@ public class OrderController {
 
     @GetMapping("/shortages")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<List<com.isd.wms.dto.order.shortage.ShortageOrderResponse>> getShortageOrders() {
+    public ResponseEntity<List<ShortageOrderResponse>> getShortageOrders() {
         return ResponseEntity.ok(orderService.getShortageOrders());
     }
 
     @GetMapping("/{id}/shortage-details")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<com.isd.wms.dto.order.shortage.ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
+    public ResponseEntity<ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getShortageDetails(id));
     }
 }

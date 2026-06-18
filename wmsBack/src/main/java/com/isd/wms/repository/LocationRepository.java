@@ -14,6 +14,8 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
 
     List<Location> findAllByIsActiveTrue();
 
+    boolean existsByNameIgnoreCase(String newCode);
+
     @Query("""
         SELECT l.id AS id, barcode AS barcode FROM Location l
         WHERE l.available = true

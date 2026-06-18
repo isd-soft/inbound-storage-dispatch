@@ -4,6 +4,7 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
+import com.isd.wms.exception.DuplicateLocationNameException;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.entity.Location;
@@ -58,15 +59,17 @@ public class LocationService {
     @Transactional
     public LocationResponse updateLocation(Long locationId, LocationUpdateRequest request) {
         Location location = getLocation(locationId);
+        String newName = request.name().trim();
         String newCode = request.barcode().trim();
 
+        boolean isNameChanged = !location.getName().equalsIgnoreCase(newName);
         boolean isCodeChanged = !location.getBarcode().equalsIgnoreCase(newCode);
         boolean isZoneChanged = location.getZone() != request.zone();
         boolean isAvailableChanged = location.getAvailable() != request.available();
 
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
 
-        if (hasProducts && (isCodeChanged || isZoneChanged || isAvailableChanged)) {
+        if (hasProducts && (isNameChanged || isCodeChanged || isZoneChanged || isAvailableChanged)) {
             log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
             throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
         }
@@ -75,6 +78,11 @@ public class LocationService {
             throw new DuplicateBarcodeException(newCode);
         }
 
+        if (isNameChanged && locationRepository.existsByNameIgnoreCase(newCode)) {
+            throw new DuplicateLocationNameException(newName);
+        }
+
+        location.setName(newName);
         location.setBarcode(newCode);
         location.setZone(request.zone());
         location.setDescription(request.description());

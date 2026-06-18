@@ -45,8 +45,7 @@ public class OrderLineService {
     @Transactional
     public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
-        Task task = taskService.createTask(TaskType.PICKING_ORDER, request.requestedQuantity(), request.productId());
-        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity());
+        OrderLine orderLine = new OrderLine(order, product, request.requestedQuantity());
         orderLineRepository.save(orderLine);
     }
 

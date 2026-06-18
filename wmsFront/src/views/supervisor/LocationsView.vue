@@ -74,6 +74,14 @@
         >
       </template>
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+      <Column field="name" header="Name" sortable filter>
+        <template #body="{ data }">
+          <span class="app-title font-bold text-primary">{{ data.name }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputText v-model="data[field]" class="w-full" autofocus />
+        </template>
+      </Column>
       <Column field="barcode" header="Barcode" sortable filter>
         <template #body="{ data }">
           <span class="app-title font-bold text-primary">{{ data.barcode }}</span>
@@ -192,7 +200,7 @@
     <UploadFile
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
-      @success="loadProducts"
+      @success="loadLocations"
     />
   </div>
 </template>
@@ -232,6 +240,7 @@ const modifiedLocationIds = ref(new Set())
 
 const formData = ref({
   id: null,
+  name: '',
   barcode: '',
   zone: null,
   description: '',
@@ -287,6 +296,7 @@ const locationRowClass = (location) => ({
 const getOriginalLocation = (id) => originalLocations.value.find((location) => location.id === id)
 
 const normalizeLocation = (location) => ({
+  name: location.name?.trim() || '',
   barcode: location.barcode?.trim() || '',
   zone: location.zone || null,
   description: location.description || '',
@@ -350,7 +360,7 @@ const submitLocationChanges = async () => {
     await Promise.all(
       changedLocations.map((location) =>
         locationApi.update(location.id, {
-          name: location.barcode,
+          name: location.name,
           barcode: location.barcode,
           zone: location.zone,
           description: location.description,
@@ -395,7 +405,7 @@ const confirmResetChanges = (afterReset) => {
 
 const openCreateDialog = () => {
   isEditing.value = false
-  formData.value = { id: null, barcode: '', zone: null, description: '', available: true }
+  formData.value = { id: null, name: '', barcode: '', zone: null, description: '', available: true }
   dialogVisible.value = true
 }
 
@@ -409,7 +419,7 @@ const saveLocation = async () => {
   actionLoading.value = true
   try {
     const payload = {
-      name: formData.value.barcode,
+      name: formData.value.name,
       barcode: formData.value.barcode,
       zone: formData.value.zone,
       description: formData.value.description,
