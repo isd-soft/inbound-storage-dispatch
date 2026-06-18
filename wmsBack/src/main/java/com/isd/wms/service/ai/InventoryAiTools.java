@@ -123,7 +123,7 @@ public class InventoryAiTools {
 
         try {
             User currentUser = userRepository.findByUsername(securityFacade.getCurrentUsername()).orElseThrow();
-            AddStockRequest req = new AddStockRequest(product.getId(), loc.getId(), quantity, null, null, currentUser.getId());
+            AddStockRequest req = new AddStockRequest(product.getId(), loc.getId(), quantity, 0, null, currentUser.getId());
             inventoryService.addStock(req);
             return "Success! " + quantity + " units of " + product.getName() + " were successfully received into location " + locationBarcode + ".";
         } catch (Exception e) {

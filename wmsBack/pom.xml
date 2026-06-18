@@ -183,11 +183,6 @@
             <version>5.4.0</version>
             <scope>compile</scope>
         </dependency>
-
-    </dependencies>
-
-	<build>
-		<plugins>
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
@@ -204,8 +199,8 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-mcp</artifactId>
         </dependency>
-
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
