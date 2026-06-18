@@ -51,7 +51,7 @@
           icon="pi pi-ban"
           severity="secondary"
           outlined
-          :disabled="!cancelableSelectedReplenishments.length"
+          :disabled="!canCancelSelected"
           @click="confirmCancelSelected"
         />
 
@@ -61,13 +61,13 @@
           icon="pi pi-trash"
           severity="danger"
           outlined
-          :disabled="!deletableSelectedReplenishments.length"
+          :disabled="!canDeleteSelected"
           @click="confirmDeleteSelected"
         />
 
-        <span v-if="editMode" class="app-muted text-sm"
-          >{{ selectedReplenishments.length }} selected</span
-        >
+        <span v-if="editMode" class="app-muted text-sm">
+          {{ selectedReplenishments.length }} selected
+        </span>
       </template>
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
@@ -299,13 +299,23 @@ const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
-const deletableSelectedReplenishments = computed(() =>
-  selectedReplenishments.value.filter((task) => task.status === 'CREATED'),
-)
+const hasSelection = computed(() => selectedReplenishments.value.length > 0)
 
-const cancelableSelectedReplenishments = computed(() =>
-  selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
-)
+const isUniformSelection = computed(() => {
+  if (!hasSelection.value) return false
+  const firstStatus = selectedReplenishments.value[0].status
+  return selectedReplenishments.value.every(task => task.status === firstStatus)
+})
+
+const unifiedStatus = computed(() => isUniformSelection.value ? selectedReplenishments.value[0].status : null)
+
+const canDeleteSelected = computed(() => {
+  return isUniformSelection.value && unifiedStatus.value === 'CREATED'
+})
+
+const canCancelSelected = computed(() => {
+  return isUniformSelection.value && ['CREATED', 'ASSIGNED', 'IN_PROGRESS'].includes(unifiedStatus.value)
+})
 
 const assignmentByTaskId = ref({})
 
@@ -521,7 +531,7 @@ const assignReplenishment = async (id, operatorId) => {
 
 const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Permanently delete ${deletableSelectedReplenishments.value.length} selected replenishment(s)?`,
+    message: `Permanently delete ${selectedReplenishments.value.length} selected task(s)?`,
     header: 'Delete Selected Replenishments',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
@@ -531,21 +541,33 @@ const confirmDeleteSelected = () => {
 
 const deleteSelectedReplenishments = async () => {
   loading.value = true
-  try {
-    await Promise.allSettled(
-      deletableSelectedReplenishments.value.map((t) => replenishmentApi.delete(t.id)),
-    )
+  let successCount = 0
+  let failCount = 0
 
-    selectedReplenishments.value = []
-    await applyFilters()
-  } finally {
-    loading.value = false
+  for (const task of selectedReplenishments.value) {
+    try {
+      await replenishmentApi.delete(task.id)
+      successCount++
+    } catch (error) {
+      console.error(`Failed to delete task ${task.id}:`, error)
+      failCount++
+    }
   }
+
+  if (failCount === 0) {
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${successCount} task(s) permanently deleted.`, life: 3000 })
+  } else {
+    toast.add({ severity: 'warn', summary: 'Partial Delete', detail: `${successCount} deleted, ${failCount} failed.`, life: 5000 })
+  }
+
+  selectedReplenishments.value = []
+  await applyFilters()
+  loading.value = false
 }
 
 const confirmCancelSelected = () => {
   confirm.require({
-    message: `Cancel ${cancelableSelectedReplenishments.value.length} selected replenishment(s)?`,
+    message: `Cancel ${selectedReplenishments.value.length} selected task(s)? This will release the reserved stock.`,
     header: 'Cancel Selected Replenishments',
     icon: 'pi pi-info-circle',
     acceptClass: 'p-button-secondary',
@@ -555,16 +577,28 @@ const confirmCancelSelected = () => {
 
 const cancelSelectedReplenishments = async () => {
   loading.value = true
-  try {
-    await Promise.allSettled(
-      cancelableSelectedReplenishments.value.map((t) => replenishmentApi.cancel(t.id)),
-    )
+  let successCount = 0
+  let failCount = 0
 
-    selectedReplenishments.value = []
-    await applyFilters()
-  } finally {
-    loading.value = false
+  for (const task of selectedReplenishments.value) {
+    try {
+      await replenishmentApi.cancel(task.id)
+      successCount++
+    } catch (error) {
+      console.error(`Failed to cancel task ${task.id}:`, error)
+      failCount++
+    }
   }
+
+  if (failCount === 0) {
+    toast.add({ severity: 'success', summary: 'Canceled', detail: `${successCount} task(s) canceled and stock released.`, life: 3000 })
+  } else {
+    toast.add({ severity: 'warn', summary: 'Partial Cancel', detail: `${successCount} canceled, ${failCount} failed.`, life: 5000 })
+  }
+
+  selectedReplenishments.value = []
+  await applyFilters()
+  loading.value = false
 }
 
 onMounted(loadData)

@@ -118,7 +118,7 @@
 //    }
 //
 //    @Test
-//    @WithMockUser(roles = "USER") // Левая роль
+//    @WithMockUser(roles = "USER")
 //    void getAvailableProcesses_WithWrongRole_ShouldReturn403Forbidden() throws Exception {
 //        mockMvc.perform(get("/api/processes/available")
 //                        .contentType(MediaType.APPLICATION_JSON))
