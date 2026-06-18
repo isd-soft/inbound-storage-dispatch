@@ -18,20 +18,24 @@ public class ExtendedOrderInfo {
     @Getter
     @Setter
     public static class OrderInfo {
-        @ExcelCellName("Logic ID")
+        @ExcelCellName(value = "Logic ID", mandatoryCell = true, mandatoryHeader = true)
+        @NonNull
         private String logicId;
 
-        @ExcelCellName("Destination Location")
+        @ExcelCellName(value = "Destination Location", mandatoryCell = true, mandatoryHeader = true)
+        @NonNull
         private String destinationLocationName;
     }
 
     @Getter
     @Setter
     public static class OrderLineInfo {
-        @ExcelCellName("Product")
+        @ExcelCellName(value = "Product", mandatoryCell = true, mandatoryHeader = true)
+        @NonNull
         private String productName;
 
-        @ExcelCellName("Requested Quantity")
+        @ExcelCellName(value = "Requested Quantity", mandatoryCell = true, mandatoryHeader = true)
+        @NonNull
         private Integer requestedQuantity;
     }
 

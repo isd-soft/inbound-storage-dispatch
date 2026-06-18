@@ -3,6 +3,7 @@ package com.isd.wms.service.imports.mapper;
 import com.isd.wms.dto.order.ExtendedOrderCreateRequest;
 import com.isd.wms.dto.order.OrderCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.repository.LocationRepository;
@@ -22,18 +23,21 @@ public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo
 
     @Override
     public ExtendedOrderCreateRequest toEntity(ExtendedOrderInfo info) {
-        System.out.println(info);
-        return new ExtendedOrderCreateRequest(
-            new OrderCreateRequest(
-                info.getOrderInfo().getLogicId(),
-                getLocationId(info.getOrderInfo().getDestinationLocationName())
-            ),
-            List.of(new OrderLineCreateRequest(
-                null,
-                getProductId(info.getOrderLineInfo().getProductName()),
-                info.getOrderLineInfo().getRequestedQuantity()
-            ))
-        );
+        try {
+            return new ExtendedOrderCreateRequest(
+                new OrderCreateRequest(
+                    info.getOrderInfo().getLogicId(),
+                    getLocationId(info.getOrderInfo().getDestinationLocationName())
+                ),
+                List.of(new OrderLineCreateRequest(
+                    null,
+                    getProductId(info.getOrderLineInfo().getProductName()),
+                    info.getOrderLineInfo().getRequestedQuantity()
+                ))
+            );
+        } catch (Exception e) {
+            throw new InvalidRequestException(String.format("An error occurred at parsing the order %s.", info.getOrderInfo().getLogicId()));
+        }
     }
 
     private Long getProductId(String name) {

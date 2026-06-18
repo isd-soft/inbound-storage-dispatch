@@ -1,6 +1,5 @@
 package com.isd.wms.repository;
 
-import com.isd.wms.entity.Order;
 import com.isd.wms.entity.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,19 +8,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
-    @Query("""
-            SELECT t FROM Task t
-            JOIN OrderLine ol ON ol.task = t
-            WHERE ol.order = :order
-        """)
-    List<Task> findAllByOrder(
-        @Param("order") Order order
-    );
-
     @Modifying
     @Query(value = """
             WITH t_by_o AS (
@@ -39,15 +28,18 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @Modifying
     @Query("""
-            UPDATE Task t
-            SET t.status = COMPLETED
-            WHERE t.id = :taskId
-              AND NOT EXISTS (
-                  SELECT 1 FROM Allocation a
-                  WHERE a.task = t
-                    AND a.status NOT IN (CANCELED, COMPLETED, PARTIALLY_COMPLETED)
-              )
-        """)
+             UPDATE Task t
+             SET t.status = com.isd.wms.enums.TaskStatus.COMPLETED
+             WHERE t.id = :taskId
+               AND NOT EXISTS (
+                   SELECT 1 FROM Allocation a
+                   WHERE a.task = t
+                     AND a.status NOT IN (
+                             com.isd.wms.enums.Status.CANCELED,
+                             com.isd.wms.enums.Status.COMPLETED,
+                             com.isd.wms.enums.Status.PARTIALLY_COMPLETED)
+               )
+        \s""")
     int markTaskAsCompleted(@Param("taskId") Long taskId);
 
     @Modifying

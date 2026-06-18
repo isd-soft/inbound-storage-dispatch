@@ -7,6 +7,7 @@ import com.poiji.bind.Poiji;
 import com.poiji.exception.PoijiExcelType;
 import com.poiji.exception.PoijiException;
 import com.poiji.exception.PoijiMultiRowException;
+import com.poiji.option.PoijiOptions;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,12 +22,15 @@ public class XlsxImportStrategy implements ImportStrategy {
     public <T> List<T> parse(MultipartFile file, Class<T> clazz) {
         try (InputStream inputStream = file.getInputStream()) {
 
+            PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
+                .preferNullOverDefault(true)
+                .build();
             PoijiExcelType excelType = PoijiExcelType.XLSX;
             if (Objects.equals(FilenameUtils.getExtension(file.getOriginalFilename()), "xls")) {
                 excelType = PoijiExcelType.XLS;
             }
 
-            return Poiji.fromExcel(inputStream, excelType, clazz);
+            return Poiji.fromExcel(inputStream, excelType, clazz, options);
 
         } catch (PoijiMultiRowException.PoijiRowSpecificException e) {
             throw new InvalidRequestException("Excel format is wrong in the column " +

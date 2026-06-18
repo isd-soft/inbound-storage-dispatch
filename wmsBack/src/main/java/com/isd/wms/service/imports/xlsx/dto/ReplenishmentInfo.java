@@ -3,8 +3,8 @@ package com.isd.wms.service.imports.xlsx.dto;
 import com.poiji.annotation.ExcelCellName;
 
 public record ReplenishmentInfo(
-    @ExcelCellName("Product") String product,
-    @ExcelCellName("Requested Quantity") Integer requestedQuantity,
-    @ExcelCellName("Destination Location") String destinationLocationName
+    @ExcelCellName(value = "Product", mandatoryCell = true, mandatoryHeader = true) String product,
+    @ExcelCellName(value = "Requested Quantity", mandatoryCell = true, mandatoryHeader = true) Integer requestedQuantity,
+    @ExcelCellName(value = "Destination Location", mandatoryCell = true, mandatoryHeader = true) String destinationLocationName
 ) {
 }

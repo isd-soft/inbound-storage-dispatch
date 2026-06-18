@@ -16,7 +16,7 @@ public class ProductImportMapper implements ImportMapper<ProductInfo, Product> {
     @Override
     public Product toEntity(ProductInfo info) {
         Category category = categoryRepository.findByNameIgnoreCase(info.categoryName())
-            .orElse(categoryRepository.save(new Category(info.categoryName())));
+            .orElseGet(() -> categoryRepository.save(new Category(info.categoryName())));
         return new Product(
             info.name(),
             info.barcode(),
