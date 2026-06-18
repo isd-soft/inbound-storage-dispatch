@@ -1,3 +1,7 @@
 package com.isd.wms.dto.ai;
 
-public record AiChatRequest(String message) {}
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.NonNull;
+
+public record AiChatRequest(@NotNull @NotBlank @NonNull String message) {}

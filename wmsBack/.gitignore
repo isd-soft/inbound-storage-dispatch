@@ -20,6 +20,7 @@ buildNumber.properties
 
 HELP.md
 
+/logs/
 .idea/
 *.iml
 .vscode/

@@ -225,13 +225,13 @@ public class InventoryAiTools {
         sb.append("|---------|---------|-----------|-----------|\n");
 
         for (Product p : products) {
-            if (p.getMinThreshold() != null) {
+            if (p.getMinThreshold().isPresent()) {
                 int totalAvailable = stockRepository.findAll().stream()
                     .filter(s -> s.getProduct().isPresent() && s.getProduct().get().getId().equals(p.getId()))
                     .mapToInt(s -> s.getQuantity() - s.getReservedQuantity())
                     .sum();
 
-                if (totalAvailable <= p.getMinThreshold()) {
+                if (totalAvailable <= p.getMinThreshold().orElseThrow()) {
                     sb.append(String.format("| %s | %s | %d | %d |\n", p.getName(), p.getBarcode(), totalAvailable, p.getMinThreshold()));
                     found = true;
                 }
