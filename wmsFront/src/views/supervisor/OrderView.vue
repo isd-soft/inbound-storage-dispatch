@@ -86,7 +86,7 @@
       </Column>
       <Column header="Total Qty" style="width: 8rem">
         <template #body="{ data }">
-          <span class="font-semibold">{{ getOrderQuantity(data) }}</span>
+          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data) }}</span>
         </template>
       </Column>
       <Column header="Status" sortable>
@@ -480,7 +480,10 @@ const getProduct = (productId) => products.value.find((product) => product.id ==
 
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(
-    (total, line) => total + Number(line.requestedQuantity ?? line.quantity ?? 0),
+    (total, line) =>
+      line.status === 'CANCELED' || line.status === 'CANCELLED'
+        ? total
+        : total + Number(line.requestedQuantity ?? line.quantity ?? 0),
     0,
   )
 

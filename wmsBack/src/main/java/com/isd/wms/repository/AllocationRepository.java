@@ -25,9 +25,26 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     @Query("""
             SELECT a FROM Allocation a
             WHERE a.task.id = :taskId
+              AND a.status NOT IN (:excludedStatuses)
             ORDER BY a.createdAt, a.id
         """)
-    List<Allocation> findAllByTaskIdOrderByCreatedAtAscIdAsc(@Param("taskId") Long taskId);
+    List<Allocation> findActiveByTaskIdOrderByCreatedAtAscIdAsc(
+        @Param("taskId") Long taskId,
+        @Param("excludedStatuses") List<Status> excludedStatuses
+    );
+
+    @Query("""
+            SELECT a FROM Allocation a
+            WHERE a.task.id = :taskId
+              AND a.stock.id = :stockId
+              AND a.status NOT IN (:excludedStatuses)
+            ORDER BY a.createdAt, a.id
+        """)
+    List<Allocation> findActiveByTaskIdAndStockIdOrderByCreatedAtAscIdAsc(
+        @Param("taskId") Long taskId,
+        @Param("stockId") Long stockId,
+        @Param("excludedStatuses") List<Status> excludedStatuses
+    );
 
     @Query("""
             SELECT a FROM Allocation a
@@ -172,9 +189,18 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
             a.stock.id AS stockId,
             a.stock.product.name AS productName,
             a.stock.location.name AS locationName,
-            COALESCE(ol.requestedQuantity, a.quantity) AS requestedQuantity,
-            COALESCE(ol.deliveredQuantity, a.pickedQuantity, CASE WHEN a.status = com.isd.wms.enums.Status.COMPLETED THEN a.quantity ELSE 0 END) AS deliveredQuantity,
-            COALESCE(ol.status, a.status) AS status,
+            a.quantity AS requestedQuantity,
+            COALESCE(
+                a.pickedQuantity,
+                CASE
+                    WHEN a.status IN (
+                        com.isd.wms.enums.Status.COMPLETED,
+                        com.isd.wms.enums.Status.PARTIALLY_COMPLETED
+                    ) THEN a.quantity
+                    ELSE 0
+                END
+            ) AS deliveredQuantity,
+            a.status AS status,
             a.sourceLocationScanned AS sourceLocationScanned,
             a.productScanned AS productScanned
         FROM Allocation a
@@ -182,6 +208,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
         JOIN User u ON u = t.supervisor
         LEFT JOIN OrderLine ol ON ol.task = a.task
         LEFT JOIN Replenishment r ON r.task = a.task
+        WHERE a.status NOT IN (com.isd.wms.enums.Status.COMPLETED, com.isd.wms.enums.Status.CANCELED)
         """)
     List<AllocationSupervisorProjection> getAllAllocations();
 

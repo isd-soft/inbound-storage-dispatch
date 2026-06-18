@@ -71,6 +71,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
 
         boolean hasPartialHistory = orderLines.stream().anyMatch(line ->
             line.getStatus() == Status.CANCELED
+                || line.getStatus() == Status.SHORTAGE
                 || resolveDeliveredQuantity(line) < line.getRequestedQuantity()
                 || line.getShortageQuantity() > 0
                 || line.getStatus() == Status.PARTIALLY_COMPLETED
