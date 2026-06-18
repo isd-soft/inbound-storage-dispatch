@@ -84,9 +84,9 @@ public class ReplenishmentService {
     @Transactional
     public void checkAndTriggerAutoReplenishment(Product product, Location location, int locationQty) {
         if (!Boolean.TRUE.equals(product.getAutoReplenish())) return;
-        if (product.getMinThreshold() == null || product.getReplenishQty() == null) return;
+        if (product.getReplenishQty() == null) return;
 
-        if (locationQty <= product.getMinThreshold()) {
+        if (locationQty <= product.getMinThreshold().orElseThrow()) {
             boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusIn(
                 product.getId(), location.getId(), ACTIVE_STATUSES
             );
