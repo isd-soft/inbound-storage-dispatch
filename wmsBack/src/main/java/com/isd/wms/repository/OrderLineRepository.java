@@ -25,6 +25,7 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
             UPDATE OrderLine ol
                 SET ol.status = :status
                 WHERE ol.order.id = :orderId
+                        AND ol.status NOT IN (com.isd.wms.enums.Status.CANCELED)
         """)
     int updateStatusByOrderId(
         @Param("orderId") Long orderId,

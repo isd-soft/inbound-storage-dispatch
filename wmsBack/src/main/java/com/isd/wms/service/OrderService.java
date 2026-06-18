@@ -61,13 +61,12 @@ public class OrderService {
 
     @Transactional
     public Order addOrder(OrderCreateRequest request) {
-        if(orderRepository.findByLogicId(request.logicId()).isPresent()) {
+        if (orderRepository.findByLogicId(request.logicId()).isPresent()) {
             throw new InvalidRequestException("An order with logicId " + request.logicId() + " already exists");
         }
         Order order = new Order(request.logicId(), getLocation(request.destinationLocationId()));
         return orderRepository.save(order);
     }
-
 
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
@@ -116,12 +115,8 @@ public class OrderService {
 
     private void assignTasks(Order order) {
         for (OrderLine orderLine : order.getOrderLines()) {
-            try {
-                Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
-                orderLine.setTask(task);
-            } catch (Exception e) {
-                orderLine.setStatus(Status.CANCELED);
-            }
+            Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+            orderLine.setTask(task);
         }
         orderLineRepository.saveAllAndFlush(order.getOrderLines());
     }
@@ -151,16 +146,19 @@ public class OrderService {
     private void releaseReservedStock(Order order) {
         List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
         for (OrderLine orderLine : orderLines) {
-            if (orderLine.getTask() == null) {
+            if (orderLine.getTask().isEmpty()) {
                 continue;
             }
-            List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask().getId());
+            List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask()
+                .orElseThrow(() -> new InvalidRequestException("No allocations for order."))
+                .getId());
             for (Allocation allocation : allocations) {
                 if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
                     continue;
                 }
                 Stock stock = allocation.getStock();
-                int updatedReservedQuantity = Math.max(0, stock.getReservedQuantity() - Optional.ofNullable(allocation.getQuantity()).orElse(0));
+                int updatedReservedQuantity = Math.max(0, stock.getReservedQuantity() -
+                    Optional.ofNullable(allocation.getQuantity()).orElse(0));
                 stock.setReservedQuantity(updatedReservedQuantity);
                 log.info("Released reserved stock on order delete: orderId={}, orderLineId={}, stockId={}, releasedQuantity={}, remainingReserved={}",
                     order.getId(), orderLine.getId(), stock.getId(), allocation.getQuantity(), updatedReservedQuantity);
@@ -294,7 +292,7 @@ public class OrderService {
 
     private AffectedOrderLineResponse toAffectedOrderLineResponse(Order order, OrderLine line, List<Allocation> allocations) {
         List<Allocation> lineAllocations = allocations.stream()
-            .filter(allocation -> line.getTask() != null && allocation.getTask().getId().equals(line.getTask().getId()))
+            .filter(allocation -> allocation.getTask().getId().equals(line.getTask().map(Task::getId).orElse(null)))
             .sorted(Comparator.comparing(BaseTimestampEntity::getCreatedAt))
             .toList();
 
@@ -314,13 +312,16 @@ public class OrderService {
             .map(Location::getBarcode)
             .findFirst()
             .orElse(null);
-        boolean revalidationRequired = line.getTask() != null && line.getTask().getStatus() == com.isd.wms.enums.TaskStatus.REQUIRES_REVALIDATION;
+        boolean revalidationRequired =
+            line.getTask().map(Task::getStatus).orElse(null) == com.isd.wms.enums.TaskStatus.REQUIRES_REVALIDATION;
 
         return new AffectedOrderLineResponse(
             order.getId(),
             order.getLogicId(),
             line.getId(),
-            line.getTask() == null ? null : line.getTask().getId(),
+            line.getTask()
+                .map(Task::getId)
+                .orElse(null),
             line.getProduct().getId(),
             line.getProduct().getName(),
             line.getRequestedQuantity(),

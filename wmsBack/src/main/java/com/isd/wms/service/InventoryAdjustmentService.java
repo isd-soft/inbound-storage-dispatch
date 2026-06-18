@@ -201,7 +201,8 @@ public class InventoryAdjustmentService {
         OrderLine orderLine = orderLineRepository.findByTaskId(taskId)
             .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + taskId));
         Order order = orderLine.getOrder();
-        Task task = orderLine.getTask();
+        Task task = orderLine.getTask()
+            .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + taskId));
 
         List<Allocation> allAllocationsForTask = allocationRepository.findAllByTaskIdOrderByCreatedAtAscIdAsc(taskId).stream()
             .filter(this::isActiveAllocation)
@@ -412,7 +413,9 @@ public class InventoryAdjustmentService {
         }
 
         boolean inProgress = orderLines.stream().anyMatch(line ->
-            line.getStatus() == Status.IN_PROGRESS || line.getTask().getStatus() == TaskStatus.IN_PROGRESS
+            line.getStatus() == Status.IN_PROGRESS || line.getTask()
+                .orElseThrow()
+                .getStatus() == TaskStatus.IN_PROGRESS
         );
         if (inProgress || order.getStatus() == OrderStatus.IN_PROGRESS) {
             return OrderStatus.IN_PROGRESS;

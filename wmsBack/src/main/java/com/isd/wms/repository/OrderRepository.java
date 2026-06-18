@@ -118,4 +118,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     int deleteOrdersOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 
     Optional<Order> findByLogicId(String logicId);
+
+    @Query("""
+            SELECT COUNT(o) > 0
+            FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            WHERE t.operator.id = :operatorId
+              AND o = :order
+        """)
+    boolean isOrderAssignedToOperator(
+        @Param("order") Order order,
+        @Param("operatorId") Long operatorId
+    );
 }

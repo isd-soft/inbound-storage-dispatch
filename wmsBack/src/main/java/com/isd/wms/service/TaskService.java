@@ -25,6 +25,7 @@ public class TaskService {
     private final SecurityFacade securityFacade;
     private final WorkflowService workflowService;
 
+    @Transactional
     public Task createTask(TaskType type, Integer requestedQuantity, Long productId) {
         User supervisor = securityFacade.getCurrentUser();
 
@@ -37,14 +38,14 @@ public class TaskService {
     }
 
     @Transactional
-    public Task assignTask(Long taskId, Long operatorId) {
+    public void assignTask(Long taskId, Long operatorId) {
         Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new TaskNotFoundException(taskId));
         User operator = userRepository.findById(operatorId)
             .orElseThrow(() -> new UserNotFoundException(operatorId));
 
         if (task.getOperator().filter(current -> current.equals(operator)).isPresent()) {
-            return task;
+            return;
         }
 
         task.setOperator(operator);
@@ -60,7 +61,6 @@ public class TaskService {
             replenishmentRepository.save(replenishment);
         });
 
-        return task;
     }
 
 }

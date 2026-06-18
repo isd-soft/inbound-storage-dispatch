@@ -47,6 +47,10 @@ public class OrderLine extends BaseTimestampEntity {
     @Column(name = "shortage_quantity", nullable = false)
     private Integer shortageQuantity = 0;
 
+    public Optional<Task> getTask() {
+        return Optional.ofNullable(task);
+    }
+
     public OrderLine(Order order, Task task, Product product, Integer requestedQuantity) {
         this.order = order;
         this.task = task;

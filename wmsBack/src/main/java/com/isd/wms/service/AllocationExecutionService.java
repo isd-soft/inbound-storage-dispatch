@@ -124,7 +124,7 @@ public class AllocationExecutionService {
             return deliveredQuantity;
         }
 
-        return line.getTask().getAllocations().stream()
+        return line.getTask().orElseThrow().getAllocations().stream()
             .filter(allocation -> allocation.getStatus() != Status.CANCELED)
             .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
             .sum();
@@ -357,7 +357,7 @@ public class AllocationExecutionService {
         if (orderLine.getTask() == null) {
             throw new InvalidRequestException("No task found for order line " + orderLine.getId());
         }
-        return orderLine.getTask().getId();
+        return orderLine.getTask().orElseThrow().getId();
     }
 
     private OperatorTaskSummaryResponse toReplenishmentSummary(Allocation currentAllocation) {

@@ -29,7 +29,7 @@ public class Stock extends BaseTimestampEntity {
     @Getter(AccessLevel.NONE)
     private Product product;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
 

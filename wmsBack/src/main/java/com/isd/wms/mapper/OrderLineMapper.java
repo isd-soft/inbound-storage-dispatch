@@ -12,7 +12,7 @@ import java.util.Optional;
 public class OrderLineMapper {
     public OrderLineResponse toResponse(OrderLine orderLine
     ) {
-        Long taskId = orderLine.getTask() == null ? null : orderLine.getTask().getId();
+        Long taskId = orderLine.getTask().map(Task::getId).orElse(null);
         return new OrderLineResponse(
                 orderLine.getId(),
                 orderLine.getOrder().getId(),
@@ -32,14 +32,12 @@ public class OrderLineMapper {
             return deliveredQuantity;
         }
 
-        Task task = orderLine.getTask();
-        if (task == null) {
-            return 0;
-        }
-
-        return task.getAllocations().stream()
-            .filter(allocation -> allocation.getStatus() != Status.CANCELED)
-            .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
-            .sum();
+        return orderLine.getTask()
+            .map(task -> task.getAllocations().stream()
+                .filter(a -> a.getStatus() != Status.CANCELED)
+                .mapToInt(a -> Optional.ofNullable(a.getQuantity()).orElse(0))
+                .sum()
+            )
+            .orElse(0);
     }
 }

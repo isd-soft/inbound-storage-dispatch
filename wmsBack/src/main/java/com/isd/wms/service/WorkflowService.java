@@ -15,6 +15,7 @@ import com.isd.wms.service.allocation.StockAllocationStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class WorkflowService {
     private final List<AllocationCompletionStrategy> allocationCompletionStrategies;
     private final List<StockAllocationStrategy> allocationStrategies;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
         StockAllocationStrategy strategy = allocationStrategies.stream()
             .filter(s -> s.support(task.getTaskType()))

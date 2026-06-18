@@ -107,7 +107,8 @@ public class OrderLineService {
             return;
         }
 
-        List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask().getId());
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask()
+            .map(Task::getId).orElse(null));
         for (Allocation allocation : allocations) {
             if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
                 continue;
