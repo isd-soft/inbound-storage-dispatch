@@ -8,7 +8,6 @@ public record ReplenishmentUpdateRequest(
         Long taskId,
         @NonNull Long productId,
         @NonNull @Min(0) Integer requestedQuantity,
-        @NonNull Status status,
         @NonNull Long destinationLocationId
 ) {
 }

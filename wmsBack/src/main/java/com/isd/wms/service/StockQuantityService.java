@@ -23,11 +23,9 @@ public class StockQuantityService {
     public void edit(Long stockId, int newQuantity) {
         Stock stock = stockRepository.findById(stockId).orElseThrow();
         List<Allocation> allocations = allocationRepository.findAllByStockAndStatusIn(stock, List.of(Status.ASSIGNED));
-        if (allocations.isEmpty()) {
-            stock.setQuantity(newQuantity);
-        } else {
-            allocations.forEach(this::reallocate);
-        }
+        stock.setReservedQuantity(0);
+        stock.setQuantity(newQuantity);
+        allocations.forEach(this::reallocate);
     }
 
     private void reallocate(Allocation allocation) {

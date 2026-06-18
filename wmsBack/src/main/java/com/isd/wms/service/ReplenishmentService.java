@@ -54,7 +54,6 @@ public class ReplenishmentService {
 
     @Transactional
     public ReplenishmentResponse updateReplenishment(Long id, ReplenishmentUpdateRequest request) {
-        log.info("Updating replenishment: id={}, status={}", id, request.status());
 
         Replenishment replenishment = getReplenishment(id);
         Product product = getProduct(request.productId());
@@ -64,8 +63,10 @@ public class ReplenishmentService {
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
 
 
-        if (isProductChanged || isQuantityChanged) {
-            getTask(replenishment).setRequestedQuantity(request.requestedQuantity());
+        if (!isProductChanged && !isQuantityChanged) {
+            return replenishmentMapper.toResponse(replenishment);
+        }
+        if (replenishment.getTask().isPresent()) {
             workflowService.updateTask(getTask(replenishment), request.productId());
         }
 
@@ -77,7 +78,6 @@ public class ReplenishmentService {
     private static void updateReplenishment(ReplenishmentUpdateRequest request, Replenishment replenishment, Product product, Location destinationLocation) {
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
-        replenishment.setStatus(request.status());
         replenishment.setDestinationLocation(destinationLocation);
     }
 
