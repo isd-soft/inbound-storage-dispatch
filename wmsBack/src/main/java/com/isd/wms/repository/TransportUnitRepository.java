@@ -11,6 +11,12 @@ import java.util.Optional;
 @Repository
 public interface TransportUnitRepository extends JpaRepository<TransportUnit, Long> {
     Optional<TransportUnit> findByBarcode(String barcode);
+
     boolean existsByOrder(Order order);
+
     boolean existsByReplenishment(Replenishment replenishment);
+
+    Optional<TransportUnit> findByOrder(Order order);
+
+    Optional<TransportUnit> findByReplenishment(Replenishment replenishment);
 }

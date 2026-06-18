@@ -119,7 +119,12 @@
           />
         </template>
       </Column>
+      <Column header="Transport Unit">
+        <template #body="{ data }">
+          <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
 
+        </template>
+      </Column>
       <Column field="createdAt" header="Created" sortable filter>
         <template #body="slotProps">
           <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
