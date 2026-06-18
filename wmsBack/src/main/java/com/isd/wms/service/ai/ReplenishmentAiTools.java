@@ -4,6 +4,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
+import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.Status;
 import com.isd.wms.repository.LocationRepository;
@@ -11,7 +12,6 @@ import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.ReplenishmentService;
-import com.isd.wms.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -27,7 +27,6 @@ public class ReplenishmentAiTools {
 
     private final ReplenishmentService replenishmentService;
     private final ReplenishmentRepository replenishmentRepository;
-    private final TaskService taskService;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
@@ -53,9 +52,9 @@ public class ReplenishmentAiTools {
         }
     }
 
-    @Tool(description = "Assigns a specific Replenishment Task to an Operator using the Task ID.")
+    @Tool(description = "Assigns a specific Replenishment Task to an Operator using the Ref ID.")
     public String assignReplenishmentToOperator(
-        @ToolParam(description = "The Task ID (Ref ID) of the replenishment") Long taskId,
+        @ToolParam(description = "The Replenishment ID (Ref ID) to assign") Long replenishmentId,
         @ToolParam(description = "Exact username of the operator") String operatorUsername) {
 
         log.info("AI invoked assignReplenishmentToOperator");
@@ -63,8 +62,9 @@ public class ReplenishmentAiTools {
         if (operator == null) return "Error: Operator not found.";
 
         try {
-            taskService.assignTask(taskId, operator.getId());
-            return "Success! Replenishment task #" + taskId + " has been assigned to " + operatorUsername;
+            // ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД ИЗ PR КОЛЛЕГИ
+            replenishmentService.assignReplenishment(replenishmentId, operator.getId());
+            return "Success! Replenishment task #" + replenishmentId + " has been assigned to " + operatorUsername;
         } catch (Exception e) {
             return "Failed to assign replenishment: " + e.getMessage();
         }
@@ -110,9 +110,11 @@ public class ReplenishmentAiTools {
 
         tasks.forEach(r -> {
             String dest = r.getDestinationLocation() != null ? r.getDestinationLocation().getBarcode() : "N/A";
-            String operator = (r.getTask() != null && r.getTask().getOperator().isPresent())
-                ? r.getTask().getOperator().get().getUsername()
-                : "Unassigned";
+
+            String operator = r.getTask()
+                .flatMap(Task::getOperator)
+                .map(User::getUsername)
+                .orElse("Unassigned");
 
             sb.append(String.format("| %d | %s | %d | %s | %s | %s |\n",
                 r.getId(), r.getProduct().getName(), r.getRequestedQuantity(), dest, operator, r.getStatus().name()));

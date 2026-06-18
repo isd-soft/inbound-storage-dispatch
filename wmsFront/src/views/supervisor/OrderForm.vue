@@ -195,18 +195,17 @@
           </div>
         </div>
 
-        <div class="flex justify-end">
-          <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
-        </div>
         <AppDataTable
           :value="formData.lines"
           :filterFields="orderCreateLineFilterFields"
           class="p-datatable-sm"
           dataKey="id"
+          :showSearch="false"
+          :showPaginator="false"
           responsiveLayout="scroll"
           emptyMessage="Add at least one order line."
         >
-          <Column header="Product" style="min-width: 18rem">
+          <Column header="Product" style="width: 12rem">
             <template #body="{ data }">
               <Select
                 v-model="data.product"
@@ -215,7 +214,7 @@
                 optionValue="id"
                 placeholder="Choose product"
                 filter
-                class="w-full"
+                class="w-full min-w-0"
                 :invalid="submitted && !data.product"
                 @change="data.quantity = 1"
               />
@@ -229,14 +228,14 @@
               <Tag severity="secondary" :value="getAvailableQuantity(data.product)" />
             </template>
           </Column>
-          <Column header="Quantity" style="min-width: 13rem">
+          <Column header="Quantity" style="width: 8rem">
             <template #body="{ data }">
               <InputNumber
                 v-model="data.quantity"
                 :min="1"
                 showButtons
                 buttonLayout="horizontal"
-                class="w-full"
+                class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
               <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400"
@@ -260,14 +259,19 @@
       </div>
 
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
-        <Button
-          label="Submit Order"
-          icon="pi pi-check"
-          severity="success"
-          :loading="actionLoading"
-          @click="onSubmit"
-        />
+        <div class="flex w-full items-center justify-between gap-3">
+          <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
+          <div class="flex items-center gap-2">
+            <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
+            <Button
+              label="Submit Order"
+              icon="pi pi-check"
+              severity="success"
+              :loading="actionLoading"
+              @click="onSubmit"
+            />
+          </div>
+        </div>
       </template>
     </Dialog>
   </div>

@@ -3,11 +3,13 @@ package com.isd.wms.service.ai;
 import com.isd.wms.dto.order.ExtendedOrderCreateRequest;
 import com.isd.wms.dto.order.OrderCreateRequest;
 import com.isd.wms.dto.order.OrderResponse;
+import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Product;
+import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.repository.LocationRepository;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service("orderAiTools")
@@ -59,17 +62,39 @@ public class OrderAiTools {
 
             String operatorName = "Unassigned";
             if (o.getOrderLines() != null) {
-                operatorName = o.getOrderLines().stream()
-                    .filter(line -> line.getTask() != null && line.getTask().getOperator().isPresent())
-                    .map(line -> line.getTask().getOperator().get().getUsername())
-                    .findFirst()
-                    .orElse("Unassigned");
+                for (OrderLine line : o.getOrderLines()) {
+                    Task task = line.getTask();
+                    if (task != null && task.getOperator().isPresent()) {
+                        operatorName = task.getOperator().get().getUsername();
+                        break;
+                    }
+                }
             }
 
             sb.append(String.format("| %s | %s | %s | %d | %s |\n",
                 o.getLogicId(), dest, o.getStatus().name(), linesCount, operatorName));
         }
 
+        return sb.toString();
+    }
+
+    @Tool(description = "Returns a list of all orders that are currently blocked due to inventory shortages.")
+    public String getShortageOrdersInfo() {
+        log.info("AI invoked getShortageOrdersInfo tool");
+        List<ShortageOrderResponse> shortages = orderService.getShortageOrders();
+
+        if (shortages.isEmpty()) {
+            return "Great news! There are no orders currently blocked by shortages.";
+        }
+
+        StringBuilder sb = new StringBuilder("### Orders with Shortages\n");
+        sb.append("| Order ID | Destination | Shortage Lines / Total Lines | Status |\n");
+        sb.append("|----------|-------------|-----------------------------|--------|\n");
+
+        for (var s : shortages) {
+            sb.append(String.format("| %s | %s | %d / %d | %s |\n",
+                s.orderNumber(), s.destination(), s.shortageLines(), s.totalLines(), s.status()));
+        }
         return sb.toString();
     }
 

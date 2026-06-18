@@ -8,7 +8,7 @@ import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.UserRepository;
 import com.isd.wms.service.OrderService;
-import com.isd.wms.service.TaskService;
+import com.isd.wms.service.ReplenishmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,7 +30,7 @@ public class WarehouseAiTools {
     private final OrderRepository orderRepository;
     private final ReplenishmentRepository replenishmentRepository;
     private final OrderService orderService;
-    private final TaskService taskService;
+    private final ReplenishmentService replenishmentService;
 
     @Tool(description = "Lists all available physical locations (shelves) in the warehouse.")
     public String getWarehouseLocations() {
@@ -68,8 +69,13 @@ public class WarehouseAiTools {
     }
 
     private Map<User, Long> calculateInitialWorkload(List<User> operators) {
-        List<Task> allTasks = replenishmentRepository.findAll().stream().map(Replenishment::getTask).toList();
-        return operators.stream().collect(Collectors.toMap(op -> op, op -> allTasks.stream()
+        List<Task> activeTasks = replenishmentRepository.findAll().stream()
+            .map(Replenishment::getTask)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .toList();
+
+        return operators.stream().collect(Collectors.toMap(op -> op, op -> activeTasks.stream()
             .filter(t -> t.getOperator().isPresent() && t.getOperator().get().equals(op)).count()));
     }
 
@@ -87,7 +93,7 @@ public class WarehouseAiTools {
         for (Replenishment repl : replenishments) {
             User leastLoaded = getLeastLoadedOperator(operators, loadMap);
             try {
-                taskService.assignTask(repl.getTask().getId(), leastLoaded.getId());
+                replenishmentService.assignReplenishment(repl.getId(), leastLoaded.getId());
                 loadMap.put(leastLoaded, loadMap.get(leastLoaded) + 1);
                 assignedRepls++;
             } catch (Exception ignored) {}
