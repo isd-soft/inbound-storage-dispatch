@@ -6,7 +6,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import org.hibernate.Hibernate;
 
-import java.time.OffsetDateTime;
 import java.util.Objects;
 
 @Entity
@@ -14,7 +13,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TransportUnit {
+public class TransportUnit extends BaseTimestampEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transport_units_seq")
@@ -31,12 +30,6 @@ public class TransportUnit {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "replenishment_id")
     private Replenishment replenishment;
-
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
-    private OffsetDateTime updatedAt;
 
     public TransportUnit(String barcode) {
         this.barcode = barcode;
