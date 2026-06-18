@@ -5,12 +5,7 @@ import com.isd.wms.dto.order.shortage.AffectedOrderLineResponse;
 import com.isd.wms.dto.order.shortage.ShortageDetailsResponse;
 import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Stock;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
@@ -21,7 +16,6 @@ import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.xlsx.dto.ExtendedOrderInfo;
-import com.isd.wms.service.imports.xlsx.dto.ReplenishmentInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -29,18 +23,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static java.util.Arrays.stream;
-
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -55,7 +44,6 @@ public class OrderService {
     private final AllocationRepository allocationRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
-    private final TaskService taskService;
     private final ImportService importService;
     private final SecurityFacade securityFacade;
 
@@ -169,7 +157,6 @@ public class OrderService {
     }
 
 
-
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(
                 securityFacade.getCurrentUsername(),
@@ -211,6 +198,8 @@ public class OrderService {
         } catch (DataIntegrityViolationException e) {
             throw new InvalidRequestException("The imported file contains invalid order data.");
         }
+    }
+
     public List<ShortageOrderResponse> getShortageOrders() {
         return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
             .filter(this::isShortageOrder)
@@ -277,7 +266,7 @@ public class OrderService {
     private AffectedOrderLineResponse toAffectedOrderLineResponse(Order order, OrderLine line, List<Allocation> allocations) {
         List<Allocation> lineAllocations = allocations.stream()
             .filter(allocation -> line.getTask() != null && allocation.getTask().getId().equals(line.getTask().getId()))
-            .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
+            .sorted(Comparator.comparing(BaseTimestampEntity::getCreatedAt))
             .toList();
 
         int deliveredQuantity = resolveDeliveredQuantity(line, lineAllocations);
