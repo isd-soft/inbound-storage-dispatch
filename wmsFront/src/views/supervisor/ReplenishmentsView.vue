@@ -288,7 +288,6 @@ import { inventoryApi } from '@/api/inventoryApi'
 import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
 import UploadFile from '@/components/UploadFile.vue'
-import StockActionDialog from '@/components/inventory/StockActionDialog.vue'
 
 const importDialogVisible = ref(false)
 const toast = useToast()

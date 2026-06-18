@@ -12,10 +12,10 @@ public class LocationImportMapper implements ImportMapper<LocationInfo, Location
     @Override
     public Location toEntity(LocationInfo info) {
         return new Location(
-            info.getName(),
-            info.getBarcode(),
-            info.getZone(),
-            info.getDescription()
+            info.name(),
+            info.barcode(),
+            info.zone(),
+            info.description()
         );
     }
 

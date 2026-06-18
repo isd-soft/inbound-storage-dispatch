@@ -1,37 +1,15 @@
 package com.isd.wms.service.imports.xlsx.dto;
 
 import com.poiji.annotation.ExcelCellName;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
-public class StockInfo {
-    @ExcelCellName("Product")
-    @NonNull
-    private String productName;
-
-    @ExcelCellName("Location")
-    @NonNull
-    private String locationName;
-
-    @ExcelCellName("Quantity")
-    @NonNull
-    private Integer quantity;
-
-    @ExcelCellName("Reserved Quantity")
-    @NonNull
-    private Integer reservedQuantity;
-
-    @ExcelCellName("Manufacture Date")
-    private LocalDate manufactureDate;
-
-    @ExcelCellName("Expiration Date")
-    private LocalDate expirationDate;
-
-    public StockInfo() {
-    }
+public record StockInfo(
+    @ExcelCellName("Product") String productName,
+    @ExcelCellName("Location") String locationName,
+    @ExcelCellName("Quantity") Integer quantity,
+    @ExcelCellName("Reserved Quantity") Integer reservedQuantity,
+    @ExcelCellName("Manufacture Date") LocalDate manufactureDate,
+    @ExcelCellName("Expiration Date") LocalDate expirationDate
+) {
 }

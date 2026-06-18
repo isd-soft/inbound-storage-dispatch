@@ -11,7 +11,7 @@ public class CategoryImportMapper implements ImportMapper<CategoryInfo, Category
 
     @Override
     public Category toEntity(CategoryInfo info) {
-        return new Category(info.getCategoryName());
+        return new Category(info.categoryName());
     }
 
     @Override

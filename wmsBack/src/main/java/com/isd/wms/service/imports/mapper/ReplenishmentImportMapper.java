@@ -24,9 +24,9 @@ public class ReplenishmentImportMapper implements ImportMapper<ReplenishmentInfo
     @Override
     public ReplenishmentCreateRequest toEntity(ReplenishmentInfo info) {
     return new ReplenishmentCreateRequest(
-            getProductId(info.getProduct()),
-            info.getRequestedQuantity(),
-            getLocationId(info.getDestinationLocationName())
+            getProductId(info.product()),
+            info.requestedQuantity(),
+            getLocationId(info.destinationLocationName())
         );
     }
 

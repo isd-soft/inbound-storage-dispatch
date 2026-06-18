@@ -15,12 +15,12 @@ public class ProductImportMapper implements ImportMapper<ProductInfo, Product> {
 
     @Override
     public Product toEntity(ProductInfo info) {
-        Category category = categoryRepository.findByNameIgnoreCase(info.getCategoryName())
-            .orElse(categoryRepository.save(new Category(info.getCategoryName())));
+        Category category = categoryRepository.findByNameIgnoreCase(info.categoryName())
+            .orElse(categoryRepository.save(new Category(info.categoryName())));
         return new Product(
-            info.getName(),
-            info.getBarcode(),
-            info.getDescription(),
+            info.name(),
+            info.barcode(),
+            info.description(),
             category
         );
     }
