@@ -97,7 +97,6 @@
           />
         </template>
       </Column>
-      <!-- Inline editing is intentionally not enabled here because orders contain nested lines and assignment changes backend task ownership. Operator assignment stays row-scoped by business design. -->
       <Column header="Assigned Operator" style="min-width: 14rem">
         <template #body="{ data }">
           <Dropdown
@@ -111,6 +110,12 @@
             :disabled="isAssignmentLocked(data.order)"
             @change="assignOrderToOperator(data.order.id, assignmentByOrderId[data.order.id])"
           />
+        </template>
+      </Column>
+      <Column header="Transport Unit">
+        <template #body="{ data }">
+          <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
+
         </template>
       </Column>
       <Column field="order.createdAt" header="Created" sortable filter>

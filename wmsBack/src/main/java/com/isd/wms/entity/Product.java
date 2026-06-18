@@ -6,7 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.Hibernate;
 
+import javax.swing.text.html.Option;
 import java.util.Objects;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -41,6 +43,10 @@ public class Product extends BaseTimestampEntity {
 
     @Column(name = "replenish_qty")
     private Integer replenishQty;
+
+    public Optional<Integer> getMinThreshold() {
+        return Optional.ofNullable(this.minThreshold);
+    }
 
     public Product(String name, String barcode, String description, Category category) {
         this.name = name;

@@ -17,7 +17,7 @@ public class ProductMapper {
                 product.getDescription(),
                 category == null ? null : category.getId(),
                 product.getAutoReplenish(),
-                product.getMinThreshold(),
+                product.getMinThreshold().orElse(null),
                 product.getReplenishQty(),
                 product.getCreatedAt(),
                 product.getUpdatedAt()

@@ -22,6 +22,7 @@ import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.repository.TransportUnitRepository;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,11 +39,12 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class AllocationExecutionService {
 
-    private final AllocationRepository  allocationRepository ;
+    private final AllocationRepository allocationRepository;
     private final StockRepository stockRepository;
     private final OrderLineRepository orderLineRepository;
     private final OrderRepository orderRepository;
     private final ReplenishmentRepository replenishmentRepository;
+    private final TransportUnitRepository tuRepository;
     private final InventoryService inventoryService;
     private final SecurityFacade securityFacade;
     private final WorkflowService workflowService;
@@ -336,6 +338,9 @@ public class AllocationExecutionService {
             );
 
 
+        boolean isTuScannedForOrder = tuRepository.existsByOrder(order);
+
+        // CORECTAT: Trimitem ambele booleene pe pozițiile 9 și 10 în constructorul de record
         return new OperatorTaskSummaryResponse(
             currentAllocation != null ? currentAllocation.getTask().getId() : orderLines.stream().findFirst().map(
                 AllocationExecutionService::getTaskId).orElse(null),
@@ -346,10 +351,11 @@ public class AllocationExecutionService {
             order.getDestinationLocation().getBarcode(),
             orderedAllocations.size(),
             Math.toIntExact(completedAllocationCount),
-            readyForCompletion,
-            currentAllocation != null ? toAllocationSummary(currentAllocation, order) : null,
+            readyForCompletion,   // Pozitia 9 (boolean)
+            isTuScannedForOrder, // Pozitia 10 (boolean)
+            currentAllocation != null ? toAllocationSummary(currentAllocation, order, isTuScannedForOrder) : null, // Pozitia 11 (Obiectul curent)
             lineSummaries,
-            orderedAllocations.stream().map(allocation -> toAllocationSummary(allocation, order)).toList()
+            orderedAllocations.stream().map(allocation -> toAllocationSummary(allocation, order, isTuScannedForOrder)).toList()
         );
     }
 
@@ -372,6 +378,9 @@ public class AllocationExecutionService {
             .filter(allocation -> allocation.getStatus() == Status.COMPLETED)
             .count();
 
+        boolean isTuScannedForRepl = tuRepository.existsByReplenishment(replenishment);
+
+        // CORECTAT: Trimitem ambele booleene pe pozițiile 9 și 10 în constructorul de record
         return new OperatorTaskSummaryResponse(
             currentAllocation.getTask().getId(),
             null,
@@ -381,11 +390,12 @@ public class AllocationExecutionService {
             replenishment.getDestinationLocation().getBarcode(),
             taskAllocations.size(),
             Math.toIntExact(completedAllocationCount),
-            false,
-            toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode()),
+            false,              // Pozitia 9 (boolean)
+            isTuScannedForRepl, // Pozitia 10 (boolean)
+            toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl), // Pozitia 11
             List.of(),
             taskAllocations.stream()
-                .map(allocation -> toAllocationSummary(allocation, replenishment.getDestinationLocation().getBarcode()))
+                .map(allocation -> toAllocationSummary(allocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl))
                 .toList()
         );
     }
@@ -419,11 +429,11 @@ public class AllocationExecutionService {
         );
     }
 
-    private OperatorAllocationSummaryResponse toAllocationSummary(Allocation allocation, Order order) {
-        return toAllocationSummary(allocation, order != null ? order.getDestinationLocation().getBarcode() : allocation.getStock().getLocation().getBarcode());
+    private OperatorAllocationSummaryResponse toAllocationSummary(Allocation allocation, Order order, boolean isTuScanned) {
+        return toAllocationSummary(allocation, order != null ? order.getDestinationLocation().getBarcode() : allocation.getStock().getLocation().getBarcode(), isTuScanned);
     }
 
-    private OperatorAllocationSummaryResponse toAllocationSummary(Allocation allocation, String destinationLocationBarcode) {
+    private OperatorAllocationSummaryResponse toAllocationSummary(Allocation allocation, String destinationLocationBarcode, boolean isTuScanned) {
         Stock stock = allocation.getStock();
         return new OperatorAllocationSummaryResponse(
             allocation.getId(),
@@ -438,7 +448,8 @@ public class AllocationExecutionService {
             allocation.getPickedQuantity(),
             allocation.getStatus(),
             allocation.isSourceLocationScanned(),
-            allocation.isProductScanned()
+            allocation.isProductScanned(),
+            isTuScanned
         );
     }
 

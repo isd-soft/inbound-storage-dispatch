@@ -387,8 +387,8 @@ public class SupervisorDashboardService {
     }
 
     private int lowStockThreshold(Product product) {
-        if (product != null && product.getMinThreshold() != null) {
-            return product.getMinThreshold();
+        if (product != null) {
+            return product.getMinThreshold().orElse(DEFAULT_LOW_STOCK_THRESHOLD);
         }
         return DEFAULT_LOW_STOCK_THRESHOLD;
     }

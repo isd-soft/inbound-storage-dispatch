@@ -56,7 +56,8 @@ public class OrderService {
             oRequest = new OrderLineCreateRequest(oRequest, order.getId());
             orderLineService.addOrderLine(order, oRequest);
         }
-        return orderMapper.toResponse(order);
+        // La creare, un ordin nou nu are încă un operator asociat, deci pasăm null
+        return orderMapper.toResponse(order, null);
     }
 
     @Transactional
@@ -79,17 +80,25 @@ public class OrderService {
         order.setDestinationLocation(getLocation(request.destinationLocationId()));
         order.setStatus(request.status());
 
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        Long operatorId = orderRepository.findOperatorIdByOrderId(savedOrder.getId()).orElse(null);
+        return orderMapper.toResponse(savedOrder, operatorId);
     }
 
     @Transactional
     public void deleteOrderById(Long id) {
-        orderRepository.deleteById(id);
+        Order order = getOrder(id);
+        releaseReservedStock(order);
+        orderRepository.delete(order);
+        log.info("Deleted order and released reserved stock: orderId={}", id);
     }
 
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream()
-            .map(orderMapper::toResponse)
+        return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
+            .map(order -> {
+                Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
+                return orderMapper.toResponse(order, operatorId);
+            })
             .toList();
     }
 
@@ -167,8 +176,12 @@ public class OrderService {
     }
 
     public ExtendedOrderResponse getExtendedOrderById(Long orderId) {
-        return extendedOrderMapper.toResponse(getOrder(orderId));
+        Order order = getOrder(orderId);
+        Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
+        return extendedOrderMapper.toResponse(order, operatorId);
     }
+
+
 
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(
@@ -178,14 +191,20 @@ public class OrderService {
                 request.createdAt(),
                 request.updatedAt()
             ).stream()
-            .map(orderMapper::toResponse)
+            .map(order -> {
+                Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
+                return orderMapper.toResponse(order, operatorId);
+            })
             .toList();
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
         List<Order> orders = orderRepository.findAll();
         return orders.stream()
-            .map(extendedOrderMapper::toResponse)
+            .map(order -> {
+                Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
+                return extendedOrderMapper.toResponse(order, operatorId);
+            })
             .toList();
     }
 

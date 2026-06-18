@@ -3,6 +3,7 @@ package com.isd.wms.repository;
 import com.isd.wms.entity.Product;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.repository.projections.ProductWithQuantityProjection;
+import com.isd.wms.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,4 +45,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Long> findProductIdByName(
         @Param("name") String name
     );
+
+    Optional<Product> findByBarcode(String barcode);
 }

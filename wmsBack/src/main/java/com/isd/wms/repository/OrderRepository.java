@@ -78,6 +78,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("operatorId") Long operatorId
     );
 
+    @Query("""
+        SELECT DISTINCT u.id FROM Order o
+        JOIN o.orderLines ol
+        JOIN ol.task t
+        JOIN t.operator u
+        WHERE o.id = :orderId
+    """)
+    Optional<Long> findOperatorIdByOrderId(@Param("orderId") Long orderId);
+
     @Modifying
     @Query("""
             UPDATE Order o
