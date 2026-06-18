@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,5 +72,12 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<List<OrderResponse>> searchOrders(@ModelAttribute OrderSearchRequest request) {
         return ResponseEntity.ok(orderService.searchOrders(request));
+    }
+
+    @PostMapping("/imports")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> importOrders(@RequestParam("file") MultipartFile file) {
+        orderService.importOrdersFromFile(file);
+        return ResponseEntity.ok("Orders were successfully imported.");
     }
 }
