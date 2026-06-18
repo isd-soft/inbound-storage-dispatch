@@ -62,7 +62,6 @@ public class ReplenishmentAiTools {
         if (operator == null) return "Error: Operator not found.";
 
         try {
-            // ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД ИЗ PR КОЛЛЕГИ
             replenishmentService.assignReplenishment(replenishmentId, operator.getId());
             return "Success! Replenishment task #" + replenishmentId + " has been assigned to " + operatorUsername;
         } catch (Exception e) {
