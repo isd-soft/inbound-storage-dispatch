@@ -121,6 +121,7 @@ public class AllocationExecutionService {
             ? OrderStatus.CANCELED
             : hasPartialOrCanceled ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED);
         orderRepository.save(order);
+        releaseTransportUnitForOrder(order);
     }
 
     private int resolveDeliveredQuantity(OrderLine line) {
@@ -242,6 +243,31 @@ public class AllocationExecutionService {
 
         validatePickedQuantityForAllocation(allocation, allocation.getPickedQuantity());
         int pickedQuantity = Optional.ofNullable(allocation.getPickedQuantity()).orElse(0);
+        TaskType taskType = allocation.getTask().getTaskType();
+        allocation.setStatus(pickedQuantity == 0 ? Status.CANCELED : resolveAllocationStatus(allocation));
+        Allocation savedAllocation = allocationRepository.save(allocation);
+
+        if (taskType == TaskType.REPLENISHMENT) {
+            AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
+            releaseTransportUnitForAllocation(savedAllocation);
+            log.info("Replenishment allocation {} completed by operator {} with pickedQuantity={}",
+                allocationId, operator.getUsername(), pickedQuantity);
+
+            return new AllocationCompletionResponse(
+                result.status(),
+                result.taskType(),
+                result.id(),
+                pickedQuantity,
+                0,
+                false,
+                null,
+                null,
+                null,
+                "Allocation completed successfully.",
+                toReplenishmentSummary(savedAllocation)
+            );
+        }
+
         boolean partialPick = pickedQuantity < allocation.getQuantity();
         boolean zeroPickedQuantity = pickedQuantity == 0;
         int shortageQuantity = partialPick ? Math.max(0, allocation.getQuantity() - pickedQuantity) : 0;
@@ -262,13 +288,10 @@ public class AllocationExecutionService {
         int stockQuantityBeforeShortageAdjustment = allocation.getStock().getQuantity();
 
         List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
-            ? createShortageAllocations(allocation, shortageQuantity)
+            ? createShortageAllocations(savedAllocation, shortageQuantity)
             : List.of();
         int remainingShortageQuantity = Math.max(0,
             shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
-
-        allocation.setStatus(zeroPickedQuantity ? Status.CANCELED : resolveAllocationStatus(allocation));
-        Allocation savedAllocation = allocationRepository.save(allocation);
 
         if (partialPick) {
             inventoryService.recordPickingShortageAdjustment(
@@ -666,5 +689,32 @@ public class AllocationExecutionService {
             allocation.getQuantity(),
             allocation.getPickedQuantity()
         );
+    }
+
+    private void releaseTransportUnitForOrder(Order order) {
+        tuRepository.findByOrder(order).ifPresent(transportUnit -> {
+            transportUnit.setOrder(null);
+            transportUnit.setReplenishment(null);
+            tuRepository.save(transportUnit);
+            log.info("Released transport unit {} after order completion", transportUnit.getBarcode());
+        });
+    }
+
+    private void releaseTransportUnitForAllocation(Allocation allocation) {
+        if (allocation.getTask().getTaskType() == TaskType.PICKING_ORDER) {
+            orderLineRepository.findByTaskId(allocation.getTask().getId())
+                .map(OrderLine::getOrder)
+                .ifPresent(this::releaseTransportUnitForOrder);
+            return;
+        }
+
+        replenishmentRepository.findByTaskId(allocation.getTask().getId())
+            .flatMap(replenishment -> tuRepository.findByReplenishment(replenishment))
+            .ifPresent(transportUnit -> {
+                transportUnit.setOrder(null);
+                transportUnit.setReplenishment(null);
+                tuRepository.save(transportUnit);
+                log.info("Released transport unit {} after replenishment completion", transportUnit.getBarcode());
+            });
     }
 }

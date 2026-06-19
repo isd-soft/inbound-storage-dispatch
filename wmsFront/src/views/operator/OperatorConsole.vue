@@ -818,6 +818,19 @@ const submitPickedQuantity = async () => {
       }
     }
 
+    if (completion.taskType === 'REPLENISHMENT') {
+      localStorage.removeItem('active_tu_barcode')
+      activeTuBarcode.value = ''
+      showTuScan.value = false
+      showDestinationScan.value = false
+      showFinalSummary.value = false
+      summary.value = null
+      finalAllocationsSummary.value = []
+      lastTaskType.value = ''
+      savedDestinationBarcode.value = ''
+      await loadCurrentTask()
+    }
+
     toast.add({
       severity: completion.newProcessCreated ? 'warn' : 'success',
       summary: 'Picking updated',
