@@ -10,6 +10,7 @@ public record OrderLineResponse(
         Long orderId,
         Long taskId,
         Long productId,
+        String productName,
         Integer requestedQuantity,
         Integer deliveredQuantity,
         Status status,

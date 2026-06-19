@@ -66,14 +66,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query(value = """
-            SELECT DISTINCT o.* FROM orders o
-            JOIN order_lines ol ON o.id = ol.order_id
-            JOIN tasks t ON ol.task_id = t.id
-            WHERE t.operator_id = :operatorId
-              AND o.status = 'PICKED'
-            ORDER BY o.created_at, o.id
-            LIMIT 1
-        """, nativeQuery = true)
+        SELECT DISTINCT o.* FROM orders o
+        JOIN order_lines ol ON o.id = ol.order_id
+        JOIN tasks t ON ol.task_id = t.id
+        WHERE t.operator_id = :operatorId
+          AND o.status IN ('PICKED', 'PARTIALLY_COMPLETED')
+        ORDER BY o.created_at, o.id
+        LIMIT 1
+    """, nativeQuery = true)
     Optional<Order> findOldestPickedOrderAssignedToOperator(
         @Param("operatorId") Long operatorId
     );

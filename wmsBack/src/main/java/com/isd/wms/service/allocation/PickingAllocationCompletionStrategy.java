@@ -71,6 +71,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
 
         boolean hasPartialHistory = orderLines.stream().anyMatch(line ->
             line.getStatus() == Status.CANCELED
+                || line.getStatus() == Status.SHORTAGE
                 || resolveDeliveredQuantity(line) < line.getRequestedQuantity()
                 || line.getShortageQuantity() > 0
                 || line.getStatus() == Status.PARTIALLY_COMPLETED
@@ -97,6 +98,16 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
             return Status.CANCELED;
         }
         if (deliveredQuantity < requestedQuantity) {
+            boolean hasPendingAllocations = orderLine.getTask()
+                .map(task -> task.getAllocations().stream().anyMatch(allocation ->
+                    allocation.getStatus() == Status.ASSIGNED
+                        || allocation.getStatus() == Status.IN_PROGRESS
+                        || allocation.getStatus() == Status.CREATED
+                ))
+                .orElse(false);
+            if (hasPendingAllocations) {
+                return Status.SHORTAGE;
+            }
             return Status.PARTIALLY_COMPLETED;
         }
         return Status.COMPLETED;

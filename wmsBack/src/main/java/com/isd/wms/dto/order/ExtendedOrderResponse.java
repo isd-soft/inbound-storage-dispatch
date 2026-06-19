@@ -6,6 +6,7 @@ import java.util.List;
 
 public record ExtendedOrderResponse(
         OrderResponse order,
-        List<OrderLineResponse> lines
+        List<OrderLineResponse> lines,
+        Integer totalDeliveredQuantity
 ) {
 }

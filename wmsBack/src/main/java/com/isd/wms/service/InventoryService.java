@@ -8,11 +8,12 @@ import com.isd.wms.dto.inventory.InventoryHistoryResponse;
 import com.isd.wms.dto.inventory.RemoveStockRequest;
 import com.isd.wms.dto.inventory.StockResponse;
 import com.isd.wms.entity.InventoryHistory;
-import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.InventoryAdjustmentReason;
+import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InsufficientStockException;
 import com.isd.wms.exception.InvalidRequestException;
@@ -22,16 +23,12 @@ import com.isd.wms.exception.StockNotFoundException;
 import com.isd.wms.exception.UserNotFoundException;
 import com.isd.wms.mapper.InventoryHistoryMapper;
 import com.isd.wms.mapper.StockMapper;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.InventoryHistoryRepository;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.UserRepository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +37,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -81,16 +81,17 @@ public class InventoryService {
         Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
             .orElseGet(() -> new Stock(product, location));
 
-        Integer reservedQuantity = request.quantity() == null ? 0 : request.quantity();
-        stock.setQuantity(stock.getQuantity() + reservedQuantity);
-        stock.setReservedQuantity(stock.getReservedQuantity() + request.reservedQuantity());
+        int quantity = request.quantity() == null ? 0 : request.quantity();
+        int reservedQuantity = request.reservedQuantity() == null ? 0 : request.reservedQuantity();
+        stock.setQuantity(stock.getQuantity() + quantity);
+        stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
         stock.setManufactureDate(request.manufactureDate());
         stock.setExpirationDate(request.expirationDate());
 
         Stock savedStock = stockRepository.save(stock);
 
-        createHistory(savedStock, request.quantity(), savedStock.getQuantity(), null, location,
-            InventoryOperationType.ADD_STOCK, user);
+        createHistory(savedStock, quantity, savedStock.getQuantity(), null, location,
+            InventoryOperationType.ADD_STOCK, null, null, user);
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
     }
@@ -116,7 +117,7 @@ public class InventoryService {
         Stock savedStock = stockRepository.save(stock);
 
         createHistory(savedStock, -request.getQuantity(), finalQuantity, savedStock.getLocation(), null,
-            InventoryOperationType.REMOVE_STOCK, user);
+            InventoryOperationType.REMOVE_STOCK, null, null, user);
 
         triggerReplenishmentCheck(savedStock);
 
@@ -160,8 +161,36 @@ public class InventoryService {
 
     @Transactional
     public void recordPickingHistory(Stock stock, Integer pickedQuantity, User user) {
+        recordPickingHistory(stock, pickedQuantity, user, null, null);
+    }
+
+    @Transactional
+    public void recordPickingHistory(
+        Stock stock,
+        Integer pickedQuantity,
+        User user,
+        InventoryAdjustmentReason adjustmentReason,
+        String comment
+    ) {
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
-            InventoryOperationType.PICKING, user);
+            InventoryOperationType.PICKING, adjustmentReason, comment, user);
+    }
+
+    @Transactional
+    public void recordPickingShortageAdjustment(Stock stock, Integer shortageQuantity, User user, String comment) {
+        if (shortageQuantity == null || shortageQuantity <= 0) {
+            return;
+        }
+
+        int quantityAfterChange = Math.max(0, stock.getQuantity() - shortageQuantity);
+        stock.setQuantity(quantityAfterChange);
+        stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
+        stockRepository.save(stock);
+
+        createHistory(stock, -shortageQuantity, quantityAfterChange, stock.getLocation(), null,
+            InventoryOperationType.ADJUST_STOCK, InventoryAdjustmentReason.PICKING_SHORTAGE, comment, user);
+        log.info("Picking shortage adjustment recorded: stockId={}, shortageQuantity={}, quantityAfterChange={}",
+            stock.getId(), shortageQuantity, quantityAfterChange);
     }
 
     private void createHistory(
@@ -171,6 +200,8 @@ public class InventoryService {
         Location sourceLocation,
         Location destinationLocation,
         InventoryOperationType operationType,
+        InventoryAdjustmentReason adjustmentReason,
+        String comment,
         User user
     ) {
         Product product = stock.getProduct().orElse(null);
@@ -183,8 +214,8 @@ public class InventoryService {
                 sourceLocation,
                 destinationLocation,
                 operationType,
-                null,
-                null,
+                adjustmentReason,
+                comment,
                 user
         );
         history.setTimestamp(LocalDateTime.now());

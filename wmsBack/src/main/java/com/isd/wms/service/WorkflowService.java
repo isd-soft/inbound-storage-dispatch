@@ -103,9 +103,11 @@ public class WorkflowService {
         Stock sourceStock = allocation.getStock();
 
         int quantityToMove = allocation.getPickedQuantity() != null ? allocation.getPickedQuantity() : allocation.getQuantity();
-
-        sourceStock.removeQuantity(quantityToMove);
-        stockRepository.save(sourceStock);
+        boolean partialPick = allocation.getPickedQuantity() != null && allocation.getPickedQuantity() < allocation.getQuantity();
+        if (!partialPick) {
+            sourceStock.removeQuantity(quantityToMove);
+            stockRepository.save(sourceStock);
+        }
 
         Task task = allocation.getTask();
 

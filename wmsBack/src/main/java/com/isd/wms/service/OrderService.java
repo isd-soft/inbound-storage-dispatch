@@ -113,8 +113,12 @@ public class OrderService {
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
         Order order = getOrder(orderId);
-        if (order.getStatus() == OrderStatus.IN_PROGRESS || order.getStatus() == OrderStatus.COMPLETED) {
-            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS or COMPLETED orders");
+        if (order.getStatus() == OrderStatus.IN_PROGRESS
+            || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED
+            || order.getStatus() == OrderStatus.SHORTAGE
+            || order.getStatus() == OrderStatus.COMPLETED
+            || order.getStatus() == OrderStatus.CANCELED) {
+            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS, PARTIALLY_COMPLETED, SHORTAGE, COMPLETED or CANCELED orders");
         }
 
         assignTasks(order);
@@ -260,6 +264,7 @@ public class OrderService {
 
         List<AffectedOrderLineResponse> shortageLines = lines.stream()
             .filter(line -> line.getStatus() == Status.PARTIALLY_COMPLETED
+                || line.getStatus() == Status.SHORTAGE
                 || line.getStatus() == Status.CANCELED
                 || Optional.ofNullable(line.getShortageQuantity()).orElse(0) > 0)
             .map(line -> toAffectedOrderLineResponse(order, line, allocations))
@@ -280,12 +285,14 @@ public class OrderService {
         boolean allCanceled = !lines.isEmpty() && lines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
         boolean hasShortage = lines.stream().anyMatch(line ->
             line.getStatus() == Status.PARTIALLY_COMPLETED
+                || line.getStatus() == Status.SHORTAGE
                 || line.getStatus() == Status.CANCELED
                 || Optional.ofNullable(line.getShortageQuantity()).orElse(0) > 0
         );
         return hasShortage
             || allCanceled
             || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED
+            || order.getStatus() == OrderStatus.SHORTAGE
             || order.getStatus() == OrderStatus.CANCELED;
     }
 
@@ -293,6 +300,7 @@ public class OrderService {
         List<OrderLine> lines = orderLineRepository.findAllByOrderId(order.getId());
         long shortageLines = lines.stream()
             .filter(line -> line.getStatus() == Status.PARTIALLY_COMPLETED
+                || line.getStatus() == Status.SHORTAGE
                 || line.getStatus() == Status.CANCELED
                 || Optional.ofNullable(line.getShortageQuantity()).orElse(0) > 0)
             .count();
@@ -357,6 +365,11 @@ public class OrderService {
     }
 
     private int resolveDeliveredQuantity(OrderLine line, List<Allocation> lineAllocations) {
+        if (line.getOrder().getStatus() != OrderStatus.COMPLETED
+            && line.getOrder().getStatus() != OrderStatus.PARTIALLY_COMPLETED) {
+            return 0;
+        }
+
         Integer deliveredQuantity = line.getDeliveredQuantity();
         if (deliveredQuantity != null && deliveredQuantity > 0) {
             return deliveredQuantity;
