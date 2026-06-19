@@ -142,9 +142,9 @@ public class ProductService {
 
     @Transactional
     public void importProductsFromFile(MultipartFile file) {
-        List<Product> products = importService.importData(file, ProductInfo.class);
+        List<ProductCreateRequest> products = importService.importData(file, ProductInfo.class);
         try {
-            productRepository.saveAllAndFlush(products);
+            products.forEach(this::createProduct);
         } catch (DataIntegrityViolationException e) {
             throw new InvalidRequestException("The imported file contains invalid product data.");
         }
