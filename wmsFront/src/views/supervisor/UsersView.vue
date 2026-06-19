@@ -76,10 +76,10 @@
       class="w-full max-w-md"
     >
       <div class="flex flex-col gap-4 mt-2">
-        <!-- Username (общее) -->
+        <!-- Username -->
         <div class="flex flex-col gap-2">
           <label for="username" class="app-subtitle font-medium"
-            >Username <span class="text-red-500">*</span></label
+          >Username <span class="text-red-500">*</span></label
           >
           <InputText
             id="username"
@@ -97,55 +97,18 @@
           </small>
         </div>
 
-        <!-- Email (только при создании) -->
         <template v-if="dialogMode === 'add'">
           <div class="flex flex-col gap-2">
             <label for="email" class="app-subtitle font-medium"
-              >Email <span class="text-red-500">*</span></label
+            >Email <span class="text-red-500">*</span></label
             >
             <InputText id="email" type="email" v-model="formData.email" required class="w-full" />
           </div>
-
-          <div class="flex flex-col gap-2">
-            <label for="password" class="app-subtitle font-medium"
-              >Password <span class="text-red-500">*</span></label
-            >
-            <Password
-              id="password"
-              v-model="formData.password"
-              toggleMask
-              required
-              class="w-full"
-            />
-            <small class="text-gray-500 text-xs">
-              Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char
-              (@$!%*?&_#).
-            </small>
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label for="confirmPassword" class="app-subtitle font-medium"
-              >Confirm Password <span class="text-red-500">*</span></label
-            >
-            <Password
-              id="confirmPassword"
-              v-model="confirmPassword"
-              :feedback="false"
-              toggleMask
-              required
-              inputClass="w-full"
-              class="w-full"
-            />
-            <small v-if="confirmPassword && !isPasswordMatching" class="text-red-500">
-              Passwords do not match.
-            </small>
-          </div>
         </template>
 
-        <!-- Role (общее) -->
         <div class="flex flex-col gap-2">
           <label for="role" class="app-subtitle font-medium"
-            >Role <span class="text-red-500">*</span></label
+          >Role <span class="text-red-500">*</span></label
           >
           <Dropdown
             id="role"
@@ -226,7 +189,6 @@ const formData = ref({
   originalRole: null,
 })
 
-// MODIFICARE: Mapăm string-urile brute în obiecte cu text frumos (label) și cheie tehnică (value)
 const roles = computed(() => {
   const allRoles = [
     { value: 'ROLE_SUPERVISOR', label: 'Supervisor' },
@@ -238,15 +200,6 @@ const roles = computed(() => {
     return allRoles
   }
   return allRoles.filter((role) => role.value !== 'ROLE_DEV')
-})
-
-const isPasswordMatching = computed(() => {
-  return formData.value.password === confirmPassword.value
-})
-
-const isPasswordStrongEnough = computed(() => {
-  const regex = new RegExp(passwordStrongRegex)
-  return regex.test(formData.value.password)
 })
 
 const isUsernameValid = computed(() => {
@@ -272,7 +225,6 @@ const getRoleSeverity = (role) => {
   return 'success'
 }
 
-// MODIFICARE: Funcție utilitară pentru a afișa un text prietenos în tabel bazat pe codul de rol
 const formatRoleLabel = (roleValue) => {
   if (roleValue === 'ROLE_SUPERVISOR') return 'Supervisor'
   if (roleValue === 'ROLE_DEV') return 'Developer'

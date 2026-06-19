@@ -42,7 +42,6 @@ public class TransportUnitService {
             throw new IllegalArgumentException("Invalid format! Barcode must start with 'TU' followed by 6 digits.");
         }
 
-        // 1. Preluăm Alocarea trimisă de frontend (unde taskId de pe front reprezintă allocationId)
         Allocation allocation = allocationRepository.findById(taskId)
             .orElseThrow(() -> {
                 log.error("Allocation with ID {} not found", taskId);
@@ -54,10 +53,8 @@ public class TransportUnitService {
             throw new IllegalStateException("Allocation is missing its parent Task!");
         }
 
-        // Extragem ID-ul real al task-ului din graful alocării
         Long realTaskId = allocation.getTask().getId();
 
-        // 2. Verificăm unitatea de transport scanată
         TransportUnit tu = tuRepository.findByBarcode(barcode)
             .orElseThrow(() -> {
                 log.error("Scanned barcode does not exist in database: {}", barcode);
@@ -72,9 +69,7 @@ public class TransportUnitService {
             throw new IllegalStateException("This TU is already locked in another active process!");
         }
 
-        // 3. Identificăm corect rădăcina procesului în funcție de tipul de flux
         if (isOrder) {
-            // Pentru Order: Căutăm folosind query-ul tău custom cu obiectul Task
             var order = orderRepository.getOrderByTask(allocation.getTask())
                 .orElseThrow(() -> {
                     log.error("No Order found associated with Task ID {}", realTaskId);
@@ -85,7 +80,6 @@ public class TransportUnitService {
             tu.setOrder(order);
             tu.setReplenishment(null);
         } else {
-            // Pentru Replenishment: Apelăm metoda ta nativă findByTaskId definită în ReplenishmentRepository
             var replenishment = replenishmentRepository.findByTaskId(realTaskId)
                 .orElseThrow(() -> {
                     log.error("No Replenishment found for Task ID {}", realTaskId);
@@ -97,7 +91,6 @@ public class TransportUnitService {
             tu.setOrder(null);
         }
 
-        // 4. Salvăm modificările securizat
         tuRepository.save(tu);
         log.info("Changes for TU {} successfully saved.", barcode);
     }
