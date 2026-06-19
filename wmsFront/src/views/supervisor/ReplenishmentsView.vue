@@ -128,7 +128,6 @@
       <Column header="Transport Unit">
         <template #body="{ data }">
           <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
-
         </template>
       </Column>
       <Column field="createdAt" header="Created" sortable filter>
@@ -268,7 +267,9 @@
     <UploadFile
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
-      @success="loadInventoryData"
+      @success="loadData"
+      xlsx-template-path="/templates/replenishment_template.xlsx"
+      csv-template-path="/templates/replenishment_template.csv"
     />
   </div>
 </template>
@@ -317,17 +318,21 @@ const hasSelection = computed(() => selectedReplenishments.value.length > 0)
 const isUniformSelection = computed(() => {
   if (!hasSelection.value) return false
   const firstStatus = selectedReplenishments.value[0].status
-  return selectedReplenishments.value.every(task => task.status === firstStatus)
+  return selectedReplenishments.value.every((task) => task.status === firstStatus)
 })
 
-const unifiedStatus = computed(() => isUniformSelection.value ? selectedReplenishments.value[0].status : null)
+const unifiedStatus = computed(() =>
+  isUniformSelection.value ? selectedReplenishments.value[0].status : null,
+)
 
 const canDeleteSelected = computed(() => {
   return isUniformSelection.value && unifiedStatus.value === 'CREATED'
 })
 
 const canCancelSelected = computed(() => {
-  return isUniformSelection.value && ['CREATED', 'ASSIGNED', 'IN_PROGRESS'].includes(unifiedStatus.value)
+  return (
+    isUniformSelection.value && ['CREATED', 'ASSIGNED', 'IN_PROGRESS'].includes(unifiedStatus.value)
+  )
 })
 
 const handleImport = async (formData) => {
@@ -576,9 +581,19 @@ const deleteSelectedReplenishments = async () => {
   }
 
   if (failCount === 0) {
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `${successCount} task(s) permanently deleted.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Deleted',
+      detail: `${successCount} task(s) permanently deleted.`,
+      life: 3000,
+    })
   } else {
-    toast.add({ severity: 'warn', summary: 'Partial Delete', detail: `${successCount} deleted, ${failCount} failed.`, life: 5000 })
+    toast.add({
+      severity: 'warn',
+      summary: 'Partial Delete',
+      detail: `${successCount} deleted, ${failCount} failed.`,
+      life: 5000,
+    })
   }
 
   selectedReplenishments.value = []
@@ -612,9 +627,19 @@ const cancelSelectedReplenishments = async () => {
   }
 
   if (failCount === 0) {
-    toast.add({ severity: 'success', summary: 'Canceled', detail: `${successCount} task(s) canceled and stock released.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Canceled',
+      detail: `${successCount} task(s) canceled and stock released.`,
+      life: 3000,
+    })
   } else {
-    toast.add({ severity: 'warn', summary: 'Partial Cancel', detail: `${successCount} canceled, ${failCount} failed.`, life: 5000 })
+    toast.add({
+      severity: 'warn',
+      summary: 'Partial Cancel',
+      detail: `${successCount} canceled, ${failCount} failed.`,
+      life: 5000,
+    })
   }
 
   selectedReplenishments.value = []

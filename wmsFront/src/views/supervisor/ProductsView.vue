@@ -382,6 +382,8 @@
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
       @success="loadProducts"
+      xlsx-template-path="/templates/product_template.xlsx"
+      csv-template-path="/templates/product_template.csv"
     />
   </div>
 </template>

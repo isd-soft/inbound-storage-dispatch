@@ -6,17 +6,58 @@
     class="w-full max-w-md"
     @update:visible="emit('update:visible', $event)"
     @hide="reset"
-  >
+    ><div class="flex justify-end w-full pt-2">
+      <div class="flex items-center gap-2">
+        <span class="font-medium mr-2">Templates</span>
+
+        <Button
+          v-if="xlsxTemplatePath"
+          as="a"
+          :href="xlsxTemplatePath"
+          download
+          icon="pi pi-file-excel"
+          severity="success"
+          outlined
+          size="small"
+          label="XLSX"
+        />
+
+        <Button
+          v-if="csvTemplatePath"
+          as="a"
+          :href="csvTemplatePath"
+          download
+          icon="pi pi-file"
+          severity="secondary"
+          outlined
+          size="small"
+          label="CSV"
+        />
+      </div>
+    </div>
     <div class="flex flex-col gap-4">
       <FileUpload
-        mode="basic"
-        :auto="false"
+        ref="fileUpload"
+        name="file"
         :multiple="false"
         :customUpload="true"
         accept=".xlsx,.xls,.csv"
-        chooseLabel="Select file"
+        :auto="false"
         @select="onSelect"
-      />
+      >
+        <template #content="{ chooseCallback }">
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition"
+            @click="chooseCallback()"
+            @dragover.prevent
+            @drop.prevent="chooseCallback()"
+          >
+            <i class="pi pi-cloud-upload text-3xl mb-2"></i>
+
+            <p class="mb-1">Drag and drop your file here</p>
+          </div>
+        </template>
+      </FileUpload>
 
       <div v-if="file" class="text-sm text-gray-500">
         Selected: {{ file.name }} ({{ formatSize(file.size) }})
@@ -52,6 +93,14 @@ const props = defineProps({
   apiCall: {
     type: Function,
     required: true,
+  },
+  xlsxTemplatePath: {
+    type: String,
+    default: null,
+  },
+  csvTemplatePath: {
+    type: String,
+    default: null,
   },
 })
 

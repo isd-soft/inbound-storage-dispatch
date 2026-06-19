@@ -9,9 +9,24 @@
         <div class="flex flex-col gap-2 text-sm">
           <div>{{ lastAdjustmentResult.message }}</div>
           <div class="flex flex-wrap gap-2">
-            <Tag :severity="lastAdjustmentResult.reallocationSucceeded ? 'success' : 'warning'" :value="lastAdjustmentResult.reallocationSucceeded ? 'Reallocation succeeded' : 'Reallocation incomplete'" />
-            <Tag v-if="lastAdjustmentResult.partialShortageCreated" severity="warning" value="Partial completion created" />
-            <Tag v-if="lastAdjustmentResult.orderCancelled" severity="danger" value="Order cancelled" />
+            <Tag
+              :severity="lastAdjustmentResult.reallocationSucceeded ? 'success' : 'warning'"
+              :value="
+                lastAdjustmentResult.reallocationSucceeded
+                  ? 'Reallocation succeeded'
+                  : 'Reallocation incomplete'
+              "
+            />
+            <Tag
+              v-if="lastAdjustmentResult.partialShortageCreated"
+              severity="warning"
+              value="Partial completion created"
+            />
+            <Tag
+              v-if="lastAdjustmentResult.orderCancelled"
+              severity="danger"
+              value="Order cancelled"
+            />
           </div>
           <div v-if="lastAdjustmentResult.affectedOrders?.length" class="flex flex-col gap-1">
             <div class="font-semibold">Affected orders</div>
@@ -106,65 +121,80 @@
           >{{ selectedStockItems.length }} selected</span
         >
       </template>
-          <Column v-if="editMode && canManageStock" selectionMode="multiple" headerStyle="width: 3rem" />
-          <Column field="productName" header="Product" sortable filter>
-            <template #body="{ data }">
-              <ProductLink
-                :product-id="data.productId"
-                :barcode="data.barcode"
-                :name="data.productName"
-                :disabled="editMode"
-                class="font-semibold"
-              />
-            </template>
-          </Column>
+      <Column
+        v-if="editMode && canManageStock"
+        selectionMode="multiple"
+        headerStyle="width: 3rem"
+      />
+      <Column field="productName" header="Product" sortable filter>
+        <template #body="{ data }">
+          <ProductLink
+            :product-id="data.productId"
+            :barcode="data.barcode"
+            :name="data.productName"
+            :disabled="editMode"
+            class="font-semibold"
+          />
+        </template>
+      </Column>
 
-          <Column field="barcode" header="Barcode" sortable filter></Column>
-          <Column field="locationBarcode" header="Location" sortable filter></Column>
-          <Column field="quantity" header="Total Qty" sortable filter>
-            <template #body="{ data }">
-              <span class="app-title font-bold text-base">{{ data.quantity }}</span>
-            </template>
-            <template #editor="{ data, field }">
-              <InputNumber v-model="data[field]" class="w-full" :min="0" autofocus />
-            </template>
-          </Column>
+      <Column field="barcode" header="Barcode" sortable filter></Column>
+      <Column field="locationBarcode" header="Location" sortable filter></Column>
+      <Column field="quantity" header="Total Qty" sortable filter>
+        <template #body="{ data }">
+          <span class="app-title font-bold text-base">{{ data.quantity }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputNumber v-model="data[field]" class="w-full" :min="0" autofocus />
+        </template>
+      </Column>
 
-          <Column field="reservedQuantity" header="Reserved" sortable filter>
-            <template #body="{ data }">
-              <span class="font-bold text-base" :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'">
-                {{ data.reservedQuantity || 0 }}
-              </span>
-            </template>
-          </Column>
+      <Column field="reservedQuantity" header="Reserved" sortable filter>
+        <template #body="{ data }">
+          <span
+            class="font-bold text-base"
+            :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'"
+          >
+            {{ data.reservedQuantity || 0 }}
+          </span>
+        </template>
+      </Column>
 
-          <!-- Available -->
-          <Column field="availableQuantity" header="Available" sortable filter>
-            <template #body="{ data }">
-              <span class="font-bold text-base" :class="data.availableQuantity <= 0 ? 'text-red-500' : (data.availableQuantity < 10 ? 'text-yellow-500' : 'text-green-500')">
-                {{ data.availableQuantity }}
-              </span>
-            </template>
-          </Column>
+      <!-- Available -->
+      <Column field="availableQuantity" header="Available" sortable filter>
+        <template #body="{ data }">
+          <span
+            class="font-bold text-base"
+            :class="
+              data.availableQuantity <= 0
+                ? 'text-red-500'
+                : data.availableQuantity < 10
+                  ? 'text-yellow-500'
+                  : 'text-green-500'
+            "
+          >
+            {{ data.availableQuantity }}
+          </span>
+        </template>
+      </Column>
 
-          <Column field="manufactureDate" header="Manufactured" sortable filter>
-            <template #body="{ data }">
-              <span class="app-muted text-sm">{{ data.manufactureDate || '-' }}</span>
-            </template>
-            <template #editor="{ data, field }">
-              <InputText v-model="data[field]" type="date" class="w-full" />
-            </template>
-          </Column>
+      <Column field="manufactureDate" header="Manufactured" sortable filter>
+        <template #body="{ data }">
+          <span class="app-muted text-sm">{{ data.manufactureDate || '-' }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputText v-model="data[field]" type="date" class="w-full" />
+        </template>
+      </Column>
 
-          <Column field="expirationDate" header="Expires" sortable filter>
-            <template #body="{ data }">
-              <span class="app-muted text-sm">{{ data.expirationDate || '-' }}</span>
-            </template>
-            <template #editor="{ data, field }">
-              <InputText v-model="data[field]" type="date" class="w-full" />
-            </template>
-          </Column>
-
+      <Column field="expirationDate" header="Expires" sortable filter>
+        <template #body="{ data }">
+          <span class="app-muted text-sm">{{ data.expirationDate || '-' }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputText v-model="data[field]" type="date" class="w-full" />
+        </template>
+      </Column>
     </AppDataTable>
 
     <StockActionDialog
@@ -180,6 +210,8 @@
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
       @success="loadInventoryData"
+      xlsx-template-path="/templates/stock_template.xlsx"
+      csv-template-path="/templates/stock_template.csv"
     />
   </div>
 </template>
@@ -383,14 +415,18 @@ const submitQuantityChanges = async () => {
       return
     }
 
-    await Promise.all(changedStocks.map((stock) => inventoryApi.adjustStock(stock.id, {
-      newQuantity: stock.quantity,
-      manufactureDate: stock.manufactureDate || null,
-      expirationDate: stock.expirationDate || null,
-      userId,
-      reason: 'INVENTORY_MISMATCH',
-      comment: null
-    })))
+    await Promise.all(
+      changedStocks.map((stock) =>
+        inventoryApi.adjustStock(stock.id, {
+          newQuantity: stock.quantity,
+          manufactureDate: stock.manufactureDate || null,
+          expirationDate: stock.expirationDate || null,
+          userId,
+          reason: 'INVENTORY_MISMATCH',
+          comment: null,
+        }),
+      ),
+    )
 
     toast.add({
       severity: 'success',
@@ -489,7 +525,12 @@ const submitAction = async (payload) => {
   actionLoading.value = true
   try {
     await inventoryApi.addStock({ ...payload, userId })
-    toast.add({ severity: 'success', summary: 'Stock added', detail: 'Inventory stock was added.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Stock added',
+      detail: 'Inventory stock was added.',
+      life: 3000,
+    })
     dialogVisible.value = false
     selectedStockItems.value = []
     await loadInventoryData()

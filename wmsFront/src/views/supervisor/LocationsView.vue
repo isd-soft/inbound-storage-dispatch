@@ -201,6 +201,8 @@
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
       @success="loadLocations"
+      xlsx-template-path="/templates/location_template.xlsx"
+      csv-template-path="/templates/location_template.csv"
     />
   </div>
 </template>
