@@ -79,12 +79,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query("""
-        SELECT DISTINCT u.id FROM Order o
-        JOIN o.orderLines ol
-        JOIN ol.task t
-        JOIN t.operator u
-        WHERE o.id = :orderId
-    """)
+            SELECT DISTINCT u.id FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            JOIN t.operator u
+            WHERE o.id = :orderId
+        """)
     Optional<Long> findOperatorIdByOrderId(@Param("orderId") Long orderId);
 
     @Modifying
@@ -140,4 +140,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("order") Order order,
         @Param("operatorId") Long operatorId
     );
+
+    @Query("""
+            SELECT u.username
+            FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            JOIN t.operator u
+                WHERE o = :order
+        """)
+    Optional<String> findOperatorUsernameByOrder(@Param("order") Order order);
 }

@@ -56,7 +56,6 @@ public class OrderService {
             oRequest = new OrderLineCreateRequest(oRequest, order.getId());
             orderLineService.addOrderLine(order, oRequest);
         }
-        // La creare, un ordin nou nu are încă un operator asociat, deci pasăm null
         return orderMapper.toResponse(order, null);
     }
 
@@ -103,7 +102,7 @@ public class OrderService {
     }
 
     public OrderResponse getOrderById(@NonNull Long orderId) {
-        return orderMapper.toResponse(getOrder(orderId));
+        return orderMapper.toResponse(getOrder(orderId), orderRepository.findOperatorIdByOrderId(orderId).orElse(null));
     }
 
     public Order getOrder(@NonNull Long orderId) {

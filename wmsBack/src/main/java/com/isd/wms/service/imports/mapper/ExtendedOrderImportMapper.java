@@ -36,6 +36,8 @@ public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo
                 ))
             );
         } catch (Exception e) {
+            System.out.println(getProductId(info.getOrderLineInfo().getProductName()));
+            System.out.println(getLocationId(info.getOrderInfo().getDestinationLocationName()));
             throw new InvalidRequestException(String.format("An error occurred at parsing the order %s.", info.getOrderInfo().getLogicId()));
         }
     }

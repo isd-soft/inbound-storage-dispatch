@@ -7,7 +7,6 @@ import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.AllocationRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.service.allocation.AllocationCompletionStrategy;
@@ -15,7 +14,6 @@ import com.isd.wms.service.allocation.StockAllocationStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -26,14 +24,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkflowService {
     private final AllocationRepository allocationRepository;
-    private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
 
     private final List<AllocationCompletionStrategy> allocationCompletionStrategies;
     private final List<StockAllocationStrategy> allocationStrategies;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
         StockAllocationStrategy strategy = allocationStrategies.stream()
             .filter(s -> s.support(task.getTaskType()))

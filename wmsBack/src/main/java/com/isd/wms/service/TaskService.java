@@ -30,7 +30,7 @@ public class TaskService {
         User supervisor = securityFacade.getCurrentUser();
 
         Task task = new Task(supervisor, type, requestedQuantity);
-        task = taskRepository.save(task);
+        task = taskRepository.saveAndFlush(task);
 
         workflowService.generateAllocationsForTask(task, productId, requestedQuantity);
 

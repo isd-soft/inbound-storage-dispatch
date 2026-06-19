@@ -7,9 +7,7 @@ import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.repository.LocationRepository;
@@ -25,14 +23,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service("orderAiTools")
 @RequiredArgsConstructor
 public class OrderAiTools {
 
-    public record AiOrderItem(String productBarcode, Integer quantity) {}
+    public record AiOrderItem(String productBarcode, Integer quantity) {
+    }
 
     private final OrderService orderService;
     private final OrderRepository orderRepository;
@@ -60,16 +58,16 @@ public class OrderAiTools {
             String dest = o.getDestinationLocation() != null ? o.getDestinationLocation().getBarcode() : "N/A";
             int linesCount = o.getOrderLines() != null ? o.getOrderLines().size() : 0;
 
-            String operatorName = "Unassigned";
-            if (o.getOrderLines() != null) {
-                for (OrderLine line : o.getOrderLines()) {
-                    Task task = line.getTask();
-                    if (task != null && task.getOperator().isPresent()) {
-                        operatorName = task.getOperator().get().getUsername();
-                        break;
-                    }
-                }
-            }
+            String operatorName = orderRepository.findOperatorUsernameByOrder(o).orElse("Unassigned");
+//            if (o.getOrderLines() != null) {
+//                for (OrderLine line : o.getOrderLines()) {
+//                    Task task = line.getTask();
+//                    if (task != null && task.getOperator().isPresent()) {
+//                        operatorName = task.getOperator().get().getUsername();
+//                        break;
+//                    }
+//                }
+//            }
 
             sb.append(String.format("| %s | %s | %s | %d | %s |\n",
                 o.getLogicId(), dest, o.getStatus().name(), linesCount, operatorName));

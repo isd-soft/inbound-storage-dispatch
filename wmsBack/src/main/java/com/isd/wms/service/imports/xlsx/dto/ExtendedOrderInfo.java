@@ -6,9 +6,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class ExtendedOrderInfo {
     @ExcelCellRange
     private OrderInfo orderInfo;
@@ -18,6 +20,7 @@ public class ExtendedOrderInfo {
 
     @Getter
     @Setter
+    @ToString
     public static class OrderInfo {
         @ExcelCellName(value = "Logic ID", mandatoryCell = true, mandatoryHeader = true)
         @NonNull
@@ -32,6 +35,7 @@ public class ExtendedOrderInfo {
 
     @Getter
     @Setter
+    @ToString
     public static class OrderLineInfo {
         @ExcelCellName(value = "Product", mandatoryCell = true, mandatoryHeader = true)
         @NonNull
