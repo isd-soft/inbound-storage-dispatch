@@ -8,46 +8,46 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <ThemeToggle />
-        <Button label="Supervisor" icon="pi pi-chart-bar" severity="secondary" text @click="router.push('/supervisor')" />
+<!--        <Button label="Supervisor" icon="pi pi-chart-bar" severity="secondary" text @click="router.push('/supervisor')" />-->
         <Button icon="pi pi-sign-out" label="Logout" severity="danger" text @click="handleLogout" />
       </div>
     </header>
 
     <main class="p-4 max-w-7xl mx-auto mt-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card class="app-card">
-          <template #title><span class="app-subtitle">Backend API</span></template>
-          <template #content>
-            <Tag severity="success" value="Online"></Tag>
-            <p class="app-muted mt-2 text-sm">v1.0.0 | Java 21</p>
-          </template>
-        </Card>
+<!--      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">-->
+<!--        <Card class="app-card">-->
+<!--          <template #title><span class="app-subtitle">Backend API</span></template>-->
+<!--          <template #content>-->
+<!--            <Tag severity="success" value="Online"></Tag>-->
+<!--            <p class="app-muted mt-2 text-sm">v1.0.0 | Java 21</p>-->
+<!--          </template>-->
+<!--        </Card>-->
 
-        <Card class="app-card">
-          <template #title><span class="app-subtitle">Database</span></template>
-          <template #content>
-            <Tag severity="success" value="Connected"></Tag>
-            <p class="app-muted mt-2 text-sm">PostgreSQL 16</p>
-          </template>
-        </Card>
+<!--        <Card class="app-card">-->
+<!--          <template #title><span class="app-subtitle">Database</span></template>-->
+<!--          <template #content>-->
+<!--            <Tag severity="success" value="Connected"></Tag>-->
+<!--            <p class="app-muted mt-2 text-sm">PostgreSQL 16</p>-->
+<!--          </template>-->
+<!--        </Card>-->
 
-        <Card class="app-card">
-          <template #title><span class="app-subtitle">Active Tokens</span></template>
-          <template #content>
-            <span class="app-brand text-3xl font-bold">12</span>
-          </template>
-        </Card>
-      </div>
+<!--        <Card class="app-card">-->
+<!--          <template #title><span class="app-subtitle">Active Tokens</span></template>-->
+<!--          <template #content>-->
+<!--            <span class="app-brand text-3xl font-bold">12</span>-->
+<!--          </template>-->
+<!--        </Card>-->
+<!--      </div>-->
 
-          <AppDataTable :value="systemLogs" :filterFields="systemLogFilterFields" class="p-datatable-sm">
-            <Column field="timestamp" header="Time" filter></Column>
-            <Column field="level" header="Level" filter>
-              <template #body="slotProps">
-                <Tag :severity="slotProps.data.level === 'ERROR' ? 'danger' : 'warn'" :value="slotProps.data.level"></Tag>
-              </template>
-            </Column>
-            <Column field="message" header="Message" filter></Column>
-          </AppDataTable>
+<!--          <AppDataTable :value="systemLogs" :filterFields="systemLogFilterFields" class="p-datatable-sm">-->
+<!--            <Column field="timestamp" header="Time" filter></Column>-->
+<!--            <Column field="level" header="Level" filter>-->
+<!--              <template #body="slotProps">-->
+<!--                <Tag :severity="slotProps.data.level === 'ERROR' ? 'danger' : 'warn'" :value="slotProps.data.level"></Tag>-->
+<!--              </template>-->
+<!--            </Column>-->
+<!--            <Column field="message" header="Message" filter></Column>-->
+<!--          </AppDataTable>-->
     </main>
 
   </div>
