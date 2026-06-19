@@ -301,10 +301,11 @@
         />
       </template>
     </Dialog>
+
     <UploadFile
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
-      @success="loadInventoryData"
+      @success="loadData"
     />
   </div>
 </template>
@@ -362,11 +363,11 @@ const cancelableSelectedReplenishments = computed(() =>
   selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
 )
 
+// ЛОГИКА ИМПОРТА ОТ КОЛЛЕГИ
 const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
     throw new Error('Expected FormData')
   }
-
   return replenishmentApi.importReplenishments(formData)
 }
 

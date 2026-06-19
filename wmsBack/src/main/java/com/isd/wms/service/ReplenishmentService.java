@@ -154,6 +154,7 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Cannot cancel a task that is already COMPLETED or CANCELED.");
         }
 
+        // Логика отвязки тележки (от тебя)
         transportUnitRepository.findByReplenishment(replenishment).ifPresent(tu -> {
             tu.setReplenishment(null);
             transportUnitRepository.save(tu);
