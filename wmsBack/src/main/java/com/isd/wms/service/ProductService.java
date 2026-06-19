@@ -13,6 +13,7 @@ import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.mapper.ProductMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
+import com.isd.wms.service.ai.ProductVectorIndexer;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.xlsx.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final ProductVectorIndexer productVectorIndexer;
     private final ImportService importService;
 
     @Transactional
@@ -51,6 +53,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        productVectorIndexer.indexProduct(savedProduct);
         return productMapper.toResponse(savedProduct);
     }
 
@@ -74,6 +77,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product updated successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        productVectorIndexer.indexProduct(savedProduct);
         return productMapper.toResponse(savedProduct);
     }
 
@@ -81,6 +85,7 @@ public class ProductService {
     public void deleteProduct(Long productId) {
         log.info("Deleting product: productId={}", productId);
         productRepository.delete(getProduct(productId));
+        productVectorIndexer.removeProduct(productId);
         log.info("Product deleted successfully: productId={}", productId);
     }
 
@@ -94,8 +99,8 @@ public class ProductService {
     public List<ProductResponse> getAllProducts() {
         log.info("Getting all products");
         List<ProductResponse> products = productRepository.findAll().stream()
-                .map(productMapper::toResponse)
-                .toList();
+            .map(productMapper::toResponse)
+            .toList();
         log.info("Products fetched successfully: count={}", products.size());
         return products;
     }
@@ -113,26 +118,26 @@ public class ProductService {
         }
 
         List<ProductResponse> products = productRepository.search(searchName, categoryId).stream()
-                .map(productMapper::toResponse)
-                .toList();
+            .map(productMapper::toResponse)
+            .toList();
         log.info("Product search completed: name={}, categoryId={}, count={}", searchName, categoryId, products.size());
         return products;
     }
 
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> {
-                    log.warn("Product not found: productId={}", productId);
-                    return new ProductNotFoundException(productId);
-                });
+            .orElseThrow(() -> {
+                log.warn("Product not found: productId={}", productId);
+                return new ProductNotFoundException(productId);
+            });
     }
 
     private Category getCategory(Long categoryId) {
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> {
-                    log.warn("Category not found for product operation: categoryId={}", categoryId);
-                    return new CategoryNotFoundException(categoryId);
-                });
+            .orElseThrow(() -> {
+                log.warn("Category not found for product operation: categoryId={}", categoryId);
+                return new CategoryNotFoundException(categoryId);
+            });
     }
 
     @Transactional

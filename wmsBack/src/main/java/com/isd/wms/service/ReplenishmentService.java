@@ -37,6 +37,7 @@ public class ReplenishmentService {
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final AllocationRepository allocationRepository;
+    private final TransportUnitRepository transportUnitRepository;
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
@@ -64,16 +65,24 @@ public class ReplenishmentService {
         log.info("Updating replenishment: id={}, status={}", id, request.status());
 
         Replenishment replenishment = getReplenishment(id);
+
+        if (replenishment.getStatus() == Status.IN_PROGRESS ||
+            replenishment.getStatus() == Status.COMPLETED ||
+            replenishment.getStatus() == Status.CANCELED) {
+            throw new InvalidRequestException("Cannot update replenishment that is currently in status: " + replenishment.getStatus().name());
+        }
+
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
 
         boolean isProductChanged = !request.productId().equals(replenishment.getProduct().getId());
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());
 
-
         if (isProductChanged || isQuantityChanged) {
-            getTask(replenishment).setRequestedQuantity(request.requestedQuantity());
-            workflowService.updateTask(getTask(replenishment), request.productId(), request.requestedQuantity());
+            replenishment.getTask().ifPresent(task -> {
+                task.setRequestedQuantity(request.requestedQuantity());
+                workflowService.updateTask(task, request.productId(), request.requestedQuantity());
+            });
         }
 
         updateReplenishment(request, replenishment, product, destinationLocation);
@@ -84,7 +93,11 @@ public class ReplenishmentService {
     private static void updateReplenishment(ReplenishmentUpdateRequest request, Replenishment replenishment, Product product, Location destinationLocation) {
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
-        replenishment.setStatus(request.status());
+
+        if (request.status() != null) {
+            replenishment.setStatus(request.status());
+        }
+
         replenishment.setDestinationLocation(destinationLocation);
     }
 
@@ -119,16 +132,16 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Physical deletion is only allowed for tasks in CREATED status.");
         }
 
-        Task task = getTask(replenishment);
-        List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+        replenishment.getTask().ifPresent(task -> {
+            List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+            for (Allocation allocation : allocations) {
+                Stock stock = allocation.getStock();
+                stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
+                stockRepository.save(stock);
+            }
+            allocationRepository.deleteAll(allocations);
+        });
 
-        for (Allocation allocation : allocations) {
-            Stock stock = allocation.getStock();
-            stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
-            stockRepository.save(stock);
-        }
-
-        allocationRepository.deleteAll(allocations);
         replenishmentRepository.delete(replenishment);
     }
 
@@ -141,28 +154,27 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Cannot cancel a task that is already COMPLETED or CANCELED.");
         }
 
-        Task task = getTask(replenishment);
-        List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+        transportUnitRepository.findByReplenishment(replenishment).ifPresent(tu -> {
+            tu.setReplenishment(null);
+            transportUnitRepository.save(tu);
+            log.info("Successfully released Transport Unit {} from canceled replenishment {}", tu.getBarcode(), replenishmentId);
+        });
 
-        for (Allocation allocation : allocations) {
-            if (allocation.getStatus() != Status.COMPLETED) {
-                Stock stock = allocation.getStock();
-                stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
-                stockRepository.save(stock);
-
-                allocation.setStatus(Status.CANCELED);
+        replenishment.getTask().ifPresent(task -> {
+            List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+            for (Allocation allocation : allocations) {
+                if (allocation.getStatus() != Status.COMPLETED) {
+                    Stock stock = allocation.getStock();
+                    stock.setReservedQuantity(stock.getReservedQuantity() - allocation.getQuantity());
+                    stockRepository.save(stock);
+                    allocation.setStatus(Status.CANCELED);
+                }
             }
-        }
+            allocationRepository.saveAll(allocations);
+        });
 
         replenishment.setStatus(Status.CANCELED);
-        allocationRepository.saveAll(allocations);
-
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
-    }
-
-    private Task getTask(Replenishment replenishment) {
-        return replenishment.getTask()
-            .orElseThrow(() -> new InvalidRequestException("There are no allocations for this request yet."));
     }
 
     public ReplenishmentResponse getReplenishmentById(Long replenishmentId) {
