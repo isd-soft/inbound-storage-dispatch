@@ -18,8 +18,8 @@ public class ExtendedOrderMapper {
     public ExtendedOrderResponse toResponse(Order order, @Nullable Long operatorId) {
         return new ExtendedOrderResponse(
             orderMapper.toResponse(order, operatorId),
-            resolveTotalDeliveredQuantity(order),
-            order.getOrderLines().stream().map(orderLineMapper::toResponse).toList()
+            order.getOrderLines().stream().map(orderLineMapper::toResponse).toList(),
+            resolveTotalDeliveredQuantity(order)
         );
     }
 

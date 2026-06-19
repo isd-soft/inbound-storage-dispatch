@@ -36,6 +36,15 @@
           <p class="app-muted text-xs">Required prefix: 'TU' followed by 6 digits (e.g., TU100001)</p>
         </div>
 
+        <div v-if="currentAllocation" class="app-muted-panel rounded-xl p-4 flex flex-col gap-2 text-xs">
+          <div class="text-[10px] font-bold uppercase tracking-wider app-muted">Current task</div>
+          <div class="font-bold app-title text-sm">{{ currentAllocation.productName }}</div>
+          <div class="flex flex-wrap gap-x-5 gap-y-2 app-subtitle font-medium">
+            <span>Required Qty: <strong class="app-warm font-bold text-sm">{{ currentAllocation.requiredQuantity }} u.</strong></span>
+            <span>Location: <strong class="font-mono app-accent font-bold text-sm tracking-wide">{{ currentAllocation.sourceLocationBarcode }}</strong></span>
+          </div>
+        </div>
+
         <ScanSection
           v-model="tuInput"
           :loading="actionLoading"
@@ -122,7 +131,7 @@
           <p class="app-muted text-xs">Please drop off items and scan the target zone to complete task</p>
         </div>
 
-        <div class="w-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-3 flex items-center justify-center gap-2 text-blue-700 dark:text-blue-400 text-xs font-bold tracking-wide uppercase">
+        <div class="app-dispatch-banner w-full rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-bold tracking-wide uppercase">
           <i class="pi pi-info-circle text-sm"></i>
           Drop TU at dispatch
         </div>
@@ -487,7 +496,6 @@ const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuant
 const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.value-- }
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
-const currentAllocation = computed(() => summary.value?.currentAllocation || null)
 const currentAllocation = computed(() => {
   const rawCurrent = summary.value?.currentAllocation || null
   if (rawCurrent && (rawCurrent.requiredQuantity != null || rawCurrent.sourceLocationBarcode || rawCurrent.productName)) {
@@ -500,6 +508,7 @@ const currentAllocation = computed(() => {
       || allocation.status === 'CREATED'
   ) || rawCurrent
 })
+const orderedAllocations = computed(() => normalizeSummaryEntries(summary.value))
 const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT' || lastTaskType.value === 'REPLENISHMENT')
 
 const taskBadgeClass = computed(() => {
@@ -662,7 +671,10 @@ const startTask = async () => {
   actionLoading.value = true
   actionError.value = ''
   try {
-    await allocationApi.startCurrentTask()
+    const response = await allocationApi.startCurrentTask()
+    if (response?.data) {
+      hydrateState(response.data)
+    }
     showTuScan.value = true
   } catch (error) {
     actionError.value = getErrorMessage(error, 'Failed to start task.')
@@ -708,6 +720,7 @@ const submitTuScan = async () => {
     }
 
     showTuScan.value = false
+    await loadCurrentTask()
 
   } catch (error) {
     if (error?.response?.status === 404) {
@@ -929,6 +942,18 @@ html.app-dark .app-pill--pick {
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.3);
+}
+
+.app-dispatch-banner {
+  background: color-mix(in srgb, var(--status-info) 12%, var(--surface-card));
+  color: var(--status-info);
+  border: 1px solid color-mix(in srgb, var(--status-info) 22%, transparent);
+}
+
+html.app-dark .app-dispatch-banner {
+  background: color-mix(in srgb, var(--status-info) 18%, var(--surface-card));
+  color: color-mix(in srgb, var(--status-info) 85%, white);
+  border-color: color-mix(in srgb, var(--status-info) 28%, transparent);
 }
 
 .app-accent {

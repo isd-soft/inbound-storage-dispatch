@@ -12,9 +12,11 @@ import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.InventoryAdjustmentReason;
 import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InsufficientStockException;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
@@ -31,8 +33,10 @@ import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,16 +81,17 @@ public class InventoryService {
         Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
             .orElseGet(() -> new Stock(product, location));
 
-        Integer reservedQuantity = request.quantity() == null ? 0 : request.quantity();
-        stock.setQuantity(stock.getQuantity() + reservedQuantity);
-        stock.setReservedQuantity(stock.getReservedQuantity() + request.reservedQuantity());
+        int quantity = request.quantity() == null ? 0 : request.quantity();
+        int reservedQuantity = request.reservedQuantity() == null ? 0 : request.reservedQuantity();
+        stock.setQuantity(stock.getQuantity() + quantity);
+        stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
         stock.setManufactureDate(request.manufactureDate());
         stock.setExpirationDate(request.expirationDate());
 
         Stock savedStock = stockRepository.save(stock);
 
-        createHistory(savedStock, request.quantity(), savedStock.getQuantity(), null, location,
-            InventoryOperationType.ADD_STOCK, user);
+        createHistory(savedStock, quantity, savedStock.getQuantity(), null, location,
+            InventoryOperationType.ADD_STOCK, null, null, user);
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
     }

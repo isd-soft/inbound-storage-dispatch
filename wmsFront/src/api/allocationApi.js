@@ -22,8 +22,8 @@ export const allocationApi = {
   scanProduct(allocationId, barcode) {
     return apiClient.post(`/v1/allocations/${allocationId}/product`, { barcode })
   },
-  confirmPickedQuantity(allocationId, pickedQuantity) {
-    return apiClient.post(`/v1/allocations/${allocationId}/confirm-quantity`, { pickedQuantity })
+  confirmPickedQuantity(allocationId, payload) {
+    return apiClient.post(`/v1/allocations/${allocationId}/confirm-quantity`, payload)
   },
   scanTransportUnit(id, barcode, isOrder) {
     return apiClient.post(`/v1/allocations/${id}/scan-tu`, {

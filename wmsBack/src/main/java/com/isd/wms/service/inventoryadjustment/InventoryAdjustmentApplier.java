@@ -244,18 +244,27 @@ public class InventoryAdjustmentApplier {
             return order.getStatus();
         }
 
-        boolean inProgress = orderLines.stream().anyMatch(line ->
-            line.getStatus() == Status.IN_PROGRESS || line.getTask().getStatus() == TaskStatus.IN_PROGRESS
-        );
-        if (inProgress || order.getStatus() == OrderStatus.IN_PROGRESS) {
-            return OrderStatus.IN_PROGRESS;
-        }
-
         boolean allCanceled = orderLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
         if (allCanceled) {
             return OrderStatus.CANCELED;
         }
 
-        return order.getStatus();
+        boolean hasPartialCompletion = orderLines.stream().anyMatch(line ->
+            line.getStatus() == Status.CANCELED
+                || line.getStatus() == Status.SHORTAGE
+                || line.getStatus() == Status.PARTIALLY_COMPLETED
+                || line.getStatus() == Status.IN_PROGRESS
+                || line.getStatus() == Status.ASSIGNED
+                || line.getTask().map(Task::getStatus).orElse(TaskStatus.CREATED) == TaskStatus.IN_PROGRESS
+                || line.getDeliveredQuantity() != null && line.getRequestedQuantity() != null
+                    && line.getDeliveredQuantity() < line.getRequestedQuantity()
+        );
+        if (hasPartialCompletion) {
+            return OrderStatus.PARTIALLY_COMPLETED;
+        }
+
+        return order.getStatus() == OrderStatus.IN_PROGRESS || order.getStatus() == OrderStatus.ASSIGNED
+            ? order.getStatus()
+            : OrderStatus.COMPLETED;
     }
 }

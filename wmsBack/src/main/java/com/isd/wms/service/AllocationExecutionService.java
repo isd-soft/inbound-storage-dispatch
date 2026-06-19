@@ -112,7 +112,14 @@ public class AllocationExecutionService {
         }
 
         boolean allCanceled = orderLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
-        order.setStatus(allCanceled ? OrderStatus.CANCELED : OrderStatus.COMPLETED);
+        boolean hasPartialOrCanceled = orderLines.stream().anyMatch(line ->
+            line.getStatus() == Status.CANCELED
+                || line.getStatus() == Status.PARTIALLY_COMPLETED
+                || line.getStatus() == Status.SHORTAGE
+        );
+        order.setStatus(allCanceled
+            ? OrderStatus.CANCELED
+            : hasPartialOrCanceled ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED);
         orderRepository.save(order);
     }
 

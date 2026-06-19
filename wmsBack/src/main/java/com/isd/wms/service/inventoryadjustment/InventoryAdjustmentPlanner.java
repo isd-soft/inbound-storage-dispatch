@@ -98,7 +98,8 @@ public class InventoryAdjustmentPlanner {
             return null;
         }
         Order order = orderLine.getOrder();
-        Task task = orderLine.getTask();
+        Task task = orderLine.getTask()
+            .orElseThrow(() -> new InvalidRequestException("Task not found for order line " + orderLine.getId()));
 
         List<Allocation> activeTaskAllocations = allocationRepository.findActiveByTaskIdOrderByCreatedAtAscIdAsc(
             taskId,
