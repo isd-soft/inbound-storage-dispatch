@@ -363,7 +363,6 @@ const cancelableSelectedReplenishments = computed(() =>
   selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
 )
 
-// ЛОГИКА ИМПОРТА ОТ КОЛЛЕГИ
 const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
     throw new Error('Expected FormData')

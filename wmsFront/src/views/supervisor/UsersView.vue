@@ -97,7 +97,6 @@
           </small>
         </div>
 
-        <!-- Email (только при создании) -->
         <template v-if="dialogMode === 'add'">
           <div class="flex flex-col gap-2">
             <label for="email" class="app-subtitle font-medium"
@@ -107,7 +106,6 @@
           </div>
         </template>
 
-        <!-- Role -->
         <div class="flex flex-col gap-2">
           <label for="role" class="app-subtitle font-medium"
           >Role <span class="text-red-500">*</span></label
