@@ -17,6 +17,8 @@ import java.util.Optional;
 @Table(name = "products")
 public class Product extends BaseTimestampEntity {
 
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "product_seq")
     @SequenceGenerator(name = "product_seq", sequenceName = "products_sequence", allocationSize = 1)

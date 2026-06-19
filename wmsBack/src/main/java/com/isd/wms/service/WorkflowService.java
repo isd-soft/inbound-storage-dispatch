@@ -85,7 +85,16 @@ public class WorkflowService {
 
     @Transactional
     public void updateTask(Task task, Long productId, Integer requestedQuantity) {
-        allocationRepository.deleteByTaskId(task.getId());
+        List<Allocation> oldAllocations = allocationRepository.findAllByTaskId(task.getId());
+        for (Allocation allocation : oldAllocations) {
+            Stock stock = allocation.getStock();
+            int newReserved = Math.max(0, stock.getReservedQuantity() - allocation.getQuantity());
+            stock.setReservedQuantity(newReserved);
+            stockRepository.save(stock);
+        }
+
+        allocationRepository.deleteAll(oldAllocations);
+
         generateAllocationsForTask(task, productId, requestedQuantity);
     }
 

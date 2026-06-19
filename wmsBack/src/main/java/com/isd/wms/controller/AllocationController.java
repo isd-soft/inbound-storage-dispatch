@@ -53,7 +53,6 @@ public class AllocationController {
         return ResponseEntity.ok(allocationExecutionService.startCurrentTask());
     }
 
-    // REVERT LA VARIANTA TA ORIGINALĂ CU BOOLEAN IS_ORDER
     @PostMapping("/{id}/scan-tu")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
     public ResponseEntity<OperatorTaskSummaryResponse> scanTransportUnit(
@@ -62,10 +61,8 @@ public class AllocationController {
 
         log.info("Received TU scan for Allocation ID: {}. Barcode: {}", id, request.barcode());
 
-        // Apelăm direct metoda ta stabilă din service utilizând boolean-ul trimis de front
         tuService.occupyTransportUnit(request.barcode(), id, request.isOrder());
 
-        // Extragem starea proaspătă a task-ului pentru operator
         OperatorTaskSummaryResponse updatedSummary = allocationExecutionService.getCurrentSummary()
             .orElseThrow(() -> new IllegalStateException("Could not generate summary after scanning TU"));
 
