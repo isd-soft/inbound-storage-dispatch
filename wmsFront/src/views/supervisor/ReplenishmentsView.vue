@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    <Toast />
+    <Toast position="top-right" />
     <ConfirmDialog />
 
     <AppDataTable
@@ -8,12 +8,14 @@
       :value="replenishments"
       :loading="loading"
       :filterFields="replenishmentFilterFields"
+      :editMode="editMode ? 'cell' : null"
       paginator
       :rows="10"
       stripedRows
       class="p-datatable-sm"
       dataKey="id"
       emptyMessage="No replenishment tasks found."
+      @cell-edit-complete="onCellEditComplete"
     >
       <template #toolbar>
         <Button
@@ -53,11 +55,31 @@
 
         <Button
           v-if="editMode"
+          label="Submit"
+          icon="pi pi-check"
+          severity="success"
+          :disabled="!hasPendingChanges"
+          :loading="actionLoading"
+          @click="confirmSubmitChanges"
+        />
+
+        <Button
+          v-if="editMode"
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :disabled="!hasPendingChanges"
+          @click="confirmResetChanges"
+        />
+
+        <Button
+          v-if="editMode"
           label="Cancel Selected"
           icon="pi pi-ban"
           severity="secondary"
           outlined
-          :disabled="!canCancelSelected"
+          :disabled="!cancelableSelectedReplenishments.length || hasPendingChanges"
           @click="confirmCancelSelected"
         />
 
@@ -67,7 +89,7 @@
           icon="pi pi-trash"
           severity="danger"
           outlined
-          :disabled="!canDeleteSelected"
+          :disabled="!deletableSelectedReplenishments.length || hasPendingChanges"
           @click="confirmDeleteSelected"
         />
 
@@ -77,6 +99,7 @@
       </template>
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+
       <Column field="productName" header="Product" sortable filter>
         <template #body="slotProps">
           <ProductLink
@@ -89,13 +112,27 @@
 
       <Column field="requestedQuantity" header="Requested Qty" sortable filter>
         <template #body="slotProps">
-          <span class="text-primary font-bold">{{ slotProps.data.requestedQuantity }}</span>
+          <span class="text-primary font-bold text-base">{{ slotProps.data.requestedQuantity }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <InputNumber v-model="data[field]" :min="1" autofocus class="w-full" />
         </template>
       </Column>
 
-      <Column field="locationName" header="Destination Location" sortable filter>
+      <Column field="destinationLocationId" header="Destination" sortable filter>
         <template #body="slotProps">
-          <span class="app-subtitle">{{ slotProps.data.locationName }}</span>
+          <span class="app-subtitle font-semibold">{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+        </template>
+        <template #editor="{ data, field }">
+          <Dropdown
+            v-model="data[field]"
+            :options="locations"
+            optionLabel="barcode"
+            optionValue="id"
+            filter
+            autofocus
+            class="w-full"
+          />
         </template>
       </Column>
 
@@ -118,19 +155,20 @@
             placeholder="Select operator"
             filter
             class="w-full"
-            :disabled="isAssignmentLocked(slotProps.data)"
+            :disabled="isAssignmentLocked(slotProps.data) || editMode"
             @change="
               assignReplenishment(slotProps.data.id, assignmentByTaskId[slotProps.data.taskId])
             "
           />
         </template>
       </Column>
+
       <Column header="Transport Unit">
         <template #body="{ data }">
           <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
-
         </template>
       </Column>
+
       <Column field="createdAt" header="Created" sortable filter>
         <template #body="slotProps">
           <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
@@ -172,9 +210,7 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="location" class="app-subtitle font-medium"
-            >Destination Location (Pick Zone)</label
-          >
+          <label for="location" class="app-subtitle font-medium">Destination Location (Pick Zone)</label>
           <Dropdown
             id="location"
             v-model="newReplenishment.destinationLocationId"
@@ -299,7 +335,10 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const replenishments = ref([])
+const originalReplenishments = ref([])
 const selectedReplenishments = ref([])
+const modifiedReplenishmentIds = ref(new Set())
+
 const products = ref([])
 const locations = ref([])
 const operators = ref([])
@@ -312,23 +351,16 @@ const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
-const hasSelection = computed(() => selectedReplenishments.value.length > 0)
+const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+const hasPendingChanges = computed(() => modifiedReplenishmentIds.value.size > 0)
 
-const isUniformSelection = computed(() => {
-  if (!hasSelection.value) return false
-  const firstStatus = selectedReplenishments.value[0].status
-  return selectedReplenishments.value.every(task => task.status === firstStatus)
-})
+const deletableSelectedReplenishments = computed(() =>
+  selectedReplenishments.value.filter((task) => task.status === 'CREATED'),
+)
 
-const unifiedStatus = computed(() => isUniformSelection.value ? selectedReplenishments.value[0].status : null)
-
-const canDeleteSelected = computed(() => {
-  return isUniformSelection.value && unifiedStatus.value === 'CREATED'
-})
-
-const canCancelSelected = computed(() => {
-  return isUniformSelection.value && ['CREATED', 'ASSIGNED', 'IN_PROGRESS'].includes(unifiedStatus.value)
-})
+const cancelableSelectedReplenishments = computed(() =>
+  selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
+)
 
 const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
@@ -343,7 +375,7 @@ const assignmentByTaskId = ref({})
 const replenishmentFilterFields = [
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
-  { field: 'locationName', label: 'Destination' },
+  { field: 'destinationLocationId', label: 'Destination' },
   { field: 'status', label: 'Status' },
   { field: 'createdAt', label: 'Created' },
 ]
@@ -389,17 +421,12 @@ const formatDate = (ts) => {
 
 const getStatusSeverity = (status) => {
   switch (status) {
-    case 'COMPLETED':
-      return 'success'
-    case 'CANCELED':
-      return 'secondary'
+    case 'COMPLETED': return 'success'
+    case 'CANCELED': return 'secondary'
     case 'IN_PROGRESS':
-    case 'ASSIGNED':
-      return 'warning'
-    case 'CREATED':
-      return 'info'
-    default:
-      return 'danger'
+    case 'ASSIGNED': return 'warning'
+    case 'CREATED': return 'info'
+    default: return 'danger'
   }
 }
 
@@ -420,12 +447,7 @@ const loadData = async () => {
 
     await applyFilters()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Load Failed',
-      detail: getErrorMessage(error),
-      life: 4000,
-    })
+    toast.add({ severity: 'error', summary: 'Load Failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
@@ -443,20 +465,18 @@ const applyFilters = async () => {
     replenishments.value = res.data.map((task) => ({
       ...task,
       productName: getProductName(task.productId),
-      locationName: getLocationName(task.destinationLocationId),
       assignedOperatorName: getOperatorName(task.assignedOperatorId),
+      destinationLocationId: task.destinationLocationId
     }))
+
+    originalReplenishments.value = cloneRows(replenishments.value)
+    modifiedReplenishmentIds.value = new Set()
 
     assignmentByTaskId.value = Object.fromEntries(
       replenishments.value.map((task) => [task.taskId, task.assignedOperatorId || null]),
     )
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Filtering Failed',
-      detail: getErrorMessage(error),
-      life: 4000,
-    })
+    toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
   } finally {
     loading.value = false
   }
@@ -472,25 +492,21 @@ const openCreateDialog = () => {
 }
 
 const toggleEditMode = () => {
-  editMode.value = !editMode.value
-  selectedReplenishments.value = []
-}
-
-const handleCreate = async () => {
-  actionLoading.value = true
-  try {
-    await replenishmentApi.create(newReplenishment.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Replenishment task created.',
-      life: 3000,
-    })
-    createDialogVisible.value = false
-    await applyFilters()
-  } finally {
-    actionLoading.value = false
+  if (!editMode.value) {
+    editMode.value = true
+    selectedReplenishments.value = []
+    return
   }
+
+  if (hasPendingChanges.value) {
+    confirmResetChanges(() => {
+      editMode.value = false
+    })
+    return
+  }
+
+  editMode.value = false
+  selectedReplenishments.value = []
 }
 
 const openEditDialog = (data) => {
@@ -517,7 +533,94 @@ const handleUpdate = async () => {
     })
 
     editDialogVisible.value = false
-    await applyFilters()
+    await loadData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const normalizeRepl = (repl) => ({
+  requestedQuantity: repl.requestedQuantity,
+  destinationLocationId: repl.destinationLocationId
+})
+
+const onCellEditComplete = ({ data, newValue, field }) => {
+  if (!editMode.value) return
+  if (newValue !== undefined) {
+    data[field] = newValue
+  }
+
+  const original = originalReplenishments.value.find((item) => item.id === data.id)
+  if (!original) return
+
+  const nextIds = new Set(modifiedReplenishmentIds.value)
+  if (JSON.stringify(normalizeRepl(data)) !== JSON.stringify(normalizeRepl(original))) {
+    nextIds.add(data.id)
+  } else {
+    nextIds.delete(data.id)
+  }
+  modifiedReplenishmentIds.value = nextIds
+}
+
+const confirmSubmitChanges = () => {
+  confirm.require({
+    message: `Submit ${modifiedReplenishmentIds.value.size} changed task(s)?`,
+    header: 'Submit Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-success',
+    accept: submitQuantityChanges
+  })
+}
+
+const submitQuantityChanges = async () => {
+  actionLoading.value = true
+  try {
+    const changedTasks = replenishments.value.filter((repl) => modifiedReplenishmentIds.value.has(repl.id))
+
+    await Promise.all(changedTasks.map((repl) => replenishmentApi.update(repl.id, {
+      taskId: repl.taskId,
+      productId: repl.productId,
+      requestedQuantity: repl.requestedQuantity,
+      status: repl.status,
+      destinationLocationId: repl.destinationLocationId
+    })))
+
+    toast.add({ severity: 'success', summary: 'Tasks updated', detail: `${changedTasks.length} task(s) updated.`, life: 3000 })
+    editMode.value = false
+    selectedReplenishments.value = []
+    await loadData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmResetChanges = (afterReset) => {
+  confirm.require({
+    message: 'Discard all unsaved changes?',
+    header: 'Reset Unsaved Changes',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-warning',
+    accept: () => {
+      replenishments.value = cloneRows(originalReplenishments.value)
+      modifiedReplenishmentIds.value = new Set()
+      selectedReplenishments.value = []
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved changes were discarded.', life: 2500 })
+      if (typeof afterReset === 'function') afterReset()
+    }
+  })
+}
+
+const handleCreate = async () => {
+  actionLoading.value = true
+  try {
+    await replenishmentApi.create(newReplenishment.value)
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Replenishment task created.', life: 3000 })
+    createDialogVisible.value = false
+    await loadData()
   } finally {
     actionLoading.value = false
   }
@@ -525,26 +628,13 @@ const handleUpdate = async () => {
 
 const assignReplenishment = async (id, operatorId) => {
   if (!operatorId) return
-
   actionLoading.value = true
   try {
     await replenishmentApi.assign(id, operatorId)
-
-    toast.add({
-      severity: 'success',
-      summary: 'Assigned',
-      detail: `Replenishment #${id} assigned to operator.`,
-      life: 3000,
-    })
-
-    await applyFilters()
+    toast.add({ severity: 'success', summary: 'Assigned', detail: `Replenishment #${id} assigned to operator.`, life: 3000 })
+    await loadData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Assign failed',
-      detail: getErrorMessage(error),
-      life: 5000,
-    })
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
@@ -552,8 +642,8 @@ const assignReplenishment = async (id, operatorId) => {
 
 const confirmDeleteSelected = () => {
   confirm.require({
-    message: `Permanently delete ${selectedReplenishments.value.length} selected task(s)?`,
-    header: 'Delete Selected Replenishments',
+    message: `Permanently delete ${deletableSelectedReplenishments.value.length} selected task(s)?`,
+    header: 'Delete Selected',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: deleteSelectedReplenishments,
@@ -562,34 +652,21 @@ const confirmDeleteSelected = () => {
 
 const deleteSelectedReplenishments = async () => {
   loading.value = true
-  let successCount = 0
-  let failCount = 0
-
-  for (const task of selectedReplenishments.value) {
-    try {
-      await replenishmentApi.delete(task.id)
-      successCount++
-    } catch (error) {
-      console.error(`Failed to delete task ${task.id}:`, error)
-      failCount++
-    }
+  try {
+    await Promise.allSettled(
+      deletableSelectedReplenishments.value.map((t) => replenishmentApi.delete(t.id)),
+    )
+    selectedReplenishments.value = []
+    await loadData()
+  } finally {
+    loading.value = false
   }
-
-  if (failCount === 0) {
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `${successCount} task(s) permanently deleted.`, life: 3000 })
-  } else {
-    toast.add({ severity: 'warn', summary: 'Partial Delete', detail: `${successCount} deleted, ${failCount} failed.`, life: 5000 })
-  }
-
-  selectedReplenishments.value = []
-  await applyFilters()
-  loading.value = false
 }
 
 const confirmCancelSelected = () => {
   confirm.require({
-    message: `Cancel ${selectedReplenishments.value.length} selected task(s)? This will release the reserved stock.`,
-    header: 'Cancel Selected Replenishments',
+    message: `Cancel ${cancelableSelectedReplenishments.value.length} selected task(s)?`,
+    header: 'Cancel Selected',
     icon: 'pi pi-info-circle',
     acceptClass: 'p-button-secondary',
     accept: cancelSelectedReplenishments,
@@ -598,28 +675,15 @@ const confirmCancelSelected = () => {
 
 const cancelSelectedReplenishments = async () => {
   loading.value = true
-  let successCount = 0
-  let failCount = 0
-
-  for (const task of selectedReplenishments.value) {
-    try {
-      await replenishmentApi.cancel(task.id)
-      successCount++
-    } catch (error) {
-      console.error(`Failed to cancel task ${task.id}:`, error)
-      failCount++
-    }
+  try {
+    await Promise.allSettled(
+      cancelableSelectedReplenishments.value.map((t) => replenishmentApi.cancel(t.id)),
+    )
+    selectedReplenishments.value = []
+    await loadData()
+  } finally {
+    loading.value = false
   }
-
-  if (failCount === 0) {
-    toast.add({ severity: 'success', summary: 'Canceled', detail: `${successCount} task(s) canceled and stock released.`, life: 3000 })
-  } else {
-    toast.add({ severity: 'warn', summary: 'Partial Cancel', detail: `${successCount} canceled, ${failCount} failed.`, life: 5000 })
-  }
-
-  selectedReplenishments.value = []
-  await applyFilters()
-  loading.value = false
 }
 
 onMounted(loadData)

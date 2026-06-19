@@ -16,6 +16,8 @@ import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.xlsx.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
+import com.isd.wms.service.ai.ProductVectorIndexer;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,8 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final ProductVectorIndexer productVectorIndexer;
+
     private final ImportService importService;
 
     @Transactional
@@ -51,6 +55,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        productVectorIndexer.indexProduct(savedProduct);
         return productMapper.toResponse(savedProduct);
     }
 
@@ -74,6 +79,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product updated successfully: productId={}, categoryId={}", savedProduct.getId(), category.getId());
+        productVectorIndexer.indexProduct(savedProduct);
         return productMapper.toResponse(savedProduct);
     }
 
@@ -81,6 +87,7 @@ public class ProductService {
     public void deleteProduct(Long productId) {
         log.info("Deleting product: productId={}", productId);
         productRepository.delete(getProduct(productId));
+        productVectorIndexer.removeProduct(productId);
         log.info("Product deleted successfully: productId={}", productId);
     }
 
