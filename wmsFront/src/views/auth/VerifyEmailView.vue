@@ -1,20 +1,29 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
     <Toast />
-    <Card class="w-full max-w-md bg-gray-800 border-none shadow-2xl text-center p-4">
+
+    <Card
+      class="w-full max-w-md bg-white border border-gray-200/60 shadow-xl p-6 text-center rounded-2xl"
+    >
       <template #content>
         <div v-if="!success && !fatalError" class="flex flex-col gap-4 py-2">
-          <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <i class="pi pi-user-edit text-4xl text-blue-500"></i>
+          <div class="w-full flex justify-center mb-2">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
+              <i class="pi pi-user-edit text-3xl text-blue-600"></i>
+            </div>
           </div>
-          <h2 class="text-2xl font-bold text-gray-100">Activate Your Account</h2>
-          <p class="text-gray-400 text-sm mb-4">Please set a password for your new account.</p>
+
+          <h2 class="text-2xl font-bold text-gray-800">Activate Your Account</h2>
+          <p class="text-gray-500 text-sm mb-2">Please set a password for your new account.</p>
 
           <form @submit.prevent="submitVerification" class="flex flex-col gap-4 text-left">
             <div class="flex flex-col gap-2">
-              <label for="password" class="text-gray-300 font-medium">New Password <span class="text-red-500">*</span></label>
-              <small class="text-gray-500 text-xs mb-1">
-                Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char (@$!%*?&_#).
+              <label for="password" class="text-gray-700 font-semibold text-sm">
+                New Password <span class="text-red-500">*</span>
+              </label>
+              <small class="text-gray-500 text-xs mb-1 leading-relaxed">
+                Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char
+                (@$!%*?&_#).
               </small>
               <Password
                 id="password"
@@ -27,23 +36,29 @@
                 strongLabel="Strong password"
                 :mediumRegex="passwordMediumRegex"
                 :strongRegex="passwordStrongRegex"
-                inputClass="w-full"
-                class="w-full [&>input]:w-full"
+                inputClass="w-full bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 rounded-lg p-3 pr-10 transition-colors focus:bg-white"
+                panelClass="!bg-white !text-gray-800 border !border-gray-200 p-4 shadow-2xl rounded-xl [&>.p-password-meter]:bg-gray-100"
+                class="w-full relative [&>.p-password-toggle-icon]:absolute [&>.p-password-toggle-icon]:top-1/2 [&>.p-password-toggle-icon]:-translate-y-1/2 [&>.p-password-toggle-icon]:right-3 [&>.p-password-toggle-icon]:text-gray-400 [&>.p-password-toggle-icon]:z-10 [&>.p-password-toggle-icon]:cursor-pointer"
               />
             </div>
 
             <div class="flex flex-col gap-2 mt-2">
-              <label for="confirmPassword" class="text-gray-300 font-medium">Confirm Password <span class="text-red-500">*</span></label>
+              <label for="confirmPassword" class="text-gray-700 font-semibold text-sm">
+                Confirm Password <span class="text-red-500">*</span>
+              </label>
               <Password
                 id="confirmPassword"
                 v-model="confirmPassword"
                 :feedback="false"
                 toggleMask
                 required
-                inputClass="w-full"
-                class="w-full [&>input]:w-full"
+                inputClass="w-full bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 rounded-lg p-3 pr-10 transition-colors focus:bg-white"
+                class="w-full relative [&>.p-password-toggle-icon]:absolute [&>.p-password-toggle-icon]:top-1/2 [&>.p-password-toggle-icon]:-translate-y-1/2 [&>.p-password-toggle-icon]:right-3 [&>.p-password-toggle-icon]:text-gray-400 [&>.p-password-toggle-icon]:z-10 [&>.p-password-toggle-icon]:cursor-pointer"
               />
-              <small v-if="confirmPassword && !isPasswordMatching" class="text-red-500 text-xs mt-1">
+              <small
+                v-if="confirmPassword && !isPasswordMatching"
+                class="text-red-500 text-xs mt-1"
+              >
                 Passwords do not match.
               </small>
             </div>
@@ -52,7 +67,7 @@
               type="submit"
               label="Set Password & Activate"
               icon="pi pi-check"
-              class="mt-4 w-full"
+              class="mt-4 w-full bg-emerald-500 hover:bg-emerald-600 border-none text-white font-semibold p-3 rounded-lg shadow-sm transition-colors"
               :loading="loading"
               :disabled="!isFormValid"
             />
@@ -60,22 +75,36 @@
         </div>
 
         <div v-else-if="success" class="flex flex-col items-center gap-4 py-6">
-          <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
-            <i class="pi pi-check text-4xl text-green-500"></i>
+          <div class="w-full flex justify-center mb-2">
+            <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
+              <i class="pi pi-check text-4xl text-green-600"></i>
+            </div>
           </div>
-          <h2 class="text-2xl font-bold text-gray-100">Account Activated!</h2>
-          <p class="text-gray-400">Your password has been set successfully.</p>
-          <Button label="Go to Login" icon="pi pi-sign-in" class="mt-4 w-full" @click="goToLogin" />
+          <h2 class="text-2xl font-bold text-gray-800">Account Activated!</h2>
+          <p class="text-gray-500">Your password has been set successfully.</p>
+          <Button
+            label="Go to Login"
+            icon="pi pi-sign-in"
+            class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white border-none p-3 rounded-lg"
+            @click="goToLogin"
+          />
         </div>
 
         <div v-else class="flex flex-col items-center gap-4 py-6">
-          <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-2">
-            <i class="pi pi-times text-4xl text-red-500"></i>
+          <div class="w-full flex justify-center mb-2">
+            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+              <i class="pi pi-times text-4xl text-red-600"></i>
+            </div>
           </div>
-          <h2 class="text-2xl font-bold text-gray-100">Activation Failed</h2>
-          <p class="text-red-400">{{ errorMessage }}</p>
-          <p class="text-gray-400 text-sm mt-2">The link might be expired or invalid. Please ask to resend the invitation.</p>
-          <Button label="Back to Login" severity="secondary" outlined class="mt-4 w-full" @click="goToLogin" />
+          <h2 class="text-2xl font-bold text-gray-800">Activation Failed</h2>
+          <p class="text-red-500 font-medium">{{ errorMessage }}</p>
+          <p class="text-gray-500 text-sm mt-2">The link might be expired or invalid.</p>
+          <Button
+            label="Back to Login"
+            severity="secondary"
+            class="mt-4 w-full border border-gray-300 text-gray-700 hover:bg-gray-50 p-3 rounded-lg"
+            @click="goToLogin"
+          />
         </div>
       </template>
     </Card>
@@ -107,7 +136,8 @@ const fatalError = ref(false)
 const errorMessage = ref('')
 
 const passwordMediumRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,64}$'
-const passwordStrongRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_#])[A-Za-z\\d@$!%*?&_#]{8,64}$'
+const passwordStrongRegex =
+  '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_#])[A-Za-z\\d@$!%*?&_#]{8,64}$'
 
 const isPasswordMatching = computed(() => {
   return password.value === confirmPassword.value
@@ -142,7 +172,7 @@ const submitVerification = async () => {
   try {
     await authApi.verify({
       token: token.value,
-      password: password.value
+      password: password.value,
     })
     success.value = true
   } catch (error) {
