@@ -115,7 +115,6 @@
       <Column header="Transport Unit">
         <template #body="{ data }">
           <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
-
         </template>
       </Column>
       <Column field="order.createdAt" header="Created" sortable filter>
@@ -146,12 +145,16 @@
             </Column>
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
+                <span class="font-semibold">{{
+                  line.requestedQuantity ?? line.quantity ?? 0
+                }}</span>
               </template>
             </Column>
             <Column field="deliveredQuantity" header="Delivered Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
+                <span class="font-semibold">{{
+                  line.deliveredQuantity ?? line.allocatedQuantity ?? 0
+                }}</span>
               </template>
             </Column>
             <Column field="status" header="Status" filter>
@@ -284,6 +287,8 @@
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
       @success="loadOrders"
+      xlsx-template-path="/templates/order_template.xlsx"
+      csv-template-path="/templates/order_template.csv"
     />
   </div>
 </template>
@@ -383,7 +388,9 @@ const loadOrders = async () => {
     orders.value = (response.data || []).map(normalizeOrder)
     const currentOrderIds = new Set(orders.value.map((entry) => entry.order?.id).filter(Boolean))
     expandedRows.value = Object.fromEntries(
-      Object.entries(expandedRows.value).filter(([orderId, isExpanded]) => isExpanded && currentOrderIds.has(Number(orderId))),
+      Object.entries(expandedRows.value).filter(
+        ([orderId, isExpanded]) => isExpanded && currentOrderIds.has(Number(orderId)),
+      ),
     )
 
     orders.value.forEach((entry) => {
@@ -492,7 +499,9 @@ const getLocationLabel = (locationId) => {
 }
 
 const isAssignmentLocked = (order) =>
-  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(order?.status || order?.Status)
+  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(
+    order?.status || order?.Status,
+  )
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return

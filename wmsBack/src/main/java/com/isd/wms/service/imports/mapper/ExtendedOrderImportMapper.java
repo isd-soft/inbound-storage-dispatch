@@ -8,7 +8,7 @@ import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.service.imports.xlsx.dto.ExtendedOrderInfo;
+import com.isd.wms.service.imports.dto.ExtendedOrderInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

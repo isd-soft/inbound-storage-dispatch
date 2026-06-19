@@ -6,7 +6,7 @@ import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.service.imports.xlsx.dto.StockInfo;
+import com.isd.wms.service.imports.dto.StockInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,19 +23,19 @@ public class StockImportMapper implements ImportMapper<StockInfo, AddStockReques
     public AddStockRequest toEntity(StockInfo info) {
         try {
             return new AddStockRequest(
-                getProductId(info.productName()),
-                getLocationId(info.locationName()),
-                info.quantity(),
-                info.reservedQuantity(),
-                info.manufactureDate(),
-                info.expirationDate(),
+                getProductId(info.getProductName()),
+                getLocationId(info.getLocationName()),
+                info.getQuantity(),
+                info.getReservedQuantity(),
+                info.getManufactureDate(),
+                info.getExpirationDate(),
                 securityFacade.getCurrentUser().getId()
             );
         } catch (Exception e) {
             throw new InvalidRequestException(
                 String.format("An error occurred at parsing the stock of product %s at location %s.",
-                    info.productName(),
-                    info.locationName()
+                    info.getProductName(),
+                    info.getLocationName()
                     ));
         }
     }

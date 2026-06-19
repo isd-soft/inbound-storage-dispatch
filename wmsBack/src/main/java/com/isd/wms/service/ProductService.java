@@ -15,7 +15,7 @@ import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.service.ai.ProductVectorIndexer;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.ProductInfo;
+import com.isd.wms.service.imports.dto.ProductInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

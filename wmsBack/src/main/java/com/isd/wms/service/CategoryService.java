@@ -12,7 +12,7 @@ import com.isd.wms.mapper.CategoryMapper;
 import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.CategoryInfo;
+import com.isd.wms.service.imports.dto.CategoryInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;

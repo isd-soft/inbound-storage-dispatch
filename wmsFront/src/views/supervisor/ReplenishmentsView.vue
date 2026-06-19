@@ -306,6 +306,8 @@
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
       @success="loadData"
+      xlsx-template-path="/templates/replenishment_template.xlsx"
+      csv-template-path="/templates/replenishment_template.csv"
     />
   </div>
 </template>
@@ -352,6 +354,17 @@ const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
+const hasSelection = computed(() => selectedReplenishments.value.length > 0)
+
+const isUniformSelection = computed(() => {
+  if (!hasSelection.value) return false
+  const firstStatus = selectedReplenishments.value[0].status
+  return selectedReplenishments.value.every((task) => task.status === firstStatus)
+})
+
+const unifiedStatus = computed(() =>
+  isUniformSelection.value ? selectedReplenishments.value[0].status : null,
+)
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedReplenishmentIds.value.size > 0)
 
