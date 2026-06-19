@@ -340,7 +340,6 @@ public class AllocationExecutionService {
 
         boolean isTuScannedForOrder = tuRepository.existsByOrder(order);
 
-        // CORECTAT: Trimitem ambele booleene pe pozițiile 9 și 10 în constructorul de record
         return new OperatorTaskSummaryResponse(
             currentAllocation != null ? currentAllocation.getTask().getId() : orderLines.stream().findFirst().map(
                 AllocationExecutionService::getTaskId).orElse(null),
@@ -351,8 +350,8 @@ public class AllocationExecutionService {
             order.getDestinationLocation().getBarcode(),
             orderedAllocations.size(),
             Math.toIntExact(completedAllocationCount),
-            readyForCompletion,   // Pozitia 9 (boolean)
-            isTuScannedForOrder, // Pozitia 10 (boolean)
+            readyForCompletion,
+            isTuScannedForOrder,
             currentAllocation != null ? toAllocationSummary(currentAllocation, order, isTuScannedForOrder) : null, // Pozitia 11 (Obiectul curent)
             lineSummaries,
             orderedAllocations.stream().map(allocation -> toAllocationSummary(allocation, order, isTuScannedForOrder)).toList()
@@ -380,7 +379,6 @@ public class AllocationExecutionService {
 
         boolean isTuScannedForRepl = tuRepository.existsByReplenishment(replenishment);
 
-        // CORECTAT: Trimitem ambele booleene pe pozițiile 9 și 10 în constructorul de record
         return new OperatorTaskSummaryResponse(
             currentAllocation.getTask().getId(),
             null,
@@ -390,9 +388,9 @@ public class AllocationExecutionService {
             replenishment.getDestinationLocation().getBarcode(),
             taskAllocations.size(),
             Math.toIntExact(completedAllocationCount),
-            false,              // Pozitia 9 (boolean)
-            isTuScannedForRepl, // Pozitia 10 (boolean)
-            toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl), // Pozitia 11
+            false,
+            isTuScannedForRepl,
+            toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl),
             List.of(),
             taskAllocations.stream()
                 .map(allocation -> toAllocationSummary(allocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl))

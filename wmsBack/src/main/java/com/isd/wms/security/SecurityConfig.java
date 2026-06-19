@@ -34,25 +34,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
 
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/auth/verify", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        .requestMatchers("/api/supervisor/**").hasAnyAuthority("ROLE_SUPERVISOR", "ROLE_DEV", "SUPERVISOR", "DEV")
-                        .requestMatchers("/api/operator/**").hasAnyAuthority("ROLE_OPERATOR", "ROLE_DEV", "OPERATOR", "DEV")
+                .requestMatchers("/api/supervisor/**").hasAnyAuthority("ROLE_SUPERVISOR", "ROLE_DEV", "SUPERVISOR", "DEV")
+                .requestMatchers("/api/operator/**").hasAnyAuthority("ROLE_OPERATOR", "ROLE_DEV", "OPERATOR", "DEV")
 
-                        .anyRequest().authenticated()
-                )
+                .anyRequest().authenticated()
+            )
 
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            );
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -63,14 +63,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:8080",
-                "http://127.0.0.1:8080",
-                "http://127.0.0.1:5173",
-                "http://172.17.44.95:5173"
-        ));
-        configuration.setAllowedOriginPatterns(List.of("http://172.*.*.*:5173"));
+//        configuration.setAllowedOrigins(List.of(
+//            "http://localhost:5173",
+//            "http://127.0.0.1:5173",
+//            "http://172.17.44.95:5173",
+//            "http://172.17.44.87:5173/"
+//
+//        ));
+        configuration.setAllowedOriginPatterns(List.of("http://172.*.*.*:5173", "http://192.168.*.*:5173"));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
