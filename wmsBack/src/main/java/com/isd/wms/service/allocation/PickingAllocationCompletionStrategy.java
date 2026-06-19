@@ -84,7 +84,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
             return deliveredQuantity;
         }
 
-        return line.getTask().getAllocations().stream()
+        return line.getTask().orElseThrow().getAllocations().stream()
             .filter(allocation -> allocation.getStatus() != Status.CANCELED)
             .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
             .sum();

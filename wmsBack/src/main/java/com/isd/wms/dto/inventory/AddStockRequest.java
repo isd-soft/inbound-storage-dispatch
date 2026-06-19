@@ -10,24 +10,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class AddStockRequest {
+public record AddStockRequest (
     @NotNull(message = "Product id is required")
-    private Long productId;
+    Long productId,
 
     @NotNull(message = "Location id is required")
-    private Long locationId;
+    Long locationId,
 
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be greater than 0")
-    private Integer quantity;
+    Integer quantity,
+    Integer reservedQuantity,
 
-    private LocalDate manufactureDate;
-    private LocalDate expirationDate;
+    LocalDate manufactureDate,
+    LocalDate expirationDate,
 
     @NotNull(message = "User id is required")
-    private Long userId;
-}
+    Long userId
+) {}

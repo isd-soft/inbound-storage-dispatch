@@ -1,5 +1,6 @@
 package com.isd.wms.service;
 
+import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
@@ -13,10 +14,15 @@ import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.xlsx.dto.ReplenishmentInfo;
+import com.isd.wms.service.imports.xlsx.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -34,6 +40,7 @@ public class ReplenishmentService {
     private final ReplenishmentMapper replenishmentMapper;
     private final WorkflowService workflowService;
     private final TaskService taskService;
+    private final ImportService importService;
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
@@ -202,5 +209,15 @@ public class ReplenishmentService {
         replenishment.setTask(task);
         replenishmentRepository.saveAndFlush(replenishment);
         taskService.assignTask(task.getId(), operatorId);
+    }
+
+    @Transactional
+    public void importReplenishmentsFromFile(MultipartFile file) {
+        List<ReplenishmentCreateRequest> replenishments = importService.importData(file, ReplenishmentInfo.class);
+        try {
+            replenishments.forEach(this::createReplenishment);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid replenishment data.");
+        }
     }
 }

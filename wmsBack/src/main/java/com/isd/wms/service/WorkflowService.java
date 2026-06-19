@@ -7,7 +7,6 @@ import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.AllocationRepository;
-import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.repository.TaskRepository;
 import com.isd.wms.service.allocation.AllocationCompletionStrategy;
@@ -25,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkflowService {
     private final AllocationRepository allocationRepository;
-    private final ReplenishmentRepository replenishmentRepository;
     private final StockRepository stockRepository;
     private final TaskRepository taskRepository;
 

@@ -1,7 +1,6 @@
 package com.isd.wms.repository;
 
 import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,10 +26,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         AND (:status IS NULL OR o.status = :status)
         AND (:createdAt IS NULL OR o.createdAt = :createdAt)
         AND (:updatedAt IS NULL OR o.updatedAt = :updatedAt)
-        AND u.username = :username
         """)
     List<Order> filter(
-        @Param("username") String username,
         @Param("logicId") String logicId,
         @Param("destinationId") Long destinationId,
         @Param("status") OrderStatus status,
@@ -69,25 +66,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query(value = """
-        SELECT DISTINCT o.* FROM orders o
-        JOIN order_lines ol ON o.id = ol.order_id
-        JOIN tasks t ON ol.task_id = t.id
-        WHERE t.operator_id = :operatorId
-          AND o.status = 'PICKED'
-        ORDER BY o.created_at, o.id
-        LIMIT 1
-    """, nativeQuery = true)
+            SELECT DISTINCT o.* FROM orders o
+            JOIN order_lines ol ON o.id = ol.order_id
+            JOIN tasks t ON ol.task_id = t.id
+            WHERE t.operator_id = :operatorId
+              AND o.status = 'PICKED'
+            ORDER BY o.created_at, o.id
+            LIMIT 1
+        """, nativeQuery = true)
     Optional<Order> findOldestPickedOrderAssignedToOperator(
         @Param("operatorId") Long operatorId
     );
 
     @Query("""
-        SELECT DISTINCT u.id FROM Order o
-        JOIN o.orderLines ol
-        JOIN ol.task t
-        JOIN t.operator u
-        WHERE o.id = :orderId
-    """)
+            SELECT DISTINCT u.id FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            JOIN t.operator u
+            WHERE o.id = :orderId
+        """)
     Optional<Long> findOperatorIdByOrderId(@Param("orderId") Long orderId);
 
     @Modifying
@@ -108,7 +105,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                     AND NOT EXISTS (
                           SELECT 1 FROM OrderLine ol
                           WHERE ol.order = o
-                            AND ol.status NOT IN (COMPLETED, CANCELED)
+                            AND ol.status NOT IN (com.isd.wms.enums.Status.COMPLETED, com.isd.wms.enums.Status.CANCELED)
                       )
         """)
     int markOrderAsCompleted(
@@ -117,10 +114,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query("""
-        SELECT o FROM Order o
-        JOIN OrderLine ol ON ol.order = o
-        WHERE ol.task = :task
-    """)
+            SELECT o FROM Order o
+            JOIN OrderLine ol ON ol.order = o
+            WHERE ol.task = :task
+        """)
     Optional<Order> getOrderByTask(
         @Param("task") Task task
     );
@@ -128,4 +125,29 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Modifying
     @Query("DELETE FROM Order o WHERE o.createdAt < :cutoffDate")
     int deleteOrdersOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    Optional<Order> findByLogicId(String logicId);
+
+    @Query("""
+            SELECT COUNT(o) > 0
+            FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            WHERE t.operator.id = :operatorId
+              AND o = :order
+        """)
+    boolean isOrderAssignedToOperator(
+        @Param("order") Order order,
+        @Param("operatorId") Long operatorId
+    );
+
+    @Query("""
+            SELECT u.username
+            FROM Order o
+            JOIN o.orderLines ol
+            JOIN ol.task t
+            JOIN t.operator u
+                WHERE o = :order
+        """)
+    Optional<String> findOperatorUsernameByOrder(@Param("order") Order order);
 }

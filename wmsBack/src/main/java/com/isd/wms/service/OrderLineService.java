@@ -45,8 +45,7 @@ public class OrderLineService {
     @Transactional
     public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
-        Task task = taskService.createTask(TaskType.PICKING_ORDER, request.requestedQuantity(), request.productId());
-        OrderLine orderLine = new OrderLine(order, task, product, request.requestedQuantity());
+        OrderLine orderLine = new OrderLine(order, product, request.requestedQuantity());
         orderLineRepository.save(orderLine);
     }
 
@@ -108,7 +107,8 @@ public class OrderLineService {
             return;
         }
 
-        List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask().getId());
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask()
+            .map(Task::getId).orElse(null));
         for (Allocation allocation : allocations) {
             if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
                 continue;

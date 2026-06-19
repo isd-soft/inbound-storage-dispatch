@@ -442,11 +442,7 @@ public class SupervisorDashboardService {
     }
 
     private boolean orderHasOperator(Order order, User operator) {
-        return Optional.ofNullable(order.getOrderLines()).orElseGet(List::of).stream()
-                .map(orderLine -> orderLine.getTask() == null ? Optional.<User>empty() : orderLine.getTask().getOperator())
-                .flatMap(Optional::stream)
-                .map(User::getId)
-                .anyMatch(operatorId -> Objects.equals(operatorId, operator.getId()));
+        return orderRepository.isOrderAssignedToOperator(order, operator.getId());
     }
 
     private static final class ProductAggregate {

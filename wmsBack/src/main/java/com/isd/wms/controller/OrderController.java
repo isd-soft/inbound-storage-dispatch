@@ -1,6 +1,8 @@
 package com.isd.wms.controller;
 
 import com.isd.wms.dto.order.*;
+import com.isd.wms.dto.order.shortage.ShortageDetailsResponse;
+import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -73,15 +76,22 @@ public class OrderController {
         return ResponseEntity.ok(orderService.searchOrders(request));
     }
 
+    @PostMapping("/imports")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> importOrders(@RequestParam("file") MultipartFile file) {
+        orderService.importOrdersFromFile(file);
+        return ResponseEntity.ok("Orders were successfully imported.");
+    }
+
     @GetMapping("/shortages")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<List<com.isd.wms.dto.order.shortage.ShortageOrderResponse>> getShortageOrders() {
+    public ResponseEntity<List<ShortageOrderResponse>> getShortageOrders() {
         return ResponseEntity.ok(orderService.getShortageOrders());
     }
 
     @GetMapping("/{id}/shortage-details")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<com.isd.wms.dto.order.shortage.ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
+    public ResponseEntity<ShortageDetailsResponse> getShortageDetails(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getShortageDetails(id));
     }
 }

@@ -31,6 +31,12 @@
           aria-label="Refresh"
           @click="loadOrders"
         />
+        <Button
+          label="Import"
+          icon="pi pi-file-import"
+          severity="info"
+          @click="importDialogVisible = true"
+        />
         <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
         <Button
           :label="editMode ? 'Exit Edit' : 'Edit'"
@@ -228,12 +234,7 @@
               >
             </template>
           </Column>
-          <Column header="Available" style="width: 9rem">
-            <template #body="{ data }">
-              <Tag severity="secondary" :value="getAvailableQuantity(data.product)" />
-            </template>
-          </Column>
-          <Column header="Quantity" style="width: 8rem">
+          <Column header="Quantity" style="min-width: 13rem">
             <template #body="{ data }">
               <InputNumber
                 v-model="data.quantity"
@@ -279,6 +280,11 @@
         </div>
       </template>
     </Dialog>
+    <UploadFile
+      v-model:visible="importDialogVisible"
+      :apiCall="handleImport"
+      @success="loadOrders"
+    />
   </div>
 </template>
 
@@ -303,7 +309,9 @@ import { orderApi } from '@/api/orderApi.js'
 import { inventoryApi } from '@/api/inventoryApi.js'
 import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
+import UploadFile from '@/components/UploadFile.vue'
 
+const importDialogVisible = ref(false)
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -350,6 +358,14 @@ let nextLineId = 1
 
 const assignmentByOrderId = reactive({})
 
+const handleImport = async (formData) => {
+  if (!(formData instanceof FormData)) {
+    throw new Error('Wrong Format!')
+  }
+
+  return orderApi.importOrders(formData)
+}
+
 const getErrorMessage = (error) =>
   error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 
@@ -389,7 +405,7 @@ const toggleEditMode = () => {
 
 const loadOrderCreateData = async () => {
   const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
-    productApi.getAllProductsWithQuantityInZone('PICKING'),
+    productApi.getAllProducts(),
     inventoryApi.getLocations(),
     userApi.getAll(),
   ])
@@ -398,7 +414,6 @@ const loadOrderCreateData = async () => {
     id: p.id,
     name: p.name,
     barcode: p.barcode,
-    quantity: Number(p.quantity || 0),
   }))
 
   locations.value = (locationsResponse.data || [])
@@ -455,11 +470,6 @@ const removeLine = (index) => {
 }
 
 const getProduct = (productId) => products.value.find((product) => product.id === productId)
-
-const getAvailableQuantity = (productId) => {
-  const product = getProduct(productId)
-  return Number(product?.quantity ?? 0)
-}
 
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(

@@ -1,0 +1,26 @@
+package com.isd.wms.service.imports.mapper;
+
+import com.isd.wms.entity.Location;
+import com.isd.wms.service.imports.xlsx.dto.LocationInfo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class LocationImportMapper implements ImportMapper<LocationInfo, Location> {
+
+    @Override
+    public Location toEntity(LocationInfo info) {
+        return new Location(
+            info.name(),
+            info.barcode(),
+            info.zone(),
+            info.description()
+        );
+    }
+
+    @Override
+    public Class<LocationInfo> supports() {
+        return LocationInfo.class;
+    }
+}

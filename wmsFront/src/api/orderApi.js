@@ -28,6 +28,11 @@ export const orderApi = {
   getLocationsForDispatch() {
     return apiClient.get('/locations/dispatches')
   },
+  importOrders(payload) {
+    return apiClient.post('/v1/orders/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
   getShortageOrders() {
     return apiClient.get('/v1/orders/shortages')
   },

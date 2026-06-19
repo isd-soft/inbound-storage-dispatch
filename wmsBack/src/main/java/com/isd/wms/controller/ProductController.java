@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,5 +72,12 @@ public class ProductController {
     ) {
         log.info("Search products request: name={}, categoryId={}", name, categoryId);
         return productService.searchProducts(name, categoryId);
+    }
+
+    @PostMapping("/imports")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> importProducts(@RequestParam("file") MultipartFile file) {
+        productService.importProductsFromFile(file);
+        return ResponseEntity.ok("Products were successfully imported.");
     }
 }

@@ -5,29 +5,32 @@ import com.isd.wms.dto.order.shortage.AffectedOrderLineResponse;
 import com.isd.wms.dto.order.shortage.ShortageDetailsResponse;
 import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Stock;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.xlsx.dto.ExtendedOrderInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -42,7 +45,9 @@ public class OrderService {
     private final AllocationRepository allocationRepository;
     private final TaskRepository taskRepository;
     private final OrderLineRepository orderLineRepository;
+    private final ImportService importService;
     private final SecurityFacade securityFacade;
+    private final TaskService taskService;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -51,12 +56,14 @@ public class OrderService {
             oRequest = new OrderLineCreateRequest(oRequest, order.getId());
             orderLineService.addOrderLine(order, oRequest);
         }
-        // La creare, un ordin nou nu are încă un operator asociat, deci pasăm null
         return orderMapper.toResponse(order, null);
     }
 
     @Transactional
     public Order addOrder(OrderCreateRequest request) {
+        if (orderRepository.findByLogicId(request.logicId()).isPresent()) {
+            throw new InvalidRequestException("An order with logicId " + request.logicId() + " already exists");
+        }
         Order order = new Order(request.logicId(), getLocation(request.destinationLocationId()));
         return orderRepository.save(order);
     }
@@ -95,26 +102,34 @@ public class OrderService {
     }
 
     public OrderResponse getOrderById(@NonNull Long orderId) {
-        Order order = getOrder(orderId);
-        Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
-        return orderMapper.toResponse(order, operatorId);
+        return orderMapper.toResponse(getOrder(orderId), orderRepository.findOperatorIdByOrderId(orderId).orElse(null));
     }
 
     public Order getOrder(@NonNull Long orderId) {
-        return orderRepository.findByIdAndCreatedByUsername(orderId, securityFacade.getCurrentUsername())
+        return orderRepository.findById(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
         Order order = getOrder(orderId);
-        if (order.getStatus() == OrderStatus.IN_PROGRESS
-            || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED
-            || order.getStatus() == OrderStatus.COMPLETED
-            || order.getStatus() == OrderStatus.CANCELED) {
-            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS, PARTIALLY_COMPLETED, COMPLETED or CANCELED orders");
+        if (order.getStatus() == OrderStatus.IN_PROGRESS || order.getStatus() == OrderStatus.COMPLETED) {
+            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS or COMPLETED orders");
         }
 
+        assignTasks(order);
+        assignOrderCascade(orderId, operatorId);
+    }
+
+    private void assignTasks(Order order) {
+        for (OrderLine orderLine : order.getOrderLines()) {
+            Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+            orderLine.setTask(task);
+        }
+        orderLineRepository.saveAllAndFlush(order.getOrderLines());
+    }
+
+    private void assignOrderCascade(Long orderId, Long operatorId) {
         int updated = orderRepository.updateStatus(orderId, OrderStatus.ASSIGNED);
         if (updated == 0) {
             throw new OrderNotFoundException(orderId);
@@ -136,20 +151,22 @@ public class OrderService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
-
     private void releaseReservedStock(Order order) {
         List<OrderLine> orderLines = orderLineRepository.findAllByOrderId(order.getId());
         for (OrderLine orderLine : orderLines) {
-            if (orderLine.getTask() == null) {
+            if (orderLine.getTask().isEmpty()) {
                 continue;
             }
-            List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask().getId());
+            List<Allocation> allocations = allocationRepository.findAllByTaskId(orderLine.getTask()
+                .orElseThrow(() -> new InvalidRequestException("No allocations for order."))
+                .getId());
             for (Allocation allocation : allocations) {
                 if (allocation.getStatus() == Status.COMPLETED || allocation.getStatus() == Status.CANCELED) {
                     continue;
                 }
                 Stock stock = allocation.getStock();
-                int updatedReservedQuantity = Math.max(0, stock.getReservedQuantity() - Optional.ofNullable(allocation.getQuantity()).orElse(0));
+                int updatedReservedQuantity = Math.max(0, stock.getReservedQuantity() -
+                    Optional.ofNullable(allocation.getQuantity()).orElse(0));
                 stock.setReservedQuantity(updatedReservedQuantity);
                 log.info("Released reserved stock on order delete: orderId={}, orderLineId={}, stockId={}, releasedQuantity={}, remainingReserved={}",
                     order.getId(), orderLine.getId(), stock.getId(), allocation.getQuantity(), updatedReservedQuantity);
@@ -163,9 +180,10 @@ public class OrderService {
         return extendedOrderMapper.toResponse(order, operatorId);
     }
 
+
+
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(
-                securityFacade.getCurrentUsername(),
                 request.logicId(),
                 request.destinationLocationId(),
                 request.status(),
@@ -180,13 +198,51 @@ public class OrderService {
     }
 
     public List<ExtendedOrderResponse> getAllExtendedOrders() {
-        List<Order> orders = orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername());
+        List<Order> orders = orderRepository.findAll();
         return orders.stream()
             .map(order -> {
                 Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
                 return extendedOrderMapper.toResponse(order, operatorId);
             })
             .toList();
+    }
+
+    @Transactional
+    public void importOrdersFromFile(MultipartFile file) {
+        List<ExtendedOrderCreateRequest> orders = importService.importData(file, ExtendedOrderInfo.class);
+        try {
+            orders.stream()
+                .collect(Collectors.groupingBy(r -> r.order().logicId()))
+                .values()
+                .stream()
+                .peek(this::validateSameOrder)
+                .map(group -> new ExtendedOrderCreateRequest(
+                    group.getFirst().order(),
+                    group.stream()
+                        .map(ExtendedOrderCreateRequest::lines)
+                        .flatMap(List::stream)
+                        .toList()
+                ))
+                .forEach(this::addExtendedOrder);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid order data.");
+        }
+    }
+
+    private void validateSameOrder(List<ExtendedOrderCreateRequest> group) {
+        OrderCreateRequest base = group.getFirst().order();
+
+        boolean inconsistent = group.stream()
+            .map(ExtendedOrderCreateRequest::order)
+            .anyMatch(o ->
+                !Objects.equals(o.destinationLocationId(), base.destinationLocationId())
+            );
+
+        if (inconsistent) {
+            throw new InvalidRequestException(
+                "Invalid import data: same order " + group.getFirst().order().logicId() + " has conflicting field destination."
+            );
+        }
     }
 
     public List<ShortageOrderResponse> getShortageOrders() {
@@ -254,8 +310,8 @@ public class OrderService {
 
     private AffectedOrderLineResponse toAffectedOrderLineResponse(Order order, OrderLine line, List<Allocation> allocations) {
         List<Allocation> lineAllocations = allocations.stream()
-            .filter(allocation -> line.getTask() != null && allocation.getTask().getId().equals(line.getTask().getId()))
-            .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
+            .filter(allocation -> allocation.getTask().getId().equals(line.getTask().map(Task::getId).orElse(null)))
+            .sorted(Comparator.comparing(BaseTimestampEntity::getCreatedAt))
             .toList();
 
         int deliveredQuantity = resolveDeliveredQuantity(line, lineAllocations);
@@ -274,13 +330,16 @@ public class OrderService {
             .map(Location::getBarcode)
             .findFirst()
             .orElse(null);
-        boolean revalidationRequired = line.getTask() != null && line.getTask().getStatus() == com.isd.wms.enums.TaskStatus.REQUIRES_REVALIDATION;
+        boolean revalidationRequired =
+            line.getTask().map(Task::getStatus).orElse(null) == com.isd.wms.enums.TaskStatus.REQUIRES_REVALIDATION;
 
         return new AffectedOrderLineResponse(
             order.getId(),
             order.getLogicId(),
             line.getId(),
-            line.getTask() == null ? null : line.getTask().getId(),
+            line.getTask()
+                .map(Task::getId)
+                .orElse(null),
             line.getProduct().getId(),
             line.getProduct().getName(),
             line.getRequestedQuantity(),

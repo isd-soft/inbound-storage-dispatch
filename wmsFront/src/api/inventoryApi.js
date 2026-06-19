@@ -33,5 +33,10 @@ export const inventoryApi = {
   },
   getLocations() {
     return apiClient.get('/locations')
-  }
+  },
+  importStocks(payload) {
+    return apiClient.post('/inventory/imports', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

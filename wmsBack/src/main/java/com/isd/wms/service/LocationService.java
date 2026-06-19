@@ -4,6 +4,8 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
+import com.isd.wms.exception.DuplicateLocationNameException;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateBarcodeException;
@@ -11,10 +13,14 @@ import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.service.imports.xlsx.dto.LocationInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +32,7 @@ public class LocationService {
     private final LocationRepository locationRepository;
     private final LocationMapper locationMapper;
     private final StockRepository stockRepository;
+    private final ImportService importService;
 
 
     @Transactional
@@ -52,15 +59,17 @@ public class LocationService {
     @Transactional
     public LocationResponse updateLocation(Long locationId, LocationUpdateRequest request) {
         Location location = getLocation(locationId);
+        String newName = request.name().trim();
         String newCode = request.barcode().trim();
 
+        boolean isNameChanged = !location.getName().equalsIgnoreCase(newName);
         boolean isCodeChanged = !location.getBarcode().equalsIgnoreCase(newCode);
         boolean isZoneChanged = location.getZone() != request.zone();
         boolean isAvailableChanged = location.getAvailable() != request.available();
 
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
 
-        if (hasProducts && (isCodeChanged || isZoneChanged || isAvailableChanged)) {
+        if (hasProducts && (isNameChanged || isCodeChanged || isZoneChanged || isAvailableChanged)) {
             log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
             throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
         }
@@ -69,6 +78,11 @@ public class LocationService {
             throw new DuplicateBarcodeException(newCode);
         }
 
+        if (isNameChanged && locationRepository.existsByNameIgnoreCase(newCode)) {
+            throw new DuplicateLocationNameException(newName);
+        }
+
+        location.setName(newName);
         location.setBarcode(newCode);
         location.setZone(request.zone());
         location.setDescription(request.description());
@@ -107,9 +121,18 @@ public class LocationService {
         return locationRepository.getLocationDispatch();
     }
 
-
     private Location getLocation(Long locationId) {
         return locationRepository.findById(locationId)
             .orElseThrow(() -> new LocationNotFoundException(locationId));
+    }
+
+    @Transactional
+    public void importLocationsFromFile(MultipartFile file) {
+        List<Location> locations = importService.importData(file, LocationInfo.class);
+        try {
+            locationRepository.saveAllAndFlush(locations);
+        } catch (DataIntegrityViolationException e) {
+            throw new InvalidRequestException("The imported file contains invalid location data.");
+        }
     }
 }

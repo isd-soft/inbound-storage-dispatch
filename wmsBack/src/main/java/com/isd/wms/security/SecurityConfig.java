@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/auth/verify", "/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/auth/verify", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         .requestMatchers("/api/supervisor/**").hasAnyAuthority("ROLE_SUPERVISOR", "ROLE_DEV", "SUPERVISOR", "DEV")
@@ -65,6 +65,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
+                "http://localhost:8080",
+                "http://127.0.0.1:8080",
                 "http://127.0.0.1:5173",
                 "http://172.17.44.95:5173"
         ));
