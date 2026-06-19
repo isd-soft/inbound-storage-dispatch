@@ -10,6 +10,9 @@ export const allocationApi = {
   startCurrentTask() {
     return apiClient.post('/v1/allocations/operator/current/start')
   },
+  completeCurrentOrder() {
+    return apiClient.post('/v1/allocations/operator/current/complete')
+  },
   completeAssignedAllocation(allocationId) {
     return apiClient.post(`/v1/allocations/${allocationId}/complete`)
   },

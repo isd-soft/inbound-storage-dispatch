@@ -4,5 +4,6 @@ public enum InventoryAdjustmentReason {
     STOLEN,
     DAMAGED,
     LOST,
-    INVENTORY_MISMATCH
+    INVENTORY_MISMATCH,
+    PICKING_SHORTAGE
 }

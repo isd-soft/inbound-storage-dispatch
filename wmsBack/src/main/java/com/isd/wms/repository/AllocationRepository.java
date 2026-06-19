@@ -181,9 +181,9 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
         @Param("status") Status status);
 
     @Query("""
-        SELECT
-            a.id AS allocationId,
-            r.id AS replenishmentId,
+            SELECT
+                a.id AS allocationId,
+                r.id AS replenishmentId,
             ol.order.id AS orderId,
             t.taskType AS type,
             a.stock.id AS stockId,
@@ -208,7 +208,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
         JOIN User u ON u = t.supervisor
         LEFT JOIN OrderLine ol ON ol.task = a.task
         LEFT JOIN Replenishment r ON r.task = a.task
-        WHERE a.status NOT IN (com.isd.wms.enums.Status.COMPLETED, com.isd.wms.enums.Status.CANCELED)
+        ORDER BY a.createdAt, a.id
         """)
     List<AllocationSupervisorProjection> getAllAllocations();
 

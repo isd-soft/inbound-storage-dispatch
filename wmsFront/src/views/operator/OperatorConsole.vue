@@ -1,5 +1,6 @@
 <template>
   <div class="app-shell font-sans min-h-screen flex flex-col items-center w-full overflow-x-hidden">
+    <ConfirmDialog />
     <header class="app-header w-full flex justify-between items-center px-4 py-2">
       <div class="flex items-center gap-2">
         <img
@@ -66,7 +67,7 @@
 
           <div class="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
             <div
-              v-for="(proc, index) in finalAllocationsSummary"
+              v-for="(proc, index) in finalSummaryEntries"
               :key="proc.allocationId || index"
               class="app-card flex flex-col gap-2 p-3 rounded-xl text-xs"
             >
@@ -99,7 +100,7 @@
 
           <div class="flex items-center justify-between text-[11px] app-muted pt-1 app-divider">
             <span>Total lines processed:</span>
-            <span class="font-bold app-subtitle">{{ finalAllocationsSummary.length || 0 }}</span>
+            <span class="font-bold app-subtitle">{{ finalSummaryEntries.length || 0 }}</span>
           </div>
         </div>
 
@@ -391,11 +392,15 @@ import { allocationApi } from '@/api/allocationApi'
 import { useTheme } from '@/composables/useTheme'
 import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import ConfirmDialog from 'primevue/confirmdialog'
 import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 const ScanSection = defineComponent({
   name: 'ScanSection',
@@ -450,6 +455,8 @@ const ScanSection = defineComponent({
 const router = useRouter()
 const authStore = useAuthStore()
 const { isDark } = useTheme()
+const confirm = useConfirm()
+const toast = useToast()
 
 const loading = ref(true)
 const actionLoading = ref(false)
@@ -458,8 +465,9 @@ const actionError = ref('')
 const summary = ref(null)
 const barcodeInput = ref('')
 const destinationInput = ref('')
+const pickedQuantity = ref(0)
+const shortageComment = ref('')
 const tuInput = ref('')
-const pickedQuantity = ref(1)
 
 const finalAllocationsSummary = ref([])
 const showTuScan = ref(false)
@@ -480,13 +488,24 @@ const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.v
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 const currentAllocation = computed(() => summary.value?.currentAllocation || null)
-const orderedAllocations = computed(() => summary.value?.allocations || [])
+const currentAllocation = computed(() => {
+  const rawCurrent = summary.value?.currentAllocation || null
+  if (rawCurrent && (rawCurrent.requiredQuantity != null || rawCurrent.sourceLocationBarcode || rawCurrent.productName)) {
+    return rawCurrent
+  }
+
+  return orderedAllocations.value.find((allocation) =>
+    allocation.status === 'ASSIGNED'
+      || allocation.status === 'IN_PROGRESS'
+      || allocation.status === 'CREATED'
+  ) || rawCurrent
+})
 const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT' || lastTaskType.value === 'REPLENISHMENT')
 
 const taskBadgeClass = computed(() => {
   return isReplenishmentTask.value ? 'app-pill--repl' : 'app-pill--pick'
 })
-const isAwaitingStart = computed(() => summary.value?.status === 'ASSIGNED' || currentAllocation.value?.status === 'ASSIGNED')
+const isAwaitingStart = computed(() => currentAllocation.value?.status === 'ASSIGNED')
 
 const currentLineIndex = computed(() => {
   if (!currentAllocation.value || !orderedAllocations.value.length) return 0
@@ -503,11 +522,43 @@ const activeStep = computed(() => {
 
 const getErrorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback
 
+const normalizeSummaryEntries = (payload) => {
+  if (!payload) return []
+
+  if (payload.allocations?.length) {
+    return payload.allocations
+  }
+
+  return (payload.orderLines ?? []).map((line) => ({
+    allocationId: line.taskId || line.orderLineId,
+    taskId: line.taskId,
+    orderLineId: line.orderLineId,
+    productId: line.productId,
+    productName: line.productName,
+    productBarcode: line.productBarcode,
+    sourceLocationBarcode: line.sourceLocationBarcodes?.[0] || null,
+    destinationLocationBarcode: line.destinationLocationBarcode,
+    requiredQuantity: line.requiredQuantity,
+    pickedQuantity: line.pickedQuantity,
+    status: line.status,
+  }))
+}
+
+const finalSummaryEntries = computed(() => {
+  if (!showFinalSummary.value) {
+    return finalAllocationsSummary.value
+  }
+
+  const normalized = normalizeSummaryEntries(summary.value)
+  return normalized.length ? normalized : finalAllocationsSummary.value
+})
+
 const hydrateState = (payload) => {
   summary.value = payload
   actionError.value = ''
   barcodeInput.value = ''
   destinationInput.value = ''
+  shortageComment.value = ''
   pickedQuantity.value = payload?.currentAllocation?.pickedQuantity ?? payload?.currentAllocation?.requiredQuantity ?? 1
 
   if (payload?.taskType) {
@@ -519,6 +570,19 @@ const hydrateState = (payload) => {
   if (payload && payload.allocations) {
     finalAllocationsSummary.value = JSON.parse(JSON.stringify(payload.allocations))
   }
+}
+
+const hydrateCompletionSummary = (completion) => {
+  if (!completion?.summary) return
+
+  summary.value = completion.summary
+  finalAllocationsSummary.value = JSON.parse(JSON.stringify(normalizeSummaryEntries(completion.summary)))
+  lastTaskType.value = completion.summary.taskType || lastTaskType.value
+  if (completion.summary.destinationLocationBarcode) {
+    savedDestinationBarcode.value = completion.summary.destinationLocationBarcode
+  }
+  showFinalSummary.value = !completion.summary.currentAllocation
+  showDestinationScan.value = false
 }
 
 const loadCurrentTask = async () => {
@@ -685,10 +749,25 @@ const confirmQuantity = async () => {
   if (actionLoading.value) return
   if (!currentAllocation.value) return
 
-  if (pickedQuantity.value === 0) {
-    actionError.value = 'Wrong quantity.'
+  if (pickedQuantity.value < 0 || pickedQuantity.value > currentAllocation.value.requiredQuantity) return
+
+  if (pickedQuantity.value < currentAllocation.value.requiredQuantity) {
+    confirm.require({
+      message: 'Confirm the lower quantity?',
+      header: 'Confirm quantity',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Confirm',
+      rejectLabel: 'Cancel',
+      accept: submitPickedQuantity,
+    })
     return
   }
+
+  await submitPickedQuantity()
+}
+
+const submitPickedQuantity = async () => {
+  if (!currentAllocation.value) return
 
   actionLoading.value = true
   actionError.value = ''
@@ -696,21 +775,50 @@ const confirmQuantity = async () => {
   try {
     const allocationId = currentAllocation.value.allocationId
 
-    const localIdx = finalAllocationsSummary.value.findIndex(p => p.allocationId === allocationId)
-    if (localIdx !== -1) {
-      finalAllocationsSummary.value[localIdx].pickedQuantity = pickedQuantity.value
+    await allocationApi.confirmPickedQuantity(allocationId, {
+      pickedQuantity: pickedQuantity.value,
+      shortageReason: pickedQuantity.value < currentAllocation.value.requiredQuantity ? 'SHORTAGE' : null,
+      comment: null,
+    })
+    const response = await allocationApi.completeAssignedAllocation(allocationId)
+
+    const completion = response.data
+    if (completion.orderStatus === 'CANCELED') {
+      summary.value = null
+      showFinalSummary.value = false
+      showDestinationScan.value = false
+      lastTaskType.value = ''
+      savedDestinationBarcode.value = ''
+      finalAllocationsSummary.value = []
+      pickedQuantity.value = 1
+      shortageComment.value = ''
+      await loadCurrentTask()
+    } else if (completion.newProcessCreated && completion.summary?.currentAllocation) {
+      showFinalSummary.value = false
+      showDestinationScan.value = false
+      hydrateCompletionSummary(completion)
+    } else if (completion.summary) {
+      hydrateCompletionSummary(completion)
+      if (completion.summary.currentAllocation) {
+        showFinalSummary.value = false
+        showDestinationScan.value = false
+      }
     }
 
-    const isLastLineOfCurrentTask = currentLineIndex.value === orderedAllocations.value.length - 1
+    toast.add({
+      severity: completion.newProcessCreated ? 'warn' : 'success',
+      summary: 'Picking updated',
+      detail: completion.message || 'Allocation completed.',
+      life: 4000,
+    })
 
-    await allocationApi.confirmPickedQuantity(allocationId, pickedQuantity.value)
-    await allocationApi.completeAssignedAllocation(allocationId)
-
-    if (isLastLineOfCurrentTask) {
-      summary.value = null
-      showFinalSummary.value = true
-    } else {
-      await loadCurrentTask()
+    if (completion.newProcessCreated) {
+      toast.add({
+        severity: 'info',
+        summary: 'Reallocation',
+        detail: 'Alternative stock found. New picking task was created.',
+        life: 5000,
+      })
     }
   } catch (error) {
     actionError.value = getErrorMessage(error, 'Wrong quantity.')
@@ -744,7 +852,12 @@ const submitDestinationScan = async () => {
     localStorage.removeItem('active_tu_barcode')
 
     showDestinationScan.value = false
+
+    await allocationApi.completeCurrentOrder()
+
     summary.value = null
+    showFinalSummary.value = false
+    showDestinationScan.value = false
     lastTaskType.value = ''
     savedDestinationBarcode.value = ''
     activeTuBarcode.value = ''

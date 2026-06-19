@@ -11,6 +11,7 @@ import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.InventoryAdjustmentReason;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
@@ -59,7 +60,8 @@ public class AllocationExecutionService {
         }
 
         return findPickedOrderAwaitingCompletion(securityFacade.getCurrentUser())
-            .map(this::toPickingSummary);
+            .map(this::toPickingSummary)
+            .filter(summary -> summary.currentAllocation() != null);
     }
 
     @Transactional
@@ -81,7 +83,7 @@ public class AllocationExecutionService {
         Order order = findPickedOrderAwaitingCompletion(securityFacade.getCurrentUser())
             .orElseThrow(() -> new InvalidRequestException("No assigned order found for current operator"));
 
-        if (order.getStatus() != OrderStatus.PICKED) {
+        if (order.getStatus() != OrderStatus.PICKED && order.getStatus() != OrderStatus.PARTIALLY_COMPLETED) {
             throw new InvalidRequestException("Order is not ready for final completion");
         }
 
@@ -110,13 +112,7 @@ public class AllocationExecutionService {
         }
 
         boolean allCanceled = orderLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
-        boolean hasPartialHistory = orderLines.stream().anyMatch(line ->
-            line.getStatus() == Status.CANCELED
-                || resolveDeliveredQuantity(line) < line.getRequestedQuantity()
-                || line.getShortageQuantity() > 0
-                || line.getStatus() == Status.PARTIALLY_COMPLETED
-        );
-        order.setStatus(allCanceled ? OrderStatus.CANCELED : hasPartialHistory ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED);
+        order.setStatus(allCanceled ? OrderStatus.CANCELED : OrderStatus.COMPLETED);
         orderRepository.save(order);
     }
 
@@ -238,16 +234,95 @@ public class AllocationExecutionService {
         }
 
         validatePickedQuantityForAllocation(allocation, allocation.getPickedQuantity());
+        int pickedQuantity = Optional.ofNullable(allocation.getPickedQuantity()).orElse(0);
+        boolean partialPick = pickedQuantity < allocation.getQuantity();
+        boolean zeroPickedQuantity = pickedQuantity == 0;
+        int shortageQuantity = partialPick ? Math.max(0, allocation.getQuantity() - pickedQuantity) : 0;
 
-        allocation.setStatus(resolveAllocationStatus(allocation));
+        OrderLine orderLine = orderLineRepository.findByTaskId(allocation.getTask().getId())
+            .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + allocation.getTask().getId()));
+        int currentDeliveredQuantity = Optional.ofNullable(orderLine.getDeliveredQuantity()).orElse(0);
+        int totalDeliveredQuantity = zeroPickedQuantity ? 0 : currentDeliveredQuantity + pickedQuantity;
+        int totalShortageQuantity = zeroPickedQuantity ? orderLine.getRequestedQuantity() : Math.max(0,
+            orderLine.getRequestedQuantity() - totalDeliveredQuantity);
+
+        orderLine.setDeliveredQuantity(totalDeliveredQuantity);
+        orderLine.setShortageQuantity(totalShortageQuantity);
+        if (zeroPickedQuantity) {
+            orderLine.setStatus(Status.CANCELED);
+        }
+
+        int stockQuantityBeforeShortageAdjustment = allocation.getStock().getQuantity();
+
+        List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
+            ? createShortageAllocations(allocation, shortageQuantity)
+            : List.of();
+        int remainingShortageQuantity = Math.max(0,
+            shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
+
+        allocation.setStatus(zeroPickedQuantity ? Status.CANCELED : resolveAllocationStatus(allocation));
         Allocation savedAllocation = allocationRepository.save(allocation);
 
-        AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
-        inventoryService.recordPickingHistory(savedAllocation.getStock(), savedAllocation.getPickedQuantity(), operator);
-        autoAdvanceGroupedPickingFlow(savedAllocation);
+        if (partialPick) {
+            inventoryService.recordPickingShortageAdjustment(
+                savedAllocation.getStock(),
+                stockQuantityBeforeShortageAdjustment,
+                operator,
+                "Picking shortage"
+            );
+        }
 
-        log.info("Allocation {} completed by operator {}", allocationId, operator.getUsername());
-        return new AllocationCompletionResponse(result);
+        AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
+        if (!partialPick) {
+            inventoryService.recordPickingHistory(
+                savedAllocation.getStock(),
+                pickedQuantity,
+                operator,
+                shortageQuantity > 0 ? InventoryAdjustmentReason.PICKING_SHORTAGE : null,
+                shortageQuantity > 0 ? "Picking shortage" : null
+            );
+        }
+        if (zeroPickedQuantity) {
+            autoAdvanceGroupedPickingFlow(savedAllocation);
+        } else if (!partialPick) {
+            autoAdvanceGroupedPickingFlow(savedAllocation);
+        }
+
+        orderLine.setShortageQuantity(remainingShortageQuantity);
+        orderLineRepository.save(orderLine);
+        Status orderLineStatus = orderLine.getStatus();
+        Order order = orderLine.getOrder();
+        OperatorTaskSummaryResponse updatedSummary = toPickingSummary(order);
+
+        String message;
+        if (zeroPickedQuantity) {
+            message = "No stock found. Order line was canceled.";
+        } else if (shortageQuantity > 0) {
+            if (shortageAllocations.isEmpty()) {
+                message = "No alternative stock found. Order line was partially completed.";
+            } else {
+                message = "Alternative stock found. New picking task was created.";
+            }
+        } else {
+            message = "Allocation completed successfully.";
+        }
+
+        log.info("Allocation {} completed by operator {} with pickedQuantity={}, shortageQuantity={}, newProcesses={}",
+            allocationId, operator.getUsername(), pickedQuantity, shortageQuantity, shortageAllocations.size());
+
+        return new AllocationCompletionResponse(
+            result.status(),
+            result.taskType(),
+            result.id(),
+            pickedQuantity,
+            shortageQuantity,
+            !shortageAllocations.isEmpty(),
+            shortageAllocations.isEmpty() ? null : shortageAllocations.getFirst().getId(),
+            orderLineStatus,
+            order.getStatus(),
+            message,
+            updatedSummary
+        );
     }
 
     @Transactional
@@ -262,7 +337,7 @@ public class AllocationExecutionService {
     private Optional<CurrentAssignment> findCurrentAssignment(String username) {
         List<Allocation> activeAllocations = allocationRepository.findByOperatorUsernameAndStatuses(
             username,
-            List.of(Status.ASSIGNED, Status.IN_PROGRESS)
+            List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS)
         );
         if (activeAllocations.isEmpty()) {
             return Optional.empty();
@@ -290,7 +365,7 @@ public class AllocationExecutionService {
         if (allocation.getStatus() == Status.IN_PROGRESS) {
             return;
         }
-        if (allocation.getStatus() != Status.ASSIGNED) {
+        if (allocation.getStatus() != Status.ASSIGNED && allocation.getStatus() != Status.CREATED) {
             throw new InvalidRequestException("Allocation is not available to start");
         }
 
@@ -330,7 +405,8 @@ public class AllocationExecutionService {
             .filter(allocation -> allocation.getStatus() == Status.COMPLETED)
             .count();
 
-        boolean readyForCompletion = order.getStatus() == OrderStatus.PICKED
+        boolean readyForCompletion = (order.getStatus() == OrderStatus.PICKED
+            || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED)
             && orderedAllocations.stream().allMatch(allocation ->
                 allocation.getStatus() == Status.COMPLETED
                     || allocation.getStatus() == Status.PARTIALLY_COMPLETED
@@ -404,8 +480,8 @@ public class AllocationExecutionService {
             .toList();
 
         int pickedQuantity = lineAllocations.stream()
-            .filter(allocation -> allocation.getStatus() == Status.COMPLETED)
-            .mapToInt(allocation -> allocation.getPickedQuantity() != null ? allocation.getPickedQuantity() : allocation.getQuantity())
+            .filter(allocation -> allocation.getStatus() != Status.CANCELED)
+            .mapToInt(allocation -> Optional.ofNullable(allocation.getPickedQuantity()).orElse(0))
             .sum();
 
         List<String> sourceLocationBarcodes = lineAllocations.stream()
@@ -479,8 +555,8 @@ public class AllocationExecutionService {
     }
 
     private void validatePickedQuantityForAllocation(Allocation allocation, Integer pickedQuantity) {
-        if (pickedQuantity == null || pickedQuantity < 1) {
-            throw new InvalidRequestException("Picked quantity must be greater than 0");
+        if (pickedQuantity == null || pickedQuantity < 0) {
+            throw new InvalidRequestException("Picked quantity must be greater than or equal to 0");
         }
         if (pickedQuantity > allocation.getQuantity()) {
             throw new InvalidRequestException("Picked quantity cannot exceed required quantity");
@@ -498,6 +574,57 @@ public class AllocationExecutionService {
         return pickedQuantity < allocation.getQuantity() ? Status.PARTIALLY_COMPLETED : Status.COMPLETED;
     }
 
+    private List<Allocation> createShortageAllocations(Allocation sourceAllocation, int shortageQuantity) {
+        log.info("Picking shortage detected for allocation {} shortageQuantity={}", sourceAllocation.getId(), shortageQuantity);
+        Product product = sourceAllocation.getStock().getProduct()
+            .orElseThrow(() -> new InvalidRequestException("Stock has no product"));
+        List<Stock> alternativeStocks = stockRepository.findAvailableStocksByProductIdAndZone(
+            product.getId(),
+            sourceAllocation.getStock().getLocation().getZone()
+        ).stream()
+            .filter(stock -> !stock.getId().equals(sourceAllocation.getStock().getId()))
+            .sorted(Comparator.comparing(this::availableQuantity).reversed().thenComparing(Stock::getId))
+            .toList();
+
+        List<Allocation> shortageAllocations = new java.util.ArrayList<>();
+        int remaining = shortageQuantity;
+        for (Stock stock : alternativeStocks) {
+            if (remaining <= 0) {
+                break;
+            }
+
+            int available = availableQuantity(stock);
+            if (available <= 0) {
+                continue;
+            }
+
+            int quantityToAllocate = Math.min(available, remaining);
+            stock.setReservedQuantity(stock.getReservedQuantity() + quantityToAllocate);
+            shortageAllocations.add(new Allocation(
+                sourceAllocation.getTask(),
+                stock,
+                quantityToAllocate,
+                Status.IN_PROGRESS
+            ));
+            remaining -= quantityToAllocate;
+            log.info("Alternative stock selected for shortage: allocationId={}, stockId={}, quantity={}",
+                sourceAllocation.getId(), stock.getId(), quantityToAllocate);
+        }
+
+        if (shortageAllocations.isEmpty()) {
+            log.info("No alternative stock found for allocation {}", sourceAllocation.getId());
+        } else {
+            allocationRepository.saveAll(shortageAllocations);
+            stockRepository.saveAll(alternativeStocks);
+        }
+
+        return shortageAllocations;
+    }
+
+    private int availableQuantity(Stock stock) {
+        return Optional.ofNullable(stock.getQuantity()).orElse(0) - Optional.ofNullable(stock.getReservedQuantity()).orElse(0);
+    }
+
     private void autoAdvanceGroupedPickingFlow(Allocation completedAllocation) {
         if (completedAllocation.getTask().getTaskType() != TaskType.PICKING_ORDER) {
             return;
@@ -507,7 +634,7 @@ public class AllocationExecutionService {
             List<Allocation> orderAllocations = allocationRepository.findAllByOrder(orderLine.getOrder());
             pickingFlowService.findNextExecutableAllocationAfter(orderAllocations, completedAllocation)
                 .ifPresent(nextAllocation -> {
-                    if (nextAllocation.getStatus() == Status.ASSIGNED) {
+                    if (nextAllocation.getStatus() == Status.CREATED || nextAllocation.getStatus() == Status.ASSIGNED) {
                         nextAllocation.setStatus(Status.IN_PROGRESS);
                     }
 

@@ -4,6 +4,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 public record ConfirmPickedQuantityRequest(
-        @NotNull @Min(1) Integer pickedQuantity
+        @NotNull @Min(0) Integer pickedQuantity,
+        String shortageReason,
+        String comment
 ) {
+    public ConfirmPickedQuantityRequest(Integer pickedQuantity) {
+        this(pickedQuantity, null, null);
+    }
 }

@@ -138,7 +138,7 @@
                 <ProductLink
                   :product-id="line.productId"
                   :barcode="getProduct(line.productId)?.barcode"
-                  :name="getProduct(line.productId)?.name || String(line.productId || '-')"
+                  :name="line.productName || getProduct(line.productId)?.name || '-'"
                   class="font-semibold"
                 />
               </template>

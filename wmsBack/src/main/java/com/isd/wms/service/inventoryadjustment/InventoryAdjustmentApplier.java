@@ -148,7 +148,10 @@ public class InventoryAdjustmentApplier {
     }
 
     private void updateOrderLine(AffectedTaskAdjustment affectedTask) {
-        affectedTask.orderLine().setDeliveredQuantity(affectedTask.finalAllocatedQuantity());
+        Integer currentDeliveredQuantity = affectedTask.orderLine().getDeliveredQuantity();
+        if (currentDeliveredQuantity == null || currentDeliveredQuantity <= 0) {
+            affectedTask.orderLine().setDeliveredQuantity(affectedTask.finalAllocatedQuantity());
+        }
         affectedTask.orderLine().setShortageQuantity(affectedTask.shortageQuantity());
         if (affectedTask.shortageQuantity() > 0) {
             affectedTask.orderLine().setStatus(affectedTask.lineStatus());

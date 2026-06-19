@@ -98,6 +98,15 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
             return Status.CANCELED;
         }
         if (deliveredQuantity < requestedQuantity) {
+            boolean hasPendingAllocations = orderLine.getTask() != null
+                && orderLine.getTask().getAllocations().stream().anyMatch(allocation ->
+                    allocation.getStatus() == Status.ASSIGNED
+                        || allocation.getStatus() == Status.IN_PROGRESS
+                        || allocation.getStatus() == Status.CREATED
+                );
+            if (hasPendingAllocations) {
+                return Status.SHORTAGE;
+            }
             return Status.PARTIALLY_COMPLETED;
         }
         return Status.COMPLETED;

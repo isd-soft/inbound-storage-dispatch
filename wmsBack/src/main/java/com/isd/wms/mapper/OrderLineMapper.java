@@ -19,6 +19,7 @@ public class OrderLineMapper {
                 orderLine.getOrder().getId(),
                 taskId,
                 orderLine.getProduct().getId(),
+                orderLine.getProduct().getName(),
                 orderLine.getRequestedQuantity(),
                 resolveDeliveredQuantity(orderLine),
                 orderLine.getStatus(),

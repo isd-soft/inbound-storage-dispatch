@@ -65,6 +65,7 @@ public class InventoryAdjustmentPlanner {
                 reducedOnAdjustedStockByTask,
                 availableAlternativeQuantityByStockId
             ))
+            .filter(Objects::nonNull)
             .sorted(Comparator.comparing(AffectedTaskAdjustment::orderCreatedAt).thenComparing(AffectedTaskAdjustment::orderId))
             .toList();
 
@@ -93,6 +94,9 @@ public class InventoryAdjustmentPlanner {
     ) {
         OrderLine orderLine = orderLineRepository.findByTaskId(taskId)
             .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + taskId));
+        if (InventoryAdjustmentSupport.nullSafeQuantity(orderLine.getDeliveredQuantity()) > 0) {
+            return null;
+        }
         Order order = orderLine.getOrder();
         Task task = orderLine.getTask();
 
