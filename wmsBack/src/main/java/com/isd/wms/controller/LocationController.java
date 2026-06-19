@@ -27,14 +27,8 @@ public class LocationController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<?> createLocation(@Valid @RequestBody LocationCreateRequest request) {
-        try {
-            LocationResponse response = locationService.createLocation(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (DuplicateLocationCodeException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        LocationResponse response = locationService.createLocation(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
