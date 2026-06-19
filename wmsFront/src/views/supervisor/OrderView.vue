@@ -99,7 +99,7 @@
       </Column>
       <Column header="Total Qty" style="width: 8rem">
         <template #body="{ data }">
-          <span class="font-semibold">{{ getOrderQuantity(data) }}</span>
+          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data) }}</span>
         </template>
       </Column>
       <Column header="Status" sortable>
@@ -153,7 +153,7 @@
                 <ProductLink
                   :product-id="line.productId"
                   :barcode="getProduct(line.productId)?.barcode"
-                  :name="getProduct(line.productId)?.name || String(line.productId || '-')"
+                  :name="line.productName || getProduct(line.productId)?.name || '-'"
                   class="font-semibold"
                 />
               </template>
@@ -517,7 +517,10 @@ const getProduct = (productId) => products.value.find((product) => product.id ==
 
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(
-    (total, line) => total + Number(line.requestedQuantity ?? line.quantity ?? 0),
+    (total, line) =>
+      line.status === 'CANCELED' || line.status === 'CANCELLED'
+        ? total
+        : total + Number(line.requestedQuantity ?? line.quantity ?? 0),
     0,
   )
 

@@ -134,6 +134,20 @@
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
           <label for="barcode" class="app-subtitle font-medium"
+            >Name <span class="text-red-500">*</span></label
+          >
+          <InputText
+            id="name"
+            v-model="formData.name"
+            placeholder="e.g., PICK-A-01"
+            required
+            autofocus
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label for="barcode" class="app-subtitle font-medium"
             >Barcode <span class="text-red-500">*</span></label
           >
           <InputText

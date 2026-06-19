@@ -3,6 +3,7 @@ package com.isd.wms.mapper;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.entity.OrderLine;
 import com.isd.wms.entity.Task;
+import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class OrderLineMapper {
                 orderLine.getOrder().getId(),
                 taskId,
                 orderLine.getProduct().getId(),
+                orderLine.getProduct().getName(),
                 orderLine.getRequestedQuantity(),
                 resolveDeliveredQuantity(orderLine),
                 orderLine.getStatus(),
@@ -27,6 +29,11 @@ public class OrderLineMapper {
     }
 
     private Integer resolveDeliveredQuantity(OrderLine orderLine) {
+        if (orderLine.getOrder().getStatus() != OrderStatus.COMPLETED
+            && orderLine.getOrder().getStatus() != OrderStatus.PARTIALLY_COMPLETED) {
+            return 0;
+        }
+
         Integer deliveredQuantity = orderLine.getDeliveredQuantity();
         if (deliveredQuantity != null && deliveredQuantity > 0) {
             return deliveredQuantity;

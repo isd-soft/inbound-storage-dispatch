@@ -4,22 +4,22 @@ package com.isd.wms.service;
 import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.dto.location.LocationResponse;
 import com.isd.wms.dto.location.LocationUpdateRequest;
-import com.isd.wms.exception.DuplicateLocationNameException;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateBarcodeException;
+import com.isd.wms.exception.DuplicateLocationNameException;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.repository.projections.ShortLocationProjection;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.LocationInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -38,20 +38,23 @@ public class LocationService {
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
         String code = request.barcode().trim();
-        String name = request.name() == null || request.name().isBlank()
-                ? code
-                : request.name().trim();
+        String name = request.name().trim();
+
         if (locationRepository.existsByBarcodeIgnoreCase(code)) {
             throw new DuplicateBarcodeException(code);
         }
 
+        if (locationRepository.existsByNameIgnoreCase(name)) {
+            throw new DuplicateLocationNameException(name);
+        }
 
+        System.out.println(name + " " + code);
         Location location = new Location(
-                name,
-                code,
-                request.zone(),
-                request.description(),
-                true
+            name,
+            code,
+            request.zone(),
+            request.description(),
+            true
         );
         return locationMapper.toResponse(locationRepository.save(location));
     }
@@ -128,9 +131,9 @@ public class LocationService {
 
     @Transactional
     public void importLocationsFromFile(MultipartFile file) {
-        List<Location> locations = importService.importData(file, LocationInfo.class);
+        List<LocationCreateRequest> locations = importService.importData(file, LocationInfo.class);
         try {
-            locationRepository.saveAllAndFlush(locations);
+            locations.forEach(this::createLocation);
         } catch (DataIntegrityViolationException e) {
             throw new InvalidRequestException("The imported file contains invalid location data.");
         }

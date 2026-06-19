@@ -16,25 +16,28 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({
-            CategoryNotFoundException.class,
-            LocationNotFoundException.class,
-            OrderLineNotFoundException.class,
-            OrderNotFoundException.class,
-            AllocationsNotFoundException.class,
-            ProductNotFoundException.class,
-            ReplenishmentNotFoundException.class,
-            StockNotFoundException.class,
-            TaskNotFoundException.class,
-            UserNotFoundException.class
+        CategoryNotFoundException.class,
+        LocationNotFoundException.class,
+        OrderLineNotFoundException.class,
+        OrderNotFoundException.class,
+        AllocationsNotFoundException.class,
+        ProductNotFoundException.class,
+        ReplenishmentNotFoundException.class,
+        StockNotFoundException.class,
+        TaskNotFoundException.class,
+        TransportUnitNotFoundException.class,
+        UserNotFoundException.class
     })
     public ResponseEntity<ApiErrorResponse> handleNotFound(RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), Map.of());
     }
 
     @ExceptionHandler({
-            DuplicateCategoryNameException.class,
-            CategoryInUseException.class,
-            DuplicateBarcodeException.class
+        DuplicateCategoryNameException.class,
+        DuplicateLocationCodeException.class,
+        DuplicateLocationNameException.class,
+        CategoryInUseException.class,
+        DuplicateBarcodeException.class
     })
     public ResponseEntity<ApiErrorResponse> handleConflict(RuntimeException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), Map.of());
@@ -75,16 +78,16 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(
-            HttpStatus status,
-            String message,
-            Map<String, String> validationErrors
+        HttpStatus status,
+        String message,
+        Map<String, String> validationErrors
     ) {
         ApiErrorResponse response = new ApiErrorResponse(
-                Instant.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                message,
-                validationErrors
+            Instant.now(),
+            status.value(),
+            status.getReasonPhrase(),
+            message,
+            validationErrors
         );
         return ResponseEntity.status(status).body(response);
     }
