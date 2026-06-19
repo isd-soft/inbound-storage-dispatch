@@ -1,5 +1,6 @@
 package com.isd.wms.service.imports.mapper;
 
+import com.isd.wms.dto.location.LocationCreateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.service.imports.dto.LocationInfo;
 import lombok.RequiredArgsConstructor;
@@ -7,11 +8,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class LocationImportMapper implements ImportMapper<LocationInfo, Location> {
+public class LocationImportMapper implements ImportMapper<LocationInfo, LocationCreateRequest> {
 
     @Override
-    public Location toEntity(LocationInfo info) {
-        return new Location(
+    public LocationCreateRequest toEntity(LocationInfo info) {
+        return new LocationCreateRequest(
             info.getName(),
             info.getBarcode(),
             info.getZone(),
