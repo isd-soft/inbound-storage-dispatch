@@ -48,6 +48,7 @@ public class OrderService {
     private final ImportService importService;
     private final SecurityFacade securityFacade;
     private final TaskService taskService;
+    private final TransportUnitRepository transportUnitRepository;
 
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
@@ -71,7 +72,7 @@ public class OrderService {
     @Transactional
     public OrderResponse updateOrder(Long id, OrderUpdateRequest request) {
         if (!request.status().equals(OrderStatus.CREATED)) {
-            throw new InvalidRequestException("Order status must be CREATED");
+            throw new InvalidRequestException("Order status must be CREATED to update");
         }
         Order order = getOrder(id);
 
@@ -85,9 +86,42 @@ public class OrderService {
     }
 
     @Transactional
+    public ExtendedOrderResponse updateExtendedOrder(Long id, ExtendedOrderCreateRequest request) {
+        Order order = getOrder(id);
+
+        if (order.getStatus() != OrderStatus.CREATED) {
+            throw new InvalidRequestException("Cannot modify lines of an order that is already assigned or in progress.");
+        }
+
+        order.setLogicId(request.order().logicId());
+        order.setDestinationLocation(getLocation(request.order().destinationLocationId()));
+        Order savedOrder = orderRepository.save(order);
+
+        List<OrderLine> oldLines = orderLineRepository.findAllByOrderId(savedOrder.getId());
+        orderLineRepository.deleteAll(oldLines);
+
+        for (OrderLineCreateRequest oRequest : request.lines()) {
+            oRequest = new OrderLineCreateRequest(oRequest, savedOrder.getId());
+            orderLineService.addOrderLine(savedOrder, oRequest);
+        }
+
+        orderLineRepository.flush();
+
+        Long operatorId = orderRepository.findOperatorIdByOrderId(savedOrder.getId()).orElse(null);
+        return extendedOrderMapper.toResponse(getOrder(savedOrder.getId()), operatorId);
+    }
+
+    @Transactional
     public void deleteOrderById(Long id) {
         Order order = getOrder(id);
         releaseReservedStock(order);
+
+        transportUnitRepository.findByOrder(order).ifPresent(tu -> {
+            tu.setOrder(null);
+            transportUnitRepository.save(tu);
+            log.info("Successfully released Transport Unit {} from deleted order {}", tu.getBarcode(), id);
+        });
+
         orderRepository.delete(order);
         log.info("Deleted order and released reserved stock: orderId={}", id);
     }
@@ -183,8 +217,6 @@ public class OrderService {
         Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
         return extendedOrderMapper.toResponse(order, operatorId);
     }
-
-
 
     public List<OrderResponse> searchOrders(OrderSearchRequest request) {
         return orderRepository.filter(

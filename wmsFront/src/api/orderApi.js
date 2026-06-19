@@ -13,6 +13,9 @@ export const orderApi = {
   update(id, payload) {
     return apiClient.put(`/v1/orders/${id}`, payload)
   },
+  updateExtended(id, payload) {
+    return apiClient.put(`/v1/orders/extended/${id}`, payload)
+  },
   delete(id) {
     return apiClient.delete(`/v1/orders/${id}`)
   },

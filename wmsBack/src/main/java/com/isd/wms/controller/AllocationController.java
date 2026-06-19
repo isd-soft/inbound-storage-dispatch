@@ -3,6 +3,7 @@ package com.isd.wms.controller;
 import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.dto.allocation.*;
 import com.isd.wms.dto.transport_unit.ScanTuRequest;
+import com.isd.wms.dto.transport_unit.TaskActionResponse;
 import com.isd.wms.repository.projections.AllocationSupervisorProjection;
 import com.isd.wms.service.AllocationExecutionService;
 import com.isd.wms.service.AllocationService;
@@ -71,14 +72,14 @@ public class AllocationController {
 
     @PostMapping("/{id}/dispatch")
     @PreAuthorize("hasAnyRole('OPERATOR', 'DEV')")
-    public ResponseEntity<com.isd.wms.dto.transport_unit.TaskActionResponse> dispatchAllocation(
+    public ResponseEntity<TaskActionResponse> dispatchAllocation(
         @PathVariable Long id,
         @RequestParam String currentBarcode) {
 
         log.info("Initiating DISPATCH process for Allocation ID: {}, linked with TU: {}", id, currentBarcode);
         tuService.releaseTransportUnit(currentBarcode);
 
-        com.isd.wms.dto.transport_unit.TaskActionResponse response = new com.isd.wms.dto.transport_unit.TaskActionResponse(
+        TaskActionResponse response = new TaskActionResponse(
             "COMPLETED",
             false,
             null,

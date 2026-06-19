@@ -78,11 +78,23 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
-        Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
+        Stock stock = stockRepository.findByLocationId(location.getId())
             .orElseGet(() -> new Stock(product, location));
+
+        if (stock.getId() != null) {
+            Product existingProduct = stock.getProduct().orElse(null);
+            if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
+                if (stock.getQuantity() == 0 && stock.getReservedQuantity() == 0) {
+                    stock.setProduct(product);
+                } else {
+                    throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
+                }
+            }
+        }
 
         int quantity = request.quantity() == null ? 0 : request.quantity();
         int reservedQuantity = request.reservedQuantity() == null ? 0 : request.reservedQuantity();
+        
         stock.setQuantity(stock.getQuantity() + quantity);
         stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
         stock.setManufactureDate(request.manufactureDate());
@@ -92,6 +104,7 @@ public class InventoryService {
 
         createHistory(savedStock, quantity, savedStock.getQuantity(), null, location,
             InventoryOperationType.ADD_STOCK, null, null, user);
+            
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
     }

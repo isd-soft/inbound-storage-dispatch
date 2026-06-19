@@ -38,6 +38,7 @@
           @click="importDialogVisible = true"
         />
         <Button label="Create" icon="pi pi-plus" severity="success" @click="openCreateDialog" />
+
         <Button
           :label="editMode ? 'Exit Edit' : 'Edit'"
           icon="pi pi-pencil"
@@ -45,6 +46,17 @@
           outlined
           @click="toggleEditMode"
         />
+
+        <Button
+          v-if="editMode"
+          label="Edit Selected"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          :disabled="selectedOrders.length !== 1 || !canEditSelected"
+          @click="openEditDialog(selectedOrders[0])"
+        />
+
         <Button
           v-if="editMode"
           label="Delete Selected"
@@ -56,12 +68,13 @@
         />
         <span v-if="editMode" class="app-muted text-sm">{{ selectedOrders.length }} selected</span>
       </template>
+
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
       <Column expander style="width: 3rem">
         <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
-            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi-chevron-right'"
             text
             rounded
             size="small"
@@ -112,11 +125,13 @@
           />
         </template>
       </Column>
+
       <Column header="Transport Unit">
         <template #body="{ data }">
-          <span class="font-mono">{{ data.transportUnitBarcode || '-' }}</span>
+          <span class="font-mono font-semibold">{{ data.order.transportUnitBarcode || '-' }}</span>
         </template>
       </Column>
+
       <Column field="order.createdAt" header="Created" sortable filter>
         <template #body="{ data }">
           {{ formatDate(data.order.createdAt) }}
@@ -146,15 +161,15 @@
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
                 <span class="font-semibold">{{
-                  line.requestedQuantity ?? line.quantity ?? 0
-                }}</span>
+                    line.requestedQuantity ?? line.quantity ?? 0
+                  }}</span>
               </template>
             </Column>
             <Column field="deliveredQuantity" header="Delivered Qty" filter>
               <template #body="{ data: line }">
                 <span class="font-semibold">{{
-                  line.deliveredQuantity ?? line.allocatedQuantity ?? 0
-                }}</span>
+                    line.deliveredQuantity ?? line.allocatedQuantity ?? 0
+                  }}</span>
               </template>
             </Column>
             <Column field="status" header="Status" filter>
@@ -168,8 +183,8 @@
     </AppDataTable>
 
     <Dialog
-      v-model:visible="createDialogVisible"
-      header="Create Order"
+      v-model:visible="formDialogVisible"
+      :header="isEditingOrder ? 'Update Order' : 'Create Order'"
       :modal="true"
       class="w-full max-w-5xl"
     >
@@ -183,15 +198,11 @@
               class="w-full"
               :invalid="submitted && !formData.logicId"
             />
-            <small v-if="submitted && !formData.logicId" class="text-red-400"
-              >Logic ID is required.</small
-            >
+            <small v-if="submitted && !formData.logicId" class="text-red-400">Logic ID is required.</small>
           </div>
 
           <div class="field">
-            <label for="location" class="block text-sm font-medium mb-1"
-              >Destination Location</label
-            >
+            <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
             <Select
               id="location"
               v-model="formData.location"
@@ -203,9 +214,7 @@
               class="w-full"
               :invalid="submitted && !formData.location"
             />
-            <small v-if="submitted && !formData.location" class="text-red-400"
-              >Location is required.</small
-            >
+            <small v-if="submitted && !formData.location" class="text-red-400">Location is required.</small>
           </div>
         </div>
 
@@ -230,11 +239,8 @@
                 filter
                 class="w-full min-w-0"
                 :invalid="submitted && !data.product"
-                @change="data.quantity = 1"
               />
-              <small v-if="submitted && !data.product" class="text-red-400"
-                >Product is required.</small
-              >
+              <small v-if="submitted && !data.product" class="text-red-400">Product is required.</small>
             </template>
           </Column>
           <Column header="Quantity" style="min-width: 13rem">
@@ -247,9 +253,7 @@
                 class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
-              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400"
-                >Minimum quantity is 1.</small
-              >
+              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum quantity is 1.</small>
             </template>
           </Column>
           <Column header="Actions" style="width: 6rem">
@@ -271,11 +275,11 @@
         <div class="flex w-full items-center justify-between gap-3">
           <Button label="Add Line" icon="pi pi-plus" outlined @click="addLine" />
           <div class="flex items-center gap-2">
-            <Button label="Cancel" icon="pi pi-times" text @click="closeCreateDialog" />
+            <Button label="Cancel" icon="pi pi-times" text @click="closeFormDialog" />
             <Button
-              label="Submit Order"
+              :label="isEditingOrder ? 'Save Changes' : 'Submit Order'"
               icon="pi pi-check"
-              severity="success"
+              :severity="isEditingOrder ? 'warning' : 'success'"
               :loading="actionLoading"
               @click="onSubmit"
             />
@@ -283,6 +287,7 @@
         </div>
       </template>
     </Dialog>
+
     <UploadFile
       v-model:visible="importDialogVisible"
       :apiCall="handleImport"
@@ -294,7 +299,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, computed } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -325,6 +330,10 @@ const selectedOrders = ref([])
 const expandedRows = ref({})
 const editMode = ref(false)
 
+const formDialogVisible = ref(false)
+const isEditingOrder = ref(false)
+const editingOrderId = ref(null)
+
 const products = ref([])
 const locations = ref([])
 const operators = ref([])
@@ -332,7 +341,6 @@ const operators = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const loadError = ref('')
-const createDialogVisible = ref(false)
 const submitted = ref(false)
 
 const orderFilterFields = [
@@ -367,7 +375,6 @@ const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
     throw new Error('Wrong Format!')
   }
-
   return orderApi.importOrders(formData)
 }
 
@@ -410,6 +417,12 @@ const toggleEditMode = () => {
   selectedOrders.value = []
 }
 
+const canEditSelected = computed(() => {
+  if (selectedOrders.value.length !== 1) return false;
+  const orderData = selectedOrders.value[0].order;
+  return orderData.status === 'CREATED' || orderData.Status === 'CREATED';
+});
+
 const loadOrderCreateData = async () => {
   const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
     productApi.getAllProducts(),
@@ -427,8 +440,7 @@ const loadOrderCreateData = async () => {
     .filter((location) => location.zone === 'DISPATCH')
     .map((location) => ({
       ...location,
-      locationCode:
-        location.locationCode || location.barcode || location.code || location.location || '',
+      locationCode: location.locationCode || location.barcode || location.code || location.location || '',
     }))
 
   operators.value = (usersResponse.data || []).filter((user) => user.userRole === 'ROLE_OPERATOR')
@@ -440,27 +452,52 @@ const resetForm = () => {
   formData.lines = []
   submitted.value = false
   nextLineId = 1
-  addLine()
 }
 
 const openCreateDialog = async () => {
   resetForm()
-  createDialogVisible.value = true
+  addLine()
+  isEditingOrder.value = false
+  editingOrderId.value = null
+  formDialogVisible.value = true
 
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Order data load failed',
-      detail: getErrorMessage(error),
-      life: 4000,
-    })
+    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
   }
 }
 
-const closeCreateDialog = () => {
-  createDialogVisible.value = false
+const openEditDialog = async (orderData) => {
+  resetForm()
+
+  const order = orderData.order;
+  const lines = orderData.lines;
+
+  formData.logicId = order.logicId;
+  formData.location = order.destinationLocationId;
+
+  lines.forEach(line => {
+    formData.lines.push({
+      id: nextLineId++,
+      product: line.productId,
+      quantity: line.requestedQuantity
+    });
+  });
+
+  isEditingOrder.value = true
+  editingOrderId.value = order.id
+  formDialogVisible.value = true
+
+  try {
+    await loadOrderCreateData()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
+  }
+}
+
+const closeFormDialog = () => {
+  formDialogVisible.value = false
   resetForm()
 }
 
@@ -508,23 +545,12 @@ const isAssignmentLocked = (order) =>
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
-
   try {
     await orderApi.assign(orderId, operatorId)
-    toast.add({
-      severity: 'success',
-      summary: 'Order assigned',
-      detail: `Order #${orderId} assigned to operator.`,
-      life: 3000,
-    })
+    toast.add({ severity: 'success', summary: 'Assigned', detail: `Order #${orderId} assigned.`, life: 3000 })
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Assign failed',
-      detail: getErrorMessage(error),
-      life: 5000,
-    })
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
   }
 }
 
@@ -540,26 +566,13 @@ const confirmDeleteSelectedOrders = () => {
 
 const deleteSelectedOrders = async () => {
   actionLoading.value = true
-
   try {
     await Promise.all(selectedOrders.value.map((entry) => orderApi.delete(entry.order.id)))
-
-    toast.add({
-      severity: 'success',
-      summary: 'Orders deleted',
-      detail: `${selectedOrders.value.length} order(s) deleted.`,
-      life: 3000,
-    })
-
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedOrders.value.length} order(s) deleted.`, life: 3000 })
     selectedOrders.value = []
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Delete failed',
-      detail: getErrorMessage(error),
-      life: 5000,
-    })
+    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
@@ -580,26 +593,17 @@ const getStatusSeverity = (status) =>
 
 const formatDate = (value) =>
   value
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(new Date(value))
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
     : '-'
 
 const onSubmit = async () => {
   submitted.value = true
 
   const isTopValid = Boolean(formData.logicId && formData.location)
-  const areLinesValid =
-    formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity >= 1)
+  const areLinesValid = formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity >= 1)
 
   if (!isTopValid || !areLinesValid) {
-    toast.add({
-      severity: 'error',
-      summary: 'Validation Error',
-      detail: 'Please fill in all required fields.',
-      life: 4000,
-    })
+    toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all fields.', life: 4000 })
     return
   }
 
@@ -618,24 +622,18 @@ const onSubmit = async () => {
   actionLoading.value = true
 
   try {
-    const order = await orderApi.create(payload)
+    if (isEditingOrder.value) {
+      await orderApi.updateExtended(editingOrderId.value, payload)
+      toast.add({ severity: 'success', summary: 'Updated', detail: `Order ${formData.logicId} updated.`, life: 3000 })
+    } else {
+      await orderApi.create(payload)
+      toast.add({ severity: 'success', summary: 'Created', detail: `Order ${formData.logicId} created.`, life: 3000 })
+    }
 
-    toast.add({
-      severity: 'success',
-      summary: `Order submitted with id ${order.data.id}`,
-      detail: `${formData.lines.length} line(s) added.`,
-      life: 5000,
-    })
-
-    closeCreateDialog()
+    closeFormDialog()
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Order creation failed',
-      detail: getErrorMessage(error),
-      life: 5000,
-    })
+    toast.add({ severity: 'error', summary: 'Action failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
@@ -645,46 +643,3 @@ onMounted(async () => {
   await Promise.all([loadOrders(), loadOrderCreateData()])
 })
 </script>
-
-<style scoped>
-.order-lines-expansion {
-  animation: order-lines-enter 0.22s ease-out;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--brand-primary) 14%, transparent),
-      transparent 15rem
-    ),
-    color-mix(in srgb, var(--surface-ground) 84%, black);
-  border-left: 3px solid color-mix(in srgb, var(--brand-primary) 68%, transparent);
-  margin: -0.75rem -1rem;
-  padding: 0.5rem 0 0.5rem 0.75rem;
-  transform-origin: top;
-}
-
-.order-lines-table :deep(.p-datatable-table) {
-  width: 100%;
-}
-
-.order-lines-table :deep(.p-datatable-thead > tr > th),
-.order-lines-table :deep(.p-datatable-tbody > tr > td) {
-  background: transparent !important;
-  border-color: color-mix(in srgb, var(--border-subtle) 55%, transparent);
-}
-
-.order-lines-table :deep(.p-datatable-tbody > tr:hover > td) {
-  background: color-mix(in srgb, var(--surface-hover) 72%, transparent) !important;
-}
-
-@keyframes order-lines-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-0.35rem) scaleY(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scaleY(1);
-  }
-}
-</style>

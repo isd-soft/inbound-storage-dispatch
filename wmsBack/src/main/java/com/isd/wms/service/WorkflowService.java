@@ -93,7 +93,8 @@ public class WorkflowService {
             stockRepository.save(stock);
         }
 
-        allocationRepository.deleteAll(oldAllocations);
+        allocationRepository.deleteAllInBatch(oldAllocations);
+        allocationRepository.flush();
 
         generateAllocationsForTask(task, productId, requestedQuantity);
     }

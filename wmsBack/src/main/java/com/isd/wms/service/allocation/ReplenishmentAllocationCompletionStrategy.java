@@ -29,11 +29,24 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
         Product product = sourceStock.getProduct()
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
-        stockRepository.findByProductAndLocation(product, destinationLocation)
+        stockRepository.findByLocationId(destinationLocation.getId())
             .ifPresentOrElse(existingStock -> {
-                    existingStock.addQuantity(quantityToMove);
-                    existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-                }, //todo: check if we need it
+                    Product existingProduct = existingStock.getProduct().orElse(null);
+
+                    if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
+                        if (existingStock.getQuantity() == 0 && existingStock.getReservedQuantity() == 0) {
+                            existingStock.setProduct(product);
+                            existingStock.setQuantity(quantityToMove);
+                            existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
+                        } else {
+                            throw new IllegalStateException("Location " + destinationLocation.getBarcode() + " is already occupied by a different product!");
+                        }
+                    } else {
+                        if (existingProduct == null) existingStock.setProduct(product);
+                        existingStock.addQuantity(quantityToMove);
+                        existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
+                    }
+                },
                 () -> createStock(sourceStock, product, destinationLocation, quantityToMove));
     }
 
