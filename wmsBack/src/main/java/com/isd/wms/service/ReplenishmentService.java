@@ -1,5 +1,6 @@
 package com.isd.wms.service;
 
+import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
@@ -43,6 +44,20 @@ public class ReplenishmentService {
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
+    private void validateDestinationLocation(Product incomingProduct, Location destinationLocation) {
+        stockRepository.findByLocationId(destinationLocation.getId()).ifPresent(stock -> {
+            Product existingProduct = stock.getProduct().orElse(null);
+            if (existingProduct != null && !existingProduct.getId().equals(incomingProduct.getId())) {
+                if (stock.getQuantity() > 0 || stock.getReservedQuantity() > 0) {
+                    throw new InvalidRequestException(
+                        "Cannot route replenishment to " + destinationLocation.getBarcode() +
+                            ". Location is already occupied by a different product: " + existingProduct.getName()
+                    );
+                }
+            }
+        });
+    }
+
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
         log.info("Creating replenishment: productId={}, requestedQuantity={}, destinationLocationId={}",
@@ -50,6 +65,8 @@ public class ReplenishmentService {
 
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
+
+        validateDestinationLocation(product, destinationLocation);
 
         Replenishment replenishment = new Replenishment(product, request.requestedQuantity(), destinationLocation);
         replenishment.setStatus(Status.CREATED);
@@ -72,6 +89,8 @@ public class ReplenishmentService {
 
         Product product = getProduct(request.productId());
         Location destinationLocation = getLocation(request.destinationLocationId());
+
+        validateDestinationLocation(product, destinationLocation);
 
         boolean isProductChanged = !request.productId().equals(replenishment.getProduct().getId());
         boolean isQuantityChanged = !request.requestedQuantity().equals(replenishment.getRequestedQuantity());

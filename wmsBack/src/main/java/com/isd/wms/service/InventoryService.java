@@ -78,18 +78,29 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
-        Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
+        Stock stock = stockRepository.findByLocationId(location.getId())
             .orElseGet(() -> new Stock(product, location));
 
-        Integer reservedQuantity = request.quantity() == null ? 0 : request.quantity();
-        stock.setQuantity(stock.getQuantity() + reservedQuantity);
+        if (stock.getId() != null) {
+            Product existingProduct = stock.getProduct().orElse(null);
+            if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
+                if (stock.getQuantity() == 0 && stock.getReservedQuantity() == 0) {
+                    stock.setProduct(product);
+                } else {
+                    throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
+                }
+            }
+        }
+
+        Integer additionalQuantity = request.quantity() == null ? 0 : request.quantity();
+        stock.setQuantity(stock.getQuantity() + additionalQuantity);
         stock.setReservedQuantity(stock.getReservedQuantity() + request.reservedQuantity());
         stock.setManufactureDate(request.manufactureDate());
         stock.setExpirationDate(request.expirationDate());
 
         Stock savedStock = stockRepository.save(stock);
 
-        createHistory(savedStock, request.quantity(), savedStock.getQuantity(), null, location,
+        createHistory(savedStock, additionalQuantity, savedStock.getQuantity(), null, location,
             InventoryOperationType.ADD_STOCK, user);
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
@@ -175,17 +186,17 @@ public class InventoryService {
     ) {
         Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
-                product,
-                product == null ? null : product.getBarcode(),
-                alteredQuantity,
-                quantityAfterChange,
-                stock.getQuantity() - alteredQuantity,
-                sourceLocation,
-                destinationLocation,
-                operationType,
-                null,
-                null,
-                user
+            product,
+            product == null ? null : product.getBarcode(),
+            alteredQuantity,
+            quantityAfterChange,
+            stock.getQuantity() - alteredQuantity,
+            sourceLocation,
+            destinationLocation,
+            operationType,
+            null,
+            null,
+            user
         );
         history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);

@@ -8,12 +8,14 @@ import com.isd.wms.repository.TransportUnitRepository;
 import com.isd.wms.repository.OrderRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TransportUnitService {
 
     private final TransportUnitRepository tuRepository;
@@ -22,15 +24,7 @@ public class TransportUnitService {
     private final ReplenishmentRepository replenishmentRepository;
     private static final String BARCODE_REGEX = "^TU\\d{6}$";
 
-    public TransportUnitService(TransportUnitRepository tuRepository,
-                                AllocationRepository allocationRepository,
-                                OrderRepository orderRepository,
-                                ReplenishmentRepository replenishmentRepository) {
-        this.tuRepository = tuRepository;
-        this.allocationRepository = allocationRepository;
-        this.orderRepository = orderRepository;
-        this.replenishmentRepository = replenishmentRepository;
-    }
+
 
     @Transactional
     public void occupyTransportUnit(String barcode, Long taskId, boolean isOrder) {
