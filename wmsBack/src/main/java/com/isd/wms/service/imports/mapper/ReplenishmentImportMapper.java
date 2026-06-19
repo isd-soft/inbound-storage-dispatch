@@ -1,16 +1,11 @@
 package com.isd.wms.service.imports.mapper;
 
 import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
-import com.isd.wms.entity.Category;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.repository.CategoryRepository;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.service.imports.xlsx.dto.ProductInfo;
-import com.isd.wms.service.imports.xlsx.dto.ReplenishmentInfo;
+import com.isd.wms.service.imports.dto.ReplenishmentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -24,9 +19,9 @@ public class ReplenishmentImportMapper implements ImportMapper<ReplenishmentInfo
     @Override
     public ReplenishmentCreateRequest toEntity(ReplenishmentInfo info) {
     return new ReplenishmentCreateRequest(
-            getProductId(info.product()),
-            info.requestedQuantity(),
-            getLocationId(info.destinationLocationName())
+            getProductId(info.getProduct()),
+            info.getRequestedQuantity(),
+            getLocationId(info.getDestinationLocationName())
         );
     }
 

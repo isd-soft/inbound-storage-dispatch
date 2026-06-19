@@ -1,6 +1,5 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
@@ -15,8 +14,7 @@ import com.isd.wms.exception.ReplenishmentNotFoundException;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.ReplenishmentInfo;
-import com.isd.wms.service.imports.xlsx.dto.StockInfo;
+import com.isd.wms.service.imports.dto.ReplenishmentInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

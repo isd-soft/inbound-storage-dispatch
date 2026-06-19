@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.StockInfo;
+import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

@@ -1,7 +1,7 @@
 package com.isd.wms.service.imports.mapper;
 
 import com.isd.wms.entity.Category;
-import com.isd.wms.service.imports.xlsx.dto.CategoryInfo;
+import com.isd.wms.service.imports.dto.CategoryInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,7 +11,7 @@ public class CategoryImportMapper implements ImportMapper<CategoryInfo, Category
 
     @Override
     public Category toEntity(CategoryInfo info) {
-        return new Category(info.categoryName());
+        return new Category(info.getCategoryName());
     }
 
     @Override

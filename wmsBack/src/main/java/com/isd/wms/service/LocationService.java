@@ -14,7 +14,7 @@ import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.LocationInfo;
+import com.isd.wms.service.imports.dto.LocationInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

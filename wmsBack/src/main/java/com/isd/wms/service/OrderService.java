@@ -16,7 +16,7 @@ import com.isd.wms.mapper.ExtendedOrderMapper;
 import com.isd.wms.mapper.OrderMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
-import com.isd.wms.service.imports.xlsx.dto.ExtendedOrderInfo;
+import com.isd.wms.service.imports.dto.ExtendedOrderInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
