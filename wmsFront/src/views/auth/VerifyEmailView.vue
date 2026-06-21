@@ -1,30 +1,34 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+  <div
+    class="app-shell relative flex flex-col items-center justify-center px-6 py-16 sm:px-8 lg:px-12 min-h-screen"
+  >
     <Toast />
+    <div class="absolute right-6 top-6">
+      <ThemeToggle />
+    </div>
 
-    <Card
-      class="w-full max-w-md bg-white border border-gray-200/60 shadow-xl p-6 text-center rounded-2xl"
-    >
+    <Card class="app-card w-full max-w-md shadow-lg rounded-xl">
       <template #content>
         <div v-if="!success && !fatalError" class="flex flex-col gap-4 py-2">
-          <div class="w-full flex justify-center mb-2">
-            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-              <i class="pi pi-user-edit text-3xl text-blue-600"></i>
-            </div>
+          <div class="w-full flex justify-center mb-4">
+            <img
+              :src="isDark ? '/white_logo.png' : '/color_logo.png'"
+              alt="Inbound Storage Dispatch logo"
+              class="block h-24 w-auto object-contain transition-all duration-300"
+            />
           </div>
 
-          <h2 class="text-2xl font-bold text-gray-800">Activate Your Account</h2>
-          <p class="text-gray-500 text-sm mb-2">Please set a password for your new account.</p>
+          <div class="text-center mb-2">
+            <h3 class="app-brand text-xl font-bold">Activate Your Account</h3>
+            <p class="app-subtitle text-sm mt-1">Please set a password for your new account.</p>
+          </div>
 
-          <form @submit.prevent="submitVerification" class="flex flex-col gap-4 text-left">
+          <form @submit.prevent="submitVerification" class="flex flex-col gap-5">
             <div class="flex flex-col gap-2">
-              <label for="password" class="text-gray-700 font-semibold text-sm">
-                New Password <span class="text-red-500">*</span>
+              <label for="password" class="app-subtitle font-medium text-sm sm:text-base">
+                New Password <span class="app-danger">*</span>
               </label>
-              <small class="text-gray-500 text-xs mb-1 leading-relaxed">
-                Must be 8-64 chars, min. 1 uppercase, 1 lowercase, 1 digit and 1 special char
-                (@$!%*?&_#).
-              </small>
+
               <Password
                 id="password"
                 v-model="password"
@@ -36,15 +40,55 @@
                 strongLabel="Strong password"
                 :mediumRegex="passwordMediumRegex"
                 :strongRegex="passwordStrongRegex"
-                inputClass="w-full bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 rounded-lg p-3 pr-10 transition-colors focus:bg-white"
-                panelClass="!bg-white !text-gray-800 border !border-gray-200 p-4 shadow-2xl rounded-xl [&>.p-password-meter]:bg-gray-100"
-                class="w-full relative [&>.p-password-toggle-icon]:absolute [&>.p-password-toggle-icon]:top-1/2 [&>.p-password-toggle-icon]:-translate-y-1/2 [&>.p-password-toggle-icon]:right-3 [&>.p-password-toggle-icon]:text-gray-400 [&>.p-password-toggle-icon]:z-10 [&>.p-password-toggle-icon]:cursor-pointer"
-              />
+                inputClass="w-full p-3"
+                class="w-full [&>input]:w-full"
+                :pt="{
+                  panel: {
+                    class:
+                      'app-card border border-gray-200 dark:border-gray-700 shadow-2xl p-4 rounded-xl',
+                  },
+                  meter: { class: 'bg-gray-100 dark:bg-gray-800 rounded-sm' },
+                  info: { class: 'app-subtitle text-xs font-semibold mt-1.5' },
+                }"
+              >
+                <template #footer>
+                  <div
+                    class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-w-[240px]"
+                  >
+                    <p
+                      class="text-[10px] font-bold app-subtitle opacity-70 uppercase tracking-wider"
+                    >
+                      Requirements:
+                    </p>
+
+                    <div
+                      v-for="(req, index) in passwordRequirements"
+                      :key="index"
+                      class="flex items-center gap-2 text-xs transition-colors duration-200"
+                      :class="
+                        req.valid
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'app-subtitle opacity-60'
+                      "
+                    >
+                      <i
+                        :class="[
+                          req.valid
+                            ? 'pi pi-check-circle text-emerald-500 dark:text-emerald-400'
+                            : 'pi pi-circle',
+                          'text-[10px]',
+                        ]"
+                      ></i>
+                      <span :class="{ 'line-through opacity-50': req.valid }">{{ req.label }}</span>
+                    </div>
+                  </div>
+                </template>
+              </Password>
             </div>
 
-            <div class="flex flex-col gap-2 mt-2">
-              <label for="confirmPassword" class="text-gray-700 font-semibold text-sm">
-                Confirm Password <span class="text-red-500">*</span>
+            <div class="flex flex-col gap-2">
+              <label for="confirmPassword" class="app-subtitle font-medium text-sm sm:text-base">
+                Confirm Password <span class="app-danger">*</span>
               </label>
               <Password
                 id="confirmPassword"
@@ -52,57 +96,51 @@
                 :feedback="false"
                 toggleMask
                 required
-                inputClass="w-full bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 rounded-lg p-3 pr-10 transition-colors focus:bg-white"
-                class="w-full relative [&>.p-password-toggle-icon]:absolute [&>.p-password-toggle-icon]:top-1/2 [&>.p-password-toggle-icon]:-translate-y-1/2 [&>.p-password-toggle-icon]:right-3 [&>.p-password-toggle-icon]:text-gray-400 [&>.p-password-toggle-icon]:z-10 [&>.p-password-toggle-icon]:cursor-pointer"
+                inputClass="w-full p-3"
+                class="w-full [&>input]:w-full"
               />
               <small
                 v-if="confirmPassword && !isPasswordMatching"
-                class="text-red-500 text-xs mt-1"
+                class="app-danger text-xs flex items-center gap-1 mt-1"
               >
-                Passwords do not match.
+                <i class="pi pi-times-circle"></i> Passwords do not match.
               </small>
             </div>
 
             <Button
               type="submit"
               label="Set Password & Activate"
-              icon="pi pi-check"
-              class="mt-4 w-full bg-emerald-500 hover:bg-emerald-600 border-none text-white font-semibold p-3 rounded-lg shadow-sm transition-colors"
               :loading="loading"
               :disabled="!isFormValid"
+              class="w-full mt-4 p-3 font-semibold text-base"
             />
           </form>
         </div>
 
-        <div v-else-if="success" class="flex flex-col items-center gap-4 py-6">
-          <div class="w-full flex justify-center mb-2">
-            <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
-              <i class="pi pi-check text-4xl text-green-600"></i>
-            </div>
+        <div v-else-if="success" class="flex flex-col items-center gap-4 py-6 text-center">
+          <div
+            class="w-20 h-20 bg-green-50 dark:bg-green-950/30 rounded-full flex items-center justify-center border border-green-100 dark:border-green-900 shadow-inner"
+          >
+            <i class="pi pi-check text-5xl text-green-600 dark:text-green-400"></i>
           </div>
-          <h2 class="text-2xl font-bold text-gray-800">Account Activated!</h2>
-          <p class="text-gray-500">Your password has been set successfully.</p>
-          <Button
-            label="Go to Login"
-            icon="pi pi-sign-in"
-            class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white border-none p-3 rounded-lg"
-            @click="goToLogin"
-          />
+          <h2 class="app-brand text-2xl font-bold">Account Activated!</h2>
+          <p class="app-subtitle text-sm">Your password has been set successfully.</p>
+          <Button label="Go to Login" class="w-full mt-4 p-3 font-semibold" @click="goToLogin" />
         </div>
 
-        <div v-else class="flex flex-col items-center gap-4 py-6">
-          <div class="w-full flex justify-center mb-2">
-            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
-              <i class="pi pi-times text-4xl text-red-600"></i>
-            </div>
+        <div v-else class="flex flex-col items-center gap-4 py-6 text-center">
+          <div
+            class="w-20 h-20 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center border border-red-100 dark:border-red-900 shadow-inner"
+          >
+            <i class="pi pi-times text-5xl text-red-600 dark:text-red-400"></i>
           </div>
-          <h2 class="text-2xl font-bold text-gray-800">Activation Failed</h2>
-          <p class="text-red-500 font-medium">{{ errorMessage }}</p>
-          <p class="text-gray-500 text-sm mt-2">The link might be expired or invalid.</p>
+          <h2 class="app-brand text-2xl font-bold">Activation Failed</h2>
+          <p class="app-danger font-medium text-sm">{{ errorMessage }}</p>
+          <p class="app-subtitle text-xs mt-1">The link might be expired or invalid.</p>
           <Button
             label="Back to Login"
             severity="secondary"
-            class="mt-4 w-full border border-gray-300 text-gray-700 hover:bg-gray-50 p-3 rounded-lg"
+            class="w-full mt-4 p-3 font-semibold"
             @click="goToLogin"
           />
         </div>
@@ -116,15 +154,19 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { authApi } from '@/api/authApi'
+import { useTheme } from '@/composables/useTheme'
 
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Password from 'primevue/password'
 import Toast from 'primevue/toast'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+
+const { isDark } = useTheme()
 
 const token = ref('')
 const password = ref('')
@@ -139,17 +181,33 @@ const passwordMediumRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,64}$'
 const passwordStrongRegex =
   '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_#])[A-Za-z\\d@$!%*?&_#]{8,64}$'
 
+const hasUppercase = computed(() => /[A-Z]/.test(password.value))
+const hasLowercase = computed(() => /[a-z]/.test(password.value))
+const hasDigit = computed(() => /\d/.test(password.value))
+const hasSpecialChar = computed(() => /[@$!%*?&_#]/.test(password.value))
+const hasValidLength = computed(() => password.value.length >= 8 && password.value.length <= 64)
+
+const passwordRequirements = computed(() => [
+  { label: '8-64 characters long', valid: hasValidLength.value },
+  { label: 'At least one uppercase letter (A-Z)', valid: hasUppercase.value },
+  { label: 'At least one lowercase letter (a-z)', valid: hasLowercase.value },
+  { label: 'At least one number (0-9)', valid: hasDigit.value },
+  { label: 'At least one special character (@$!%*?&_#)', valid: hasSpecialChar.value },
+])
+
 const isPasswordMatching = computed(() => {
   return password.value === confirmPassword.value
 })
 
-const isPasswordStrongEnough = computed(() => {
-  const regex = new RegExp(passwordStrongRegex)
-  return regex.test(password.value)
-})
-
 const isFormValid = computed(() => {
-  return password.value.trim() && isPasswordStrongEnough.value && isPasswordMatching.value
+  return (
+    hasValidLength.value &&
+    hasUppercase.value &&
+    hasLowercase.value &&
+    hasDigit.value &&
+    hasSpecialChar.value &&
+    isPasswordMatching.value
+  )
 })
 
 const goToLogin = () => {
@@ -158,7 +216,6 @@ const goToLogin = () => {
 
 onMounted(() => {
   token.value = route.query.token
-
   if (!token.value) {
     fatalError.value = true
     errorMessage.value = 'No verification token provided in the URL.'
@@ -167,13 +224,9 @@ onMounted(() => {
 
 const submitVerification = async () => {
   if (!isFormValid.value) return
-
   loading.value = true
   try {
-    await authApi.verify({
-      token: token.value,
-      password: password.value,
-    })
+    await authApi.verify({ token: token.value, password: password.value })
     success.value = true
   } catch (error) {
     fatalError.value = true
