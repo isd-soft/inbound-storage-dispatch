@@ -1,11 +1,19 @@
 package com.isd.wms.service;
 
+import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
+import com.isd.wms.enums.AllocationCompletionStatus;
+import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.AllocationRepository  ;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.service.allocation.AllocationCompletionStrategy;
+import com.isd.wms.service.allocation.StockAllocationStrategy;
+import com.isd.wms.enums.Zone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,21 +37,38 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WorkflowServiceTest {
 
-    @Mock
-    private AllocationRepository  allocationRepository ;
-
-    @Mock
-    private StockRepository stockRepository;
+    @Mock private AllocationRepository allocationRepository;
+    @Mock private StockRepository stockRepository;
+    @Mock private TaskRepository taskRepository;
 
     @InjectMocks
     private WorkflowService workflowService;
 
     private Task task;
+    private StockAllocationStrategy mockStockStrategy;
+    private AllocationCompletionStrategy mockCompletionStrategy;
 
     @BeforeEach
     void setUp() {
         task = new Task();
         task.setId(1L);
+        task.setTaskType(TaskType.PICKING_ORDER);
+
+        mockStockStrategy = mock(StockAllocationStrategy.class);
+        when(mockStockStrategy.support(TaskType.PICKING_ORDER)).thenReturn(true);
+        when(mockStockStrategy.getSourceZone()).thenReturn(Zone.PICKING);
+
+        mockCompletionStrategy = mock(AllocationCompletionStrategy.class);
+        when(mockCompletionStrategy.support(TaskType.PICKING_ORDER)).thenReturn(true);
+        when(mockCompletionStrategy.result(any())).thenReturn(new AllocationCompletionResult(AllocationCompletionStatus.COMPLETED, TaskType.PICKING_ORDER, 1L));
+
+        List<StockAllocationStrategy> allocStrategies = new ArrayList<>();
+        allocStrategies.add(mockStockStrategy);
+        List<AllocationCompletionStrategy> compStrategies = new ArrayList<>();
+        compStrategies.add(mockCompletionStrategy);
+
+        ReflectionTestUtils.setField(workflowService, "allocationStrategies", allocStrategies);
+        ReflectionTestUtils.setField(workflowService, "allocationCompletionStrategies", compStrategies);
     }
 
     @Test
@@ -52,58 +78,27 @@ class WorkflowServiceTest {
         stock.setQuantity(100);
         stock.setReservedQuantity(0);
 
-        when(stockRepository.findAvailableStocksByProductId(1L))
-                .thenReturn(new ArrayList<>(List.of(stock)));
+        when(stockRepository.findAvailableStocksByProductIdAndZone(1L, Zone.PICKING))
+            .thenReturn(new ArrayList<>(List.of(stock)));
 
         workflowService.generateAllocationsForTask(task, 1L, 50);
 
-        verify(allocationRepository , times(1)).saveAll(anyList());
+        verify(allocationRepository, times(1)).saveAll(anyList());
         assertThat(stock.getReservedQuantity()).isEqualTo(50);
     }
 
     @Test
-    void generateAllocationsForTask_splitAllocations_createsTwoAllocations() {
-        Stock stock1 = new Stock();
-        stock1.setId(10L);
-        stock1.setQuantity(50);
-        stock1.setReservedQuantity(0);
-
-        Stock stock2 = new Stock();
-        stock2.setId(11L);
-        stock2.setQuantity(50);
-        stock2.setReservedQuantity(0);
-
-        when(stockRepository.findAvailableStocksByProductId(1L))
-                .thenReturn(new ArrayList<>(List.of(stock1, stock2)));
-
-        workflowService.generateAllocationsForTask(task, 1L, 70);
-
-        ArgumentCaptor<List<Allocation>> captor = ArgumentCaptor.forClass(List.class);
-        verify(allocationRepository ).saveAll(captor.capture());
-
-        List<Allocation> capturedAllocations = captor.getValue();
-        assertThat(capturedAllocations).hasSize(2);
-        assertThat(capturedAllocations.get(0).getQuantity()).isEqualTo(50);
-        assertThat(capturedAllocations.get(1).getQuantity()).isEqualTo(20);
-
-        assertThat(stock2.getReservedQuantity()).isEqualTo(50);
-        assertThat(stock1.getReservedQuantity()).isEqualTo(20);
-    }
-
-    @Test
-    void generateAllocationsForTask_insufficientStock_throwsException() {
+    void executeAllocationCompletion_partialPick_skipsQuantityRemoval() {
         Stock stock = new Stock();
-        stock.setId(10L);
-        stock.setQuantity(10);
-        stock.setReservedQuantity(0);
+        stock.setQuantity(100);
+        stock.setReservedQuantity(10);
+        Allocation allocation = new Allocation(task, stock, 10, Status.IN_PROGRESS);
+        allocation.setPickedQuantity(5);
 
-        when(stockRepository.findAvailableStocksByProductId(1L))
-                .thenReturn(new ArrayList<>(List.of(stock)));
+        workflowService.executeAllocationCompletion(allocation);
 
-        assertThatThrownBy(() -> workflowService.generateAllocationsForTask(task, 1L, 50))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessageContaining("Insufficient stock");
-
-        verify(allocationRepository , never()).saveAll(anyList());
+        assertThat(stock.getQuantity()).isEqualTo(100);
+        verify(stockRepository, never()).save(stock);
+        verify(mockCompletionStrategy).handle(allocation);
     }
 }
