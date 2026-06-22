@@ -341,9 +341,9 @@ public class ReplenishmentService {
 
         int deliveredQuantity = sortedAllocations.stream()
             .filter(allocation -> allocation.getStatus() != Status.CANCELED)
-            .mapToInt(allocation -> Optional.ofNullable(allocation.getPickedQuantity()).orElse(0))
+            .mapToInt(allocation -> allocation.getPickedQuantity().orElse(0))
             .sum();
-        int requestedQuantity = Optional.ofNullable(replenishment.getRequestedQuantity()).orElse(0);
+        int requestedQuantity = Optional.of(replenishment.getRequestedQuantity()).orElse(0);
         int shortageQuantity = Math.max(0, requestedQuantity - deliveredQuantity);
 
         Long originalLocationId = sortedAllocations.isEmpty() ? null : sortedAllocations.getFirst().getStock().getLocation().getId();
@@ -376,10 +376,10 @@ public class ReplenishmentService {
     }
 
     private int resolvedShortageQuantity(Allocation allocation) {
-        Integer pickedQuantity = allocation.getPickedQuantity();
-        if (pickedQuantity == null) {
+        if (allocation.getPickedQuantity().isEmpty()) {
             return 0;
         }
+        Integer pickedQuantity = allocation.getPickedQuantity().orElse(0);
         return Math.max(0, Optional.ofNullable(allocation.getQuantity()).orElse(0) - pickedQuantity);
     }
 

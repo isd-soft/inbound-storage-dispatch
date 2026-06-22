@@ -28,7 +28,7 @@ public interface AllocationCompletionStrategy {
     default void handle(Allocation allocation) {
     }
 
-    void updateStatus(Task task);
+    boolean updateStatus(Task task);
 
     boolean support(TaskType taskType);
 

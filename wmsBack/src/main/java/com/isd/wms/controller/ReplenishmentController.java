@@ -4,6 +4,8 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentDetailsResponse;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentResponse;
 import com.isd.wms.entity.Task;
 import com.isd.wms.service.ReplenishmentService;
 import jakarta.validation.Valid;
@@ -117,8 +119,6 @@ public class ReplenishmentController {
     /**
      * Assigns a replenishment task to a specific operator.
      *
-     * @param replenishmentId the ID of the replenishment task to assign
-     * @param operatorId      the ID of the operator to assign the task to
      * @return {@code 200 OK} with a confirmation message on success
      */
     @GetMapping("/shortages")

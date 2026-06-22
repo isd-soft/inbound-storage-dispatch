@@ -105,4 +105,17 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
     @Modifying
     @Query("DELETE FROM Replenishment r WHERE r.task.createdAt < :cutoffDate")
     int deleteReplenishmentsByTaskCreatedAtOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
-}
+
+    /**
+     * Finds all replenishments created by a specific supervisor (by username).
+     *
+     * @param username the supervisor's username
+     * @return list of replenishments
+     */
+    @Query("""
+        SELECT r FROM Replenishment r
+        JOIN r.task t
+        JOIN t.supervisor u
+        WHERE u.username = :username
+        """)
+    List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);}

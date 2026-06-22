@@ -41,7 +41,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
     private final OrderRepository orderRepository;
 
     @Override
-    public void updateStatus(Task task) {
+    public boolean updateStatus(Task task) {
         OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new RuntimeException("No order found for task!"));
 
@@ -53,12 +53,13 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
         if (orderLines.stream().anyMatch(line -> line.getStatus() != Status.COMPLETED
             && line.getStatus() != Status.CANCELED
             && line.getStatus() != Status.PARTIALLY_COMPLETED)) {
-            return;
+            return false;
         }
 
         OrderStatus finalStatus = computeFinalStatus(orderLines);
         order.setStatus(finalStatus);
         orderRepository.save(order);
+        return false;
     }
 
     @Override

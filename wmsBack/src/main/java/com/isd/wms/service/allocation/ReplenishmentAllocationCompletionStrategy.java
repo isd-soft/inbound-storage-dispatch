@@ -48,7 +48,7 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
         Location destinationLocation = replenishment.getDestinationLocation();
         Stock sourceStock = allocation.getStock();
 
-        Integer quantityToMove = Optional.ofNullable(allocation.getPickedQuantity()).orElse(allocation.getQuantity());
+        Integer quantityToMove = allocation.getPickedQuantity().orElse(allocation.getQuantity());
         Product product = sourceStock.getProduct()
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
