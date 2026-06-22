@@ -122,11 +122,9 @@ public class CategoryService {
     }
 
     private void verifyUniqueName(String name, Long categoryId) {
-        categoryRepository.findByNameIgnoreCase(name)
-                .filter(category -> !Objects.equals(category.getId(), categoryId))
-                .ifPresent(category -> {
-                    throw new DuplicateCategoryNameException(name);
-                });
+        if (categoryRepository.existsByNameIgnoreCase(name)) {
+            throw new DuplicateCategoryNameException(name);
+        };
     }
 
     private Category saveCategory(Category category, String name) {
