@@ -8,6 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Import DTO for location data.
+ * <p>
+ * Contains fields for location name, barcode, description, and zone.
+ * All fields are mandatory.
+ * </p>
+ */
 @Getter
 @Setter
 @AllArgsConstructor

@@ -20,6 +20,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * AI tool functions for managing replenishment tasks.
+ * <p>
+ * Provides tools for creating, assigning, cancelling, and querying replenishments.
+ * Replenishments move stock from bulk storage (REPL zone) to picking zones.
+ * All operations delegate to the core {@link ReplenishmentService}.
+ * </p>
+ *
+ * @see ReplenishmentService
+ * @see Replenishment
+ * @see Task
+ */
 @Slf4j
 @Service("replenishmentAiTools")
 @RequiredArgsConstructor
@@ -31,6 +43,15 @@ public class ReplenishmentAiTools {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Creates a new replenishment task to move a specified quantity of a product
+     * to a destination picking location.
+     *
+     * @param productBarcode             the product barcode
+     * @param quantity                   the quantity to replenish
+     * @param destinationLocationBarcode the destination location (must exist)
+     * @return a success or error message
+     */
     @Tool(description = "Creates a new Replenishment Task to move existing stock from a REPL zone to a PICK zone.")
     public String createReplenishmentTask(
         @ToolParam(description = "Barcode of the product to replenish") String productBarcode,
@@ -52,6 +73,13 @@ public class ReplenishmentAiTools {
         }
     }
 
+    /**
+     * Assigns a replenishment task to an operator by its ID and operator username.
+     *
+     * @param replenishmentId   the replenishment reference ID
+     * @param operatorUsername  the operator's username
+     * @return a success or error message
+     */
     @Tool(description = "Assigns a specific Replenishment Task to an Operator using the Ref ID.")
     public String assignReplenishmentToOperator(
         @ToolParam(description = "The Replenishment ID (Ref ID) to assign") Long replenishmentId,
@@ -69,6 +97,12 @@ public class ReplenishmentAiTools {
         }
     }
 
+    /**
+     * Cancels an active replenishment task. Releases any reserved stock.
+     *
+     * @param replenishmentId the replenishment reference ID
+     * @return a success or error message
+     */
     @Tool(description = "Cancels an existing active Replenishment Task using its Replenishment ID (Ref ID).")
     public String cancelReplenishmentTask(@ToolParam(description = "The Replenishment ID (Ref ID) to cancel") Long replenishmentId) {
         log.info("AI invoked cancelReplenishmentTask for ID {}", replenishmentId);
@@ -80,6 +114,11 @@ public class ReplenishmentAiTools {
         }
     }
 
+    /**
+     * Returns a summary of all active replenishment tasks (CREATED, ASSIGNED, IN_PROGRESS).
+     *
+     * @return a Markdown table with task details
+     */
     @Tool(description = "Returns a summary of all currently active (CREATED, ASSIGNED, IN_PROGRESS) replenishment tasks.")
     public String getActiveReplenishmentsInfo() {
         log.info("AI invoked getActiveReplenishmentsInfo tool");

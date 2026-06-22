@@ -15,6 +15,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for managing tasks within the workflow.
+ * <p>
+ * Tasks represent units of work (picking orders or replenishments). This service
+ * creates tasks, assigns them to operators, and interacts with the allocation
+ * and replenishment systems to maintain consistency.
+ * </p>
+ * <p>
+ * When a task is created, allocations are automatically generated via
+ * {@link WorkflowService}. Assigning a task updates its status and cascades
+ * the assignment to its allocations and to the parent replenishment (if any).
+ * </p>
+ *
+ * @see Task
+ * @see WorkflowService
+ * @see AllocationRepository
+ * @see ReplenishmentRepository
+ */
 @Service
 @RequiredArgsConstructor
 public class TaskService {
@@ -25,6 +43,15 @@ public class TaskService {
     private final SecurityFacade securityFacade;
     private final WorkflowService workflowService;
 
+    /**
+     * Creates a new task of the given type and generates allocations to satisfy
+     * the requested quantity for the specified product.
+     *
+     * @param type the task type (PICKING_ORDER or REPLENISHMENT)
+     * @param requestedQuantity the quantity needed
+     * @param productId the product ID
+     * @return the created task
+     */
     @Transactional
     public Task createTask(TaskType type, Integer requestedQuantity, Long productId) {
         User supervisor = securityFacade.getCurrentUser();
@@ -37,6 +64,15 @@ public class TaskService {
         return task;
     }
 
+    /**
+     * Assigns a task to an operator. This also updates the status of associated
+     * allocations and (if applicable) the parent replenishment.
+     *
+     * @param taskId the task ID
+     * @param operatorId the operator ID
+     * @throws TaskNotFoundException if the task does not exist
+     * @throws UserNotFoundException if the operator does not exist
+     */
     @Transactional
     public void assignTask(Long taskId, Long operatorId) {
         Task task = taskRepository.findById(taskId)

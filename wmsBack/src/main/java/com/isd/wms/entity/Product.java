@@ -6,17 +6,34 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.Hibernate;
 
-import javax.swing.text.html.Option;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Represents a product managed in the warehouse.
+ * <p>
+ * Each product has a unique barcode, a name, an optional description, and belongs
+ * to a category. It also contains auto‑replenishment settings: whether automatic
+ * replenishment is enabled, the minimum threshold for stock at picking locations,
+ * and the replenishment quantity.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Category} – many‑to‑one, the product's category</li>
+ *   <li>{@link Stock} – one‑to‑many, stock records for this product</li>
+ * </ul>
+ * </p>
+ *
+ * @see Category
+ * @see Stock
+ */
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @Table(name = "products")
 public class Product extends BaseTimestampEntity {
-
 
 
     @Id
@@ -46,6 +63,11 @@ public class Product extends BaseTimestampEntity {
     @Column(name = "replenish_qty")
     private Integer replenishQty;
 
+    /**
+     * Returns the minimum threshold as an Optional.
+     *
+     * @return the threshold if set, otherwise empty
+     */
     public Optional<Integer> getMinThreshold() {
         return Optional.ofNullable(this.minThreshold);
     }

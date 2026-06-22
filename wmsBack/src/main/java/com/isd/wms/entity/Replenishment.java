@@ -8,6 +8,28 @@ import org.hibernate.Hibernate;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Represents a replenishment task to move stock from a bulk storage zone
+ * (REPLENISHMENT) to a picking zone.
+ * <p>
+ * A replenishment specifies a product, a requested quantity, and a destination
+ * location. It is linked to a {@link Task} that handles the actual movement.
+ * The replenishment has its own lifecycle status (CREATED, ASSIGNED, etc.).
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Product} – the product to be replenished</li>
+ *   <li>{@link Location} – the destination picking location</li>
+ *   <li>{@link Task} – optional task that executes the replenishment</li>
+ * </ul>
+ * </p>
+ *
+ * @see Task
+ * @see Product
+ * @see Location
+ * @see Status
+ */
 @Entity
 @Getter
 @Setter
@@ -45,6 +67,11 @@ public class Replenishment extends BaseTimestampEntity{
         this.destinationLocation = destinationLocation;
     }
 
+    /**
+     * Returns the associated task, if any.
+     *
+     * @return an Optional containing the task, or empty if not assigned
+     */
     public Optional<Task> getTask() {
         return Optional.ofNullable(task);
     }
