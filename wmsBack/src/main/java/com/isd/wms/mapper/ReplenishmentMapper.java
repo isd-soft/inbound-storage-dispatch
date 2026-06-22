@@ -21,7 +21,7 @@ public class ReplenishmentMapper {
             .map(User::getId)
             .orElse(null);
 
-        String tuBarcode = transportUnitRepository.findByReplenishment(replenishment)
+        String tuBarcode = transportUnitRepository.findFirstByReplenishmentOrderByCreatedAtAscIdAsc(replenishment)
             .map(TransportUnit::getBarcode)
             .orElse(null);
 

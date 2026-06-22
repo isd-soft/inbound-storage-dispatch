@@ -5,8 +5,12 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
+import com.isd.wms.dto.replenishment.shortage.AffectedReplenishmentLineResponse;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentDetailsResponse;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentResponse;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -16,6 +20,7 @@ import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.ReplenishmentInfo;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,7 +28,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -41,6 +48,7 @@ public class ReplenishmentService {
     private final WorkflowService workflowService;
     private final TaskService taskService;
     private final ImportService importService;
+    private final SecurityFacade securityFacade;
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
@@ -171,7 +179,7 @@ public class ReplenishmentService {
             throw new InvalidRequestException("Cannot cancel a task that is already COMPLETED or CANCELED.");
         }
 
-        transportUnitRepository.findByReplenishment(replenishment).ifPresent(tu -> {
+        transportUnitRepository.findAllByReplenishment(replenishment).forEach(tu -> {
             tu.setReplenishment(null);
             transportUnitRepository.save(tu);
             log.info("Successfully released Transport Unit {} from canceled replenishment {}", tu.getBarcode(), replenishmentId);
@@ -216,6 +224,120 @@ public class ReplenishmentService {
         return tasks.stream().map(replenishmentMapper::toResponse).toList();
     }
 
+    public List<ShortageReplenishmentResponse> getShortageReplenishments() {
+        return replenishmentRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
+            .filter(this::isShortageReplenishment)
+            .map(this::toShortageReplenishmentResponse)
+            .sorted((left, right) -> right.updatedAt().compareTo(left.updatedAt()))
+            .toList();
+    }
+
+    public ShortageReplenishmentDetailsResponse getShortageDetails(Long replenishmentId) {
+        Replenishment replenishment = getReplenishment(replenishmentId);
+        List<Allocation> allocations = replenishment.getTask()
+            .map(task -> allocationRepository.findAllByTaskId(task.getId()))
+            .orElse(List.of());
+
+        List<AffectedReplenishmentLineResponse> shortageLines = isShortageReplenishment(replenishment)
+            ? List.of(toAffectedReplenishmentLineResponse(replenishment, allocations))
+            : List.of();
+
+        return new ShortageReplenishmentDetailsResponse(
+            replenishment.getId(),
+            replenishment.getTask().map(Task::getId).orElse(null),
+            replenishment.getDestinationLocation().getId(),
+            replenishment.getDestinationLocation().getBarcode(),
+            replenishment.getStatus().name(),
+            shortageLines
+        );
+    }
+
+    private boolean isShortageReplenishment(Replenishment replenishment) {
+        List<Allocation> allocations = replenishment.getTask()
+            .map(task -> allocationRepository.findAllByTaskId(task.getId()))
+            .orElse(List.of());
+
+        boolean hasShortage = allocations.stream().anyMatch(allocation ->
+            allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                || allocation.getStatus() == Status.SHORTAGE
+                || allocation.getStatus() == Status.CANCELED
+                || resolvedShortageQuantity(allocation) > 0
+        );
+
+        boolean requiresRevalidation = replenishment.getTask()
+            .map(Task::getStatus)
+            .filter(TaskStatus.REQUIRES_REVALIDATION::equals)
+            .isPresent();
+
+        return hasShortage
+            || requiresRevalidation
+            || replenishment.getStatus() == Status.PARTIALLY_COMPLETED
+            || replenishment.getStatus() == Status.SHORTAGE
+            || replenishment.getStatus() == Status.CANCELED;
+    }
+
+    private ShortageReplenishmentResponse toShortageReplenishmentResponse(Replenishment replenishment) {
+        return new ShortageReplenishmentResponse(
+            replenishment.getId(),
+            replenishment.getTask().map(Task::getId).orElse(null),
+            replenishment.getDestinationLocation().getBarcode(),
+            replenishment.getStatus().name(),
+            1,
+            1,
+            replenishment.getCreatedAt(),
+            replenishment.getUpdatedAt()
+        );
+    }
+
+    private AffectedReplenishmentLineResponse toAffectedReplenishmentLineResponse(Replenishment replenishment, List<Allocation> allocations) {
+        List<Allocation> sortedAllocations = allocations.stream()
+            .sorted(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId))
+            .toList();
+
+        int deliveredQuantity = sortedAllocations.stream()
+            .filter(allocation -> allocation.getStatus() != Status.CANCELED)
+            .mapToInt(allocation -> Optional.ofNullable(allocation.getPickedQuantity()).orElse(0))
+            .sum();
+        int requestedQuantity = Optional.ofNullable(replenishment.getRequestedQuantity()).orElse(0);
+        int shortageQuantity = Math.max(0, requestedQuantity - deliveredQuantity);
+
+        Long originalLocationId = sortedAllocations.isEmpty() ? null : sortedAllocations.getFirst().getStock().getLocation().getId();
+        String originalLocationBarcode = sortedAllocations.isEmpty() ? null : sortedAllocations.getFirst().getStock().getLocation().getBarcode();
+        boolean revalidationRequired = replenishment.getTask()
+            .map(Task::getStatus)
+            .filter(TaskStatus.REQUIRES_REVALIDATION::equals)
+            .isPresent();
+
+        Product product = replenishment.getProduct();
+        Location destinationLocation = replenishment.getDestinationLocation();
+
+        return new AffectedReplenishmentLineResponse(
+            replenishment.getId(),
+            replenishment.getTask().map(Task::getId).orElse(null),
+            product.getId(),
+            product.getName(),
+            requestedQuantity,
+            deliveredQuantity,
+            shortageQuantity,
+            originalLocationId,
+            originalLocationBarcode,
+            destinationLocation.getId(),
+            destinationLocation.getBarcode(),
+            replenishment.getStatus().name(),
+            revalidationRequired,
+            replenishment.getCreatedAt(),
+            replenishment.getUpdatedAt()
+        );
+    }
+
+    private int resolvedShortageQuantity(Allocation allocation) {
+        Integer pickedQuantity = allocation.getPickedQuantity();
+        if (pickedQuantity == null) {
+            return 0;
+        }
+        return Math.max(0, Optional.ofNullable(allocation.getQuantity()).orElse(0) - pickedQuantity);
+    }
+
     private Replenishment getReplenishment(Long replenishmentId) {
         return replenishmentRepository.findById(replenishmentId)
             .orElseThrow(() -> new ReplenishmentNotFoundException(replenishmentId));
@@ -234,6 +356,9 @@ public class ReplenishmentService {
     @Transactional
     public void assignReplenishment(Long replenishmentId, Long operatorId) {
         Replenishment replenishment = getReplenishment(replenishmentId);
+        if (replenishment.getStatus() != Status.CREATED) {
+            throw new InvalidRequestException("Replenishment assignment is only allowed for CREATED replenishments.");
+        }
         Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(), replenishment.getProduct().getId());
         replenishment.setTask(task);
         replenishmentRepository.saveAndFlush(replenishment);

@@ -80,6 +80,10 @@ public class TransportUnitService {
                     return new EntityNotFoundException("Replenishment not found for Task ID " + realTaskId);
                 });
 
+            if (tuRepository.existsByReplenishment(replenishment)) {
+                throw new IllegalStateException("This replenishment already has an active transport unit!");
+            }
+
             log.info("TU {} successfully linked to Replenishment ID: {}", barcode, replenishment.getId());
             tu.setReplenishment(replenishment);
             tu.setOrder(null);
