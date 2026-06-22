@@ -10,6 +10,24 @@ import com.isd.wms.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Completion strategy for replenishment allocations.
+ * <p>
+ * When a replenishment allocation is completed, this strategy moves the picked
+ * quantity from the source stock (REPL zone) to the destination location
+ * (picking zone). If the destination location already contains stock of the same
+ * product, the quantity is added; if it contains a different product, an error
+ * is thrown (unless the location is empty).
+ * </p>
+ * <p>
+ * After the move, the replenishment status is updated to COMPLETED if all
+ * allocations are done.
+ * </p>
+ *
+ * @see Replenishment
+ * @see Stock
+ * @see Location
+ */
 @Component
 @RequiredArgsConstructor
 public class ReplenishmentAllocationCompletionStrategy implements AllocationCompletionStrategy {
@@ -56,8 +74,8 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     }
 
     @Override
-    public boolean updateStatus(Task task) {
-        return replenishmentRepository.updateReplenishmentStatusByTask(task) > 0;
+    public void updateStatus(Task task) {
+        replenishmentRepository.updateReplenishmentStatusByTask(task);
     }
 
     @Override

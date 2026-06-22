@@ -1,58 +1,36 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.allocation.BarcodeScanRequest;
-import com.isd.wms.dto.allocation.ConfirmPickedQuantityRequest;
-import com.isd.wms.dto.allocation.AllocationCompletionResponse;
-import com.isd.wms.dto.allocation.AllocationCompletionResult;
-import com.isd.wms.dto.allocation.AllocationExecutionResponse;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
-import com.isd.wms.entity.Task;
-import com.isd.wms.entity.User;
+import com.isd.wms.dto.allocation.*;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.*;
 import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.repository.OrderLineRepository;
-import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.AllocationRepository  ;
-import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import com.isd.wms.service.validation.SecurityFacade;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AllocationExecutionServiceTest {
 
     @Mock
-    private AllocationRepository  allocationRepository ;
+    private AllocationRepository allocationRepository;
 
     @Mock
     private StockRepository stockRepository;
@@ -62,9 +40,6 @@ class AllocationExecutionServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
-
-    @Mock
-    private ReplenishmentRepository replenishmentRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -78,14 +53,10 @@ class AllocationExecutionServiceTest {
     @Mock
     private WorkflowService workflowService;
 
-    @Spy
-    private PickingFlowService pickingFlowService;
-
     @InjectMocks
     private AllocationExecutionService allocationExecutionService;
 
     private User operator;
-    private User otherOperator;
     private Allocation allocation;
     private Stock stock;
     private Task task;
@@ -96,7 +67,6 @@ class AllocationExecutionServiceTest {
     @BeforeEach
     void setUp() {
         operator = user(1L, "operator");
-        otherOperator = user(2L, "other");
 
         Product product = product(10L, "Coca-Cola", "SKU-001");
         Location location = location(20L, "PICK-01");
@@ -133,13 +103,13 @@ class AllocationExecutionServiceTest {
     @Test
     void getAssignedAllocationsSuccessfully() {
         when(allocationRepository.findByOperatorAndStatuses(operator, List.of(Status.ASSIGNED, Status.IN_PROGRESS)))
-                .thenReturn(List.of(allocation));
+            .thenReturn(List.of(allocation));
 
         List<AllocationExecutionResponse> responses = allocationExecutionService.getAssignedAllocations();
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).allocationId()).isEqualTo(50L);
-        assertThat(responses.get(0).requiredQuantity()).isEqualTo(10);
+        assertThat(responses.getFirst().allocationId()).isEqualTo(50L);
+        assertThat(responses.getFirst().requiredQuantity()).isEqualTo(10);
     }
 
 //    @Test
@@ -180,8 +150,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.scanSourceLocation(50L, new BarcodeScanRequest("WRONG")))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Wrong source location barcode");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Wrong source location barcode");
     }
 
     @Test
@@ -190,7 +160,7 @@ class AllocationExecutionServiceTest {
         ReflectionTestUtils.setField(allocation, "sourceLocationScanned", true);
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
         when(stockRepository.findByProductIdAndLocationId(10L, 20L))
-                .thenReturn(Optional.of(stock));
+            .thenReturn(Optional.of(stock));
         when(allocationRepository.save(allocation)).thenReturn(allocation);
 
         allocationExecutionService.scanProduct(50L, new BarcodeScanRequest("SKU-001"));
@@ -205,8 +175,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.scanProduct(50L, new BarcodeScanRequest("WRONG")))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Wrong product barcode");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Wrong product barcode");
     }
 
     @Test
@@ -228,8 +198,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(11)))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Picked quantity cannot exceed required quantity");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Picked quantity cannot exceed required quantity");
     }
 
     @Test
@@ -240,8 +210,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.confirmPickedQuantity(50L, new ConfirmPickedQuantityRequest(10)))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Not enough stock available");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Not enough stock available");
     }
 
     @Test
@@ -294,7 +264,7 @@ class AllocationExecutionServiceTest {
 
         assertThat(nextAllocationSameLocation.getStatus()).isEqualTo(Status.IN_PROGRESS);
         assertThat(nextAllocationSameLocation.isSourceLocationScanned()).isTrue();
-        verify(allocationRepository ).save(nextAllocationSameLocation);
+        verify(allocationRepository).save(nextAllocationSameLocation);
     }
 
     @Test
@@ -333,8 +303,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Source location must be scanned first");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Source location must be scanned first");
         verify(stockRepository, never()).save(any());
     }
 
@@ -344,8 +314,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Allocation is already completed");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Allocation is already completed");
     }
 
     @Test
@@ -354,8 +324,8 @@ class AllocationExecutionServiceTest {
         when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
 
         assertThatThrownBy(() -> allocationExecutionService.completeAllocation(50L))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Allocation is cancelled");
+            .isInstanceOf(InvalidRequestException.class)
+            .hasMessage("Allocation is cancelled");
     }
 
     private void prepareAllocationForCompletion() {
@@ -364,7 +334,7 @@ class AllocationExecutionServiceTest {
         ReflectionTestUtils.setField(allocation, "productScanned", true);
         ReflectionTestUtils.setField(allocation, "pickedQuantity", 10);
         doAnswer(invocation -> {
-            stock.removeQuantity(allocation.getPickedQuantity());
+            stock.removeQuantity(allocation.getPickedQuantity().orElse(0));
             return new AllocationCompletionResult(AllocationCompletionStatus.COMPLETED, task.getTaskType(), allocation.getId());
         }).when(workflowService).executeAllocationCompletion(allocation);
     }

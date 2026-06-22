@@ -7,7 +7,6 @@ import com.isd.wms.dto.location.LocationUpdateRequest;
 import com.isd.wms.entity.Location;
 import com.isd.wms.exception.DuplicateBarcodeException;
 import com.isd.wms.exception.DuplicateLocationNameException;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.mapper.LocationMapper;
 import com.isd.wms.repository.LocationRepository;
@@ -17,13 +16,28 @@ import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.LocationInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * Service for managing warehouse locations.
+ * <p>
+ * Supports creating, updating, deleting, and retrieving locations. Locations
+ * have a unique barcode and name. A location that currently contains stock
+ * cannot be modified in its core attributes (code, zone, availability) – only
+ * its description may be updated until the location is emptied.
+ * </p>
+ * <p>
+ * Deletion is soft: the location is marked inactive.
+ * </p>
+ *
+ * @see Location
+ * @see LocationRepository
+ * @see StockRepository
+ */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -34,21 +48,23 @@ public class LocationService {
     private final StockRepository stockRepository;
     private final ImportService importService;
 
-
+    /**
+     * Creates a new location.
+     *
+     * @param request the location creation request
+     * @return the created location response
+     * @throws DuplicateBarcodeException if the barcode is already used
+     * @throws DuplicateLocationNameException if the name is already used
+     */
     @Transactional
     public LocationResponse createLocation(LocationCreateRequest request) {
         String code = request.barcode().trim();
         String name = request.name().trim();
 
-        if (locationRepository.existsByBarcodeIgnoreCase(code)) {
-            throw new DuplicateBarcodeException(code);
-        }
+        validateBarcodeUniqueness(code);
 
-        if (locationRepository.existsByNameIgnoreCase(name)) {
-            throw new DuplicateLocationNameException(name);
-        }
+        validateLocationNameUniqueness(name);
 
-        System.out.println(name + " " + code);
         Location location = new Location(
             name,
             code,
@@ -59,9 +75,27 @@ public class LocationService {
         return locationMapper.toResponse(locationRepository.save(location));
     }
 
+    /**
+     * Updates a location. If the location contains products, only the description
+     * can be changed; other fields are protected.
+     *
+     * @param locationId the ID of the location to update
+     * @param request the update request
+     * @return the updated location response
+     * @throws LocationNotFoundException if the location does not exist
+     * @throws IllegalStateException if attempting to change protected fields of an occupied location
+     */
     @Transactional
     public LocationResponse updateLocation(Long locationId, LocationUpdateRequest request) {
         Location location = getLocation(locationId);
+        validateLocationUpdate(locationId, request, location);
+
+        updateLocation(request, location);
+
+        return locationMapper.toResponse(locationRepository.save(location));
+    }
+
+    private void validateLocationUpdate(Long locationId, LocationUpdateRequest request, Location location) {
         String newName = request.name().trim();
         String newCode = request.barcode().trim();
 
@@ -77,23 +111,29 @@ public class LocationService {
             throw new IllegalStateException("Cannot change the code, zone, or availability of a location that contains products. Only the description can be updated. Please move the products first.");
         }
 
-        if (isCodeChanged && locationRepository.existsByBarcodeIgnoreCase(newCode)) {
-            throw new DuplicateBarcodeException(newCode);
+        if (isCodeChanged) {
+            validateBarcodeUniqueness(newCode);
         }
 
-        if (isNameChanged && locationRepository.existsByNameIgnoreCase(newCode)) {
-            throw new DuplicateLocationNameException(newName);
+        if (isNameChanged) {
+            validateLocationNameUniqueness(newName);
         }
+    }
 
-        location.setName(newName);
-        location.setBarcode(newCode);
+    private static void updateLocation(LocationUpdateRequest request, Location location) {
+        location.setName(request.name().trim());
+        location.setBarcode(request.barcode().trim());
         location.setZone(request.zone());
         location.setDescription(request.description());
         location.setAvailable(request.available());
-
-        return locationMapper.toResponse(locationRepository.save(location));
     }
 
+    /**
+     * Soft‑deletes a location (marks as inactive) if it is empty.
+     *
+     * @param locationId the ID of the location to delete
+     * @throws IllegalStateException if the location still contains products
+     */
     @Transactional
     public void deleteLocation(Long locationId) {
         boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
@@ -129,13 +169,21 @@ public class LocationService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
+    private void validateBarcodeUniqueness(String code) {
+        if (locationRepository.existsByBarcodeIgnoreCase(code)) {
+            throw new DuplicateBarcodeException(code);
+        }
+    }
+
+    private void validateLocationNameUniqueness(String name) {
+        if (locationRepository.existsByNameIgnoreCase(name)) {
+            throw new DuplicateLocationNameException(name);
+        }
+    }
+
     @Transactional
     public void importLocationsFromFile(MultipartFile file) {
         List<LocationCreateRequest> locations = importService.importData(file, LocationInfo.class);
-        try {
-            locations.forEach(this::createLocation);
-        } catch (DataIntegrityViolationException e) {
-            throw new InvalidRequestException("The imported file contains invalid location data.");
-        }
+        locations.forEach(this::createLocation);
     }
 }

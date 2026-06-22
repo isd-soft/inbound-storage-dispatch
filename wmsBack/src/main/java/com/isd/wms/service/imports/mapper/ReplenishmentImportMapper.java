@@ -9,6 +9,14 @@ import com.isd.wms.service.imports.dto.ReplenishmentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper for converting {@link ReplenishmentInfo} DTOs to
+ * {@link ReplenishmentCreateRequest} objects.
+ * <p>
+ * Resolves product and location IDs by name; throws appropriate exceptions
+ * if either is not found.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class ReplenishmentImportMapper implements ImportMapper<ReplenishmentInfo, ReplenishmentCreateRequest> {

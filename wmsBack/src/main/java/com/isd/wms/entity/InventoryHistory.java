@@ -1,31 +1,35 @@
 package com.isd.wms.entity;
 
-import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.InventoryAdjustmentReason;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Objects;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.isd.wms.enums.InventoryOperationType;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.Hibernate;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+/**
+ * Represents a historical record of an inventory operation.
+ * <p>
+ * Tracks every change to stock, including additions, removals, adjustments, picks,
+ * and moves. Records the product, location(s), quantity changes, operation type,
+ * adjustment reason (if applicable), and the user who performed the operation.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Product} – the product affected</li>
+ *   <li>{@link Location} – source and/or destination location</li>
+ *   <li>{@link User} – the user who performed the operation</li>
+ * </ul>
+ * </p>
+ *
+ * @see InventoryOperationType
+ * @see InventoryAdjustmentReason
+ */
 @Entity
 @Table(name = "inventory_history")
 @Getter
