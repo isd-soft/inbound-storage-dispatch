@@ -20,6 +20,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * AI tool functions for warehouse‑wide and operator management.
+ * <p>
+ * Provides tools for listing all warehouse locations, listing available operators,
+ * and automatically distributing unassigned orders and replenishments among
+ * operators using a least‑loaded balancing algorithm.
+ * </p>
+ *
+ * @see Location
+ * @see User
+ * @see OrderService
+ * @see ReplenishmentService
+ */
 @Slf4j
 @Service("warehouseAiTools")
 @RequiredArgsConstructor
@@ -32,6 +45,11 @@ public class WarehouseAiTools {
     private final OrderService orderService;
     private final ReplenishmentService replenishmentService;
 
+    /**
+     * Lists all physical locations (shelves) in the warehouse with their zones.
+     *
+     * @return a Markdown table of locations
+     */
     @Tool(description = "Lists all available physical locations (shelves) in the warehouse.")
     public String getWarehouseLocations() {
         log.info("AI invoked getWarehouseLocations tool");
@@ -39,6 +57,11 @@ public class WarehouseAiTools {
         return locations.isEmpty() ? "No locations found in the warehouse." : formatLocations(locations);
     }
 
+    /**
+     * Lists all operators registered in the system.
+     *
+     * @return a Markdown table of operators with usernames and IDs
+     */
     @Tool(description = "Lists all registered Operators in the system.")
     public String getAvailableOperators() {
         log.info("AI invoked getAvailableOperators tool");
@@ -49,6 +72,12 @@ public class WarehouseAiTools {
         return operators.isEmpty() ? "No operators found in the system." : formatOperators(operators);
     }
 
+    /**
+     * Automatically distributes all unassigned orders and replenishments among
+     * available operators using least‑loaded balancing (based on current task count).
+     *
+     * @return a summary of the number of orders and replenishments assigned
+     */
     @Tool(description = "Automatically distributes ALL unassigned Orders and Replenishments among available operators (Least-Loaded balancing).")
     public String autoDistributeWorkload() {
         log.info("AI invoked autoDistributeWorkload");

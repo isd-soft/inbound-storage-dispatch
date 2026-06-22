@@ -7,9 +7,16 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
+/**
+ * Abstract base class for all entities that require creation and update timestamps.
+ * <p>
+ * Provides {@code createdAt} and {@code updatedAt} fields that are automatically
+ * populated by Hibernate via {@code @CreationTimestamp} and {@code @UpdateTimestamp}.
+ * All concrete entity classes that need auditing timestamps should extend this class.
+ * </p>
+ */
 @Getter
 @Setter
 @MappedSuperclass

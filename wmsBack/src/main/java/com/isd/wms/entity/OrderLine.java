@@ -10,6 +10,27 @@ import org.hibernate.Hibernate;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Represents a line item within an order.
+ * <p>
+ * Specifies the product, requested quantity, and tracks delivered quantity,
+ * shortage quantity, and status. Each order line is optionally linked to a
+ * {@link Task} that handles the picking of this line.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Order} – the parent order</li>
+ *   <li>{@link Product} – the product to be picked</li>
+ *   <li>{@link Task} – optional task responsible for fulfilling this line</li>
+ * </ul>
+ * </p>
+ *
+ * @see Order
+ * @see Product
+ * @see Task
+ * @see Status
+ */
 @Entity
 @Getter
 @Setter
@@ -47,6 +68,12 @@ public class OrderLine extends BaseTimestampEntity {
     @Column(name = "shortage_quantity", nullable = false)
     private Integer shortageQuantity = 0;
 
+    /**
+     * Returns the associated task, if any.
+     * An order line may or may not have a task (e.g., before assignment).
+     *
+     * @return an Optional containing the task, or empty if not assigned
+     */
     public Optional<Task> getTask() {
         return Optional.ofNullable(task);
     }

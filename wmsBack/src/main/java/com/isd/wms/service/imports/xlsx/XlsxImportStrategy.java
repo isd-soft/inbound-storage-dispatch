@@ -16,8 +16,29 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Import strategy for parsing Excel files (both .xls and .xlsx) using Poiji.
+ * <p>
+ * Reads an Excel file from a {@link MultipartFile} and maps each row to an
+ * object of the specified class using annotations ({@link com.poiji.annotation.ExcelCellName}).
+ * The strategy automatically detects the Excel version from the file extension.
+ * </p>
+ *
+ * @see ImportStrategy
+ * @see ImportType#EXCEL
+ */
 @Component
 public class XlsxImportStrategy implements ImportStrategy {
+
+    /**
+     * Parses the given Excel file and returns a list of typed objects.
+     *
+     * @param file  the uploaded Excel file
+     * @param clazz the target class (annotated with Poiji annotations)
+     * @param <T>   the target type
+     * @return a list of parsed objects
+     * @throws InvalidRequestException if parsing fails due to format issues or invalid data
+     */
     @Override
     public <T> List<T> parse(MultipartFile file, Class<T> clazz) {
         try (InputStream inputStream = file.getInputStream()) {
@@ -42,6 +63,12 @@ public class XlsxImportStrategy implements ImportStrategy {
         }
     }
 
+    /**
+     * Indicates support for Excel import type.
+     *
+     * @param type the import type to check
+     * @return true if type is {@link ImportType#EXCEL}
+     */
     @Override
     public boolean support(ImportType type) {
         return type == ImportType.EXCEL;

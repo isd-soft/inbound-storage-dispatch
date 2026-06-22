@@ -1,20 +1,42 @@
 package com.isd.wms.entity;
 
 import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.Status;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Represents a customer order.
+ * <p>
+ * An order contains one or more order lines ({@link OrderLine}) and is destined
+ * for a dispatch location. It progresses through a lifecycle of statuses
+ * (CREATED, ASSIGNED, IN_PROGRESS, PICKED, COMPLETED, etc.). Each order has a
+ * unique logical ID (e.g., "ORD-123").
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link OrderLine} – one‑to‑many, the lines of this order</li>
+ *   <li>{@link Location} – the destination dispatch location</li>
+ * </ul>
+ * </p>
+ *
+ * @see OrderStatus
+ * @see OrderLine
+ * @see Location
+ */
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @Table(name = "orders")
-public class Order extends BaseTimestampEntity{
+public class Order extends BaseTimestampEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_gen")

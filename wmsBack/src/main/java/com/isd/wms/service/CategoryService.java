@@ -22,6 +22,24 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Service for managing product categories.
+ * <p>
+ * Provides operations for creating, updating, deleting, and retrieving categories.
+ * Ensures unique category names (case‑insensitive) and prevents deletion of categories
+ * that are currently referenced by products.
+ * </p>
+ * <p>
+ * All write operations are transactional. Category names are trimmed and validated
+ * to be non‑blank.
+ * </p>
+ *
+ * @see Category
+ * @see CategoryRepository
+ * @see ProductRepository
+ * @see CategoryMapper
+ * @see ImportService
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -32,7 +50,14 @@ public class CategoryService {
     private final CategoryMapper categoryMapper;
     private final ImportService importService;
 
-
+    /**
+     * Creates a new category.
+     *
+     * @param request the creation request containing the category name
+     * @return the created category as a response DTO
+     * @throws InvalidRequestException if the name is null or blank
+     * @throws DuplicateCategoryNameException if a category with the same name (case‑insensitive) already exists
+     */
     @Transactional
     public CategoryResponse createCategory(CategoryCreateRequest request) {
         String name = validateAndNormalizeName(request.name());
@@ -40,6 +65,15 @@ public class CategoryService {
         return categoryMapper.toResponse(saveCategory(new Category(name), name));
     }
 
+    /**
+     * Updates an existing category's name.
+     *
+     * @param categoryId the ID of the category to update
+     * @param request the update request with the new name
+     * @return the updated category response
+     * @throws CategoryNotFoundException if no category exists with the given ID
+     * @throws DuplicateCategoryNameException if the new name conflicts with another category
+     */
     @Transactional
     public CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest request) {
         Category category = getCategory(categoryId);
@@ -49,6 +83,13 @@ public class CategoryService {
         return categoryMapper.toResponse(saveCategory(category, name));
     }
 
+    /**
+     * Deletes a category if it is not referenced by any product.
+     *
+     * @param categoryId the ID of the category to delete
+     * @throws CategoryNotFoundException if the category does not exist
+     * @throws CategoryInUseException if products are associated with this category
+     */
     @Transactional
     public void deleteCategory(Long categoryId) {
         Category category = getCategory(categoryId);

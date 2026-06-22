@@ -11,6 +11,13 @@ import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper for converting {@link StockInfo} DTOs to {@link AddStockRequest} objects.
+ * <p>
+ * Resolves product and location by name and uses the current authenticated user
+ * (via {@link SecurityFacade}) as the user performing the stock addition.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class StockImportMapper implements ImportMapper<StockInfo, AddStockRequest> {

@@ -12,14 +12,39 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for {@link OrderLine} entities.
+ * <p>
+ * Provides methods for finding order lines by order, by task, and bulk
+ * updating statuses. Also includes a cleanup method for old lines.
+ * </p>
+ */
 @Repository
 public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
+
+    /**
+     * Finds all order lines for a given order.
+     *
+     * @param orderId the order ID
+     * @return list of order lines
+     */
     List<OrderLine> findAllByOrderId(Long orderId);
 
-    List<OrderLine> findAllByOrderIdAndStatusNotIn(Long orderId, List<Status> statuses);
-
+    /**
+     * Finds the order line associated with a given task.
+     *
+     * @param taskId the task ID
+     * @return an Optional containing the order line, if found
+     */
     Optional<OrderLine> findByTaskId(Long taskId);
 
+    /**
+     * Bulk‑updates the status of all non‑canceled order lines for a given order.
+     *
+     * @param orderId the order ID
+     * @param status  the new status
+     * @return the number of updated lines
+     */
     @Modifying
     @Query("""
             UPDATE OrderLine ol
@@ -31,6 +56,12 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
         @Param("orderId") Long orderId,
         @Param("status") Status status);
 
+    /**
+     * Deletes all order lines whose order was created before the cutoff date.
+     *
+     * @param cutoffDate the cutoff date
+     * @return the number of deleted lines
+     */
     @Modifying
     @Query("DELETE FROM OrderLine ol WHERE ol.order.createdAt < :cutoffDate")
     int deleteOrderLinesByOrderCreatedAtOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);

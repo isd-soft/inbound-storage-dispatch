@@ -8,6 +8,14 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+/**
+ * Import DTO for stock data.
+ * <p>
+ * Represents a stock record with product name, location name, quantities,
+ * and manufacturing/expiration dates. Dates are expected in the format
+ * {@code dd.MM.yyyy}.
+ * </p>
+ */
 @Getter
 @Setter
 @NoArgsConstructor

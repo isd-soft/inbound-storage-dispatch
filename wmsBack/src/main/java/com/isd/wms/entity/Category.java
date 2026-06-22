@@ -10,6 +10,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Represents a product category.
+ * <p>
+ * Categories group products for organizational and reporting purposes.
+ * Each category has a unique name and may contain multiple products.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Product} – one‑to‑many relationship (a category can have many products)</li>
+ * </ul>
+ * </p>
+ *
+ * @see Product
+ */
 @Entity
 @Getter
 @Setter

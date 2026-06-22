@@ -9,6 +9,20 @@ import org.hibernate.Hibernate;
 
 import java.util.Objects;
 
+/**
+ * Represents a physical location (shelf, bin, or area) in the warehouse.
+ * <p>
+ * Each location has a unique name and barcode, belongs to a specific {@link Zone}
+ * (REPLENISHMENT, PICKING, DISPATCH), and can be marked as available or active.
+ * Locations are used to store stock and serve as destinations for orders and
+ * replenishments.
+ * </p>
+ *
+ * @see Zone
+ * @see Stock
+ * @see Order
+ * @see Replenishment
+ */
 @Entity
 @Table(name = "locations")
 @Getter

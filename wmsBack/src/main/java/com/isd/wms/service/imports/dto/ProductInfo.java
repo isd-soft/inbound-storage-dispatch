@@ -7,6 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Import DTO for product data.
+ * <p>
+ * Includes product name, barcode, description, and category name.
+ * The category name is used to look up or create the associated category
+ * during import.
+ * </p>
+ */
 @Getter
 @Setter
 @NoArgsConstructor

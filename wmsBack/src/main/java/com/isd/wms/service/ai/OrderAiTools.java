@@ -5,10 +5,7 @@ import com.isd.wms.dto.order.OrderCreateRequest;
 import com.isd.wms.dto.order.OrderResponse;
 import com.isd.wms.dto.order.shortage.ShortageOrderResponse;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.User;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.repository.LocationRepository;
 import com.isd.wms.repository.OrderRepository;
@@ -24,6 +21,22 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * AI tool functions for managing customer orders.
+ * <p>
+ * Provides tools for querying active orders, shortage orders, creating new orders,
+ * assigning orders to operators, and deleting orders. All operations are performed
+ * via the core {@link OrderService}.
+ * </p>
+ * <p>
+ * The AI can use these tools to provide order summaries, create new orders from
+ * a list of products, and handle order assignment workflows.
+ * </p>
+ *
+ * @see OrderService
+ * @see Order
+ * @see OrderLine
+ */
 @Slf4j
 @Service("orderAiTools")
 @RequiredArgsConstructor
@@ -38,6 +51,12 @@ public class OrderAiTools {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Returns a summary of all active orders (not completed or canceled), including
+     * destination, status, line count, and assigned operator.
+     *
+     * @return a Markdown table of active orders
+     */
     @Tool(description = "Returns a summary of all active customer orders. Use this when the user asks about current orders, tasks in orders, or unassigned orders.")
     public String getActiveOrdersInfo() {
         log.info("AI invoked getActiveOrdersInfo tool");
@@ -76,6 +95,11 @@ public class OrderAiTools {
         return sb.toString();
     }
 
+    /**
+     * Returns a list of orders that are currently blocked due to inventory shortages.
+     *
+     * @return a Markdown table of shortage orders
+     */
     @Tool(description = "Returns a list of all orders that are currently blocked due to inventory shortages.")
     public String getShortageOrdersInfo() {
         log.info("AI invoked getShortageOrdersInfo tool");
@@ -125,6 +149,13 @@ public class OrderAiTools {
         }
     }
 
+    /**
+     * Assigns an existing order to a specific operator by username.
+     *
+     * @param logicId           the logical order ID
+     * @param operatorUsername  the operator's username
+     * @return a success or error message
+     */
     @Tool(description = "Assigns an existing Order to a specific Operator.")
     public String assignOrderToOperator(
         @ToolParam(description = "Logical order ID (e.g. 'ORD-123')") String logicId,
@@ -145,6 +176,12 @@ public class OrderAiTools {
         }
     }
 
+    /**
+     * Deletes an existing order by its logical ID.
+     *
+     * @param logicId the logical order ID to delete
+     * @return a success or error message
+     */
     @Tool(description = "Deletes an existing order by its logical ID.")
     public String deleteOrder(@ToolParam(description = "Logical order ID to delete") String logicId) {
         log.info("AI invoked deleteOrder");

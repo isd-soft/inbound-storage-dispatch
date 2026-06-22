@@ -1,6 +1,8 @@
 package com.isd.wms.service;
 
 import com.isd.wms.entity.Allocation;
+import com.isd.wms.entity.Order;
+import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.TransportUnit;
 import com.isd.wms.exception.TransportUnitNotFoundException;
 import com.isd.wms.repository.AllocationRepository;
@@ -13,6 +15,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for managing transport units (TU) used for moving goods.
+ * <p>
+ * A transport unit is a physical container (e.g., a pallet or cart) identified
+ * by a unique barcode. This service handles the occupation (linking to an order
+ * or replenishment) and release of transport units. A TU can be associated with
+ * only one active process at a time.
+ * </p>
+ * <p>
+ * Barcodes must follow the pattern "TU" followed by 6 digits.
+ * </p>
+ *
+ * @see TransportUnit
+ * @see Allocation
+ * @see Order
+ * @see Replenishment
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,8 +43,17 @@ public class TransportUnitService {
     private final ReplenishmentRepository replenishmentRepository;
     private static final String BARCODE_REGEX = "^TU\\d{6}$";
 
-
-
+    /**
+     * Occupies a transport unit by linking it to either an order or a replenishment,
+     * based on the task associated with the given allocation.
+     *
+     * @param barcode the TU barcode
+     * @param taskId the ID of the allocation (which indirectly identifies the task)
+     * @param isOrder true if linking to an order, false for a replenishment
+     * @throws IllegalArgumentException if the barcode format is invalid
+     * @throws EntityNotFoundException if the allocation, task, order, or replenishment is not found
+     * @throws IllegalStateException if the TU is already active or the allocation lacks a task
+     */
     @Transactional
     public void occupyTransportUnit(String barcode, Long taskId, boolean isOrder) {
         log.info("Starting validation and occupation for TU barcode: {}, Allocation ID: {}, Process type: {}",
@@ -93,6 +121,12 @@ public class TransportUnitService {
         log.info("Changes for TU {} successfully saved.", barcode);
     }
 
+    /**
+     * Releases a transport unit, clearing any order or replenishment association.
+     *
+     * @param barcode the TU barcode
+     * @throws EntityNotFoundException if the TU does not exist
+     */
     @Transactional
     public void releaseTransportUnit(String barcode) {
         log.info("Starting release process for TU: {}", barcode);
