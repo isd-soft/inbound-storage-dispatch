@@ -398,14 +398,6 @@ cd wmsBack
 ./mvnw test
 ```
 
-### Run with coverage report:
-
-```text
-./mvnw test jacoco:report
-```
-
-Coverage report: `target/site/jacoco/index.html`
-
 ### Test Categories
 - **Service Layer**: `ProductServiceTest`, `InventoryServiceTest`, `TaskServiceTest`
 - **Controller Layer**: `ProductControllerTest`, `AuthControllerTest`
