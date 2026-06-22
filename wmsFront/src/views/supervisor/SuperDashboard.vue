@@ -35,11 +35,17 @@
         </Card>
       </template>
       <template v-else>
-        <Card v-for="card in kpiCards" :key="card.key" class="app-card border-none shadow-lg kpi-card">
+        <Card
+          v-for="card in kpiCards"
+          :key="card.key"
+          class="app-card border-none shadow-lg kpi-card"
+        >
           <template #content>
             <div class="flex items-center justify-between gap-4">
               <div class="app-subtitle text-sm font-semibold">{{ card.title }}</div>
-              <div class="app-title text-2xl font-bold shrink-0">{{ formatNumber(card.value) }}</div>
+              <div class="app-title text-2xl font-bold shrink-0">
+                {{ formatNumber(card.value) }}
+              </div>
             </div>
           </template>
         </Card>
@@ -60,8 +66,15 @@
       <div v-if="loading" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Skeleton v-for="index in 4" :key="index" height="5.5rem" />
       </div>
-      <div v-else-if="dashboard.needsAttention.length" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card v-for="item in dashboard.needsAttention" :key="attentionKey(item)" class="attention-card">
+      <div
+        v-else-if="dashboard.needsAttention.length"
+        class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+      >
+        <Card
+          v-for="item in dashboard.needsAttention"
+          :key="attentionKey(item)"
+          class="attention-card"
+        >
           <template #content>
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -72,7 +85,11 @@
                 <div class="font-semibold mb-1">{{ item.title }}</div>
                 <div class="app-muted text-sm">{{ item.description }}</div>
               </div>
-              <Badge v-if="item.relatedEntityId" :value="`#${item.relatedEntityId}`" severity="contrast" />
+              <Badge
+                v-if="item.relatedEntityId"
+                :value="`#${item.relatedEntityId}`"
+                severity="contrast"
+              />
             </div>
           </template>
         </Card>
@@ -84,27 +101,48 @@
       <Card class="app-card border-none shadow-lg">
         <template #title>Orders by Status</template>
         <template #content>
-          <Chart v-if="!loading && ordersByStatusChartData.labels.length" type="doughnut" :data="ordersByStatusChartData" :options="doughnutChartOptions" />
+          <Chart
+            v-if="!loading && ordersByStatusChartData.labels.length"
+            type="doughnut"
+            :data="ordersByStatusChartData"
+            :options="doughnutChartOptions"
+          />
           <Skeleton v-else-if="loading" height="18rem" />
-          <Message v-else severity="info" :closable="false">No order status data available.</Message>
+          <Message v-else severity="info" :closable="false"
+            >No order status data available.</Message
+          >
         </template>
       </Card>
 
       <Card class="app-card border-none shadow-lg">
         <template #title>Completed Orders Trend</template>
         <template #content>
-          <Chart v-if="!loading && completedOrdersTrendChartData.labels.length" type="line" :data="completedOrdersTrendChartData" :options="lineChartOptions" />
+          <Chart
+            v-if="!loading && completedOrdersTrendChartData.labels.length"
+            type="line"
+            :data="completedOrdersTrendChartData"
+            :options="lineChartOptions"
+          />
           <Skeleton v-else-if="loading" height="18rem" />
-          <Message v-else severity="info" :closable="false">No completion trend data available.</Message>
+          <Message v-else severity="info" :closable="false"
+            >No completion trend data available.</Message
+          >
         </template>
       </Card>
 
       <Card class="app-card border-none shadow-lg">
         <template #title>Operator Performance</template>
         <template #content>
-          <Chart v-if="!loading && operatorPerformanceChartData.labels.length" type="bar" :data="operatorPerformanceChartData" :options="barChartOptions" />
+          <Chart
+            v-if="!loading && operatorPerformanceChartData.labels.length"
+            type="bar"
+            :data="operatorPerformanceChartData"
+            :options="barChartOptions"
+          />
           <Skeleton v-else-if="loading" height="18rem" />
-          <Message v-else severity="info" :closable="false">No operator performance data available.</Message>
+          <Message v-else severity="info" :closable="false"
+            >No operator performance data available.</Message
+          >
         </template>
       </Card>
     </div>
@@ -122,7 +160,9 @@
                     <span class="app-muted text-xs">{{ formatDateTime(item.createdAt) }}</span>
                   </div>
                   <div class="font-medium">{{ item.message }}</div>
-                  <div v-if="item.actorName" class="app-muted text-sm mt-1">{{ item.actorName }}</div>
+                  <div v-if="item.actorName" class="app-muted text-sm mt-1">
+                    {{ item.actorName }}
+                  </div>
                 </div>
               </template>
             </Timeline>
@@ -134,7 +174,12 @@
       <Card class="app-card border-none shadow-lg workload-card">
         <template #title>Operator Workload</template>
         <template #content>
-          <DataTable v-if="dashboard.operatorPerformance.length" :value="dashboard.operatorPerformance" responsiveLayout="scroll" stripedRows>
+          <DataTable
+            v-if="dashboard.operatorPerformance.length"
+            :value="dashboard.operatorPerformance"
+            responsiveLayout="scroll"
+            stripedRows
+          >
             <Column field="operatorName" header="Operator" />
             <Column field="status" header="Status">
               <template #body="{ data }">
@@ -144,10 +189,14 @@
             <Column field="activeTasks" header="Active Tasks" />
             <Column field="completedOrdersToday" header="Completed Today" />
             <Column field="averageCompletionTimeMinutes" header="Avg Completion">
-              <template #body="{ data }">{{ formatMinutes(data.averageCompletionTimeMinutes) }}</template>
+              <template #body="{ data }">{{
+                formatMinutes(data.averageCompletionTimeMinutes)
+              }}</template>
             </Column>
           </DataTable>
-          <Message v-else severity="info" :closable="false">No operator workload data available.</Message>
+          <Message v-else severity="info" :closable="false"
+            >No operator workload data available.</Message
+          >
         </template>
       </Card>
     </div>
@@ -185,7 +234,7 @@ const emptyDashboard = () => ({
     ordersWaitingForDispatch: 0,
     stockMovementsToday: 0,
     inventoryAdjustmentsToday: 0,
-    failedScanAttemptsToday: 0
+    failedScanAttemptsToday: 0,
   },
   ordersByStatus: [],
   completedOrdersTrend: [],
@@ -195,7 +244,7 @@ const emptyDashboard = () => ({
   mostActiveLocations: [],
   needsAttention: [],
   activityFeed: [],
-  generatedAt: null
+  generatedAt: null,
 })
 
 const dashboard = ref(emptyDashboard())
@@ -211,7 +260,7 @@ const chartPalette = () => {
     warning: style.getPropertyValue('--status-warning').trim() || '#d97706',
     danger: style.getPropertyValue('--status-danger').trim() || '#dc2626',
     text: style.getPropertyValue('--text-secondary').trim() || '#52657a',
-    border: style.getPropertyValue('--border-subtle').trim() || '#d8e3ee'
+    border: style.getPropertyValue('--border-subtle').trim() || '#d8e3ee',
   }
 }
 
@@ -219,14 +268,23 @@ const formatNumber = (value) => new Intl.NumberFormat().format(Number(value ?? 0
 
 const formatDateTime = (value) => {
   if (!value) return '—'
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(value),
+  )
 }
 
 const formatMinutes = (value) => `${formatNumber(value)} min`
 
-const prettyType = (value) => String(value || '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+const prettyType = (value) =>
+  String(value || '')
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 
-const getErrorMessage = (error) => error.response?.data?.message || error.response?.data?.error || 'Unable to load supervisor dashboard.'
+const getErrorMessage = (error) =>
+  error.response?.data?.message ||
+  error.response?.data?.error ||
+  'Unable to load supervisor dashboard.'
 
 const loadDashboard = async () => {
   loading.value = true
@@ -250,30 +308,44 @@ const severityToPrime = (value) => {
   return 'info'
 }
 
-const stockStatusSeverity = (value) => {
-  if (value === 'CRITICAL') return 'danger'
-  if (value === 'LOW') return 'warn'
-  return 'success'
-}
-
 const operatorStatusSeverity = (value) => {
   if (value === 'DELAYED') return 'danger'
   if (value === 'IDLE') return 'warn'
   return 'success'
 }
 
-const attentionKey = (item) => `${item.type}-${item.relatedEntityId || item.title}-${item.createdAt || ''}`
+const attentionKey = (item) =>
+  `${item.type}-${item.relatedEntityId || item.title}-${item.createdAt || ''}`
 
 const buildOrdersByStatusChart = () => {
   const palette = chartPalette()
+
+  const colorMap = {
+    CREATED: '#cbd5e1',
+    ASSIGNED: '#93c5fd',
+    IN_PROGRESS: palette.accent,
+    PROCESSING: palette.primary,
+    PICKED: '#818cf8',
+    PARTIALLY_COMPLETED: '#fbbf24',
+    SHORTAGE: palette.warning,
+    COMPLETED: palette.success,
+    DELIVERED: palette.success,
+    CANCELLED: palette.danger,
+    CANCELED: palette.danger,
+    FAILED: palette.danger,
+  }
+
   return {
     labels: dashboard.value.ordersByStatus.map((item) => prettyType(item.status)),
     datasets: [
       {
         data: dashboard.value.ordersByStatus.map((item) => item.count),
-        backgroundColor: [palette.accent, palette.primary, '#4f46e5', palette.warning, palette.success, palette.danger]
-      }
-    ]
+        backgroundColor: dashboard.value.ordersByStatus.map((item) => {
+          const statusKey = String(item.status || '').toUpperCase()
+          return colorMap[statusKey] || '#94a3b8'
+        }),
+      },
+    ],
   }
 }
 
@@ -281,7 +353,9 @@ const buildCompletedOrdersTrendChart = () => {
   const palette = chartPalette()
   return {
     labels: dashboard.value.completedOrdersTrend.map((item) =>
-      new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(item.date))
+      new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(
+        new Date(item.date),
+      ),
     ),
     datasets: [
       {
@@ -290,9 +364,9 @@ const buildCompletedOrdersTrendChart = () => {
         borderColor: palette.primary,
         backgroundColor: `${palette.primary}22`,
         tension: 0.35,
-        fill: true
-      }
-    ]
+        fill: true,
+      },
+    ],
   }
 }
 
@@ -304,9 +378,9 @@ const buildOperatorPerformanceChart = () => {
       {
         label: 'Completed Today',
         data: dashboard.value.operatorPerformance.map((item) => item.completedOrdersToday),
-        backgroundColor: palette.success
-      }
-    ]
+        backgroundColor: palette.success,
+      },
+    ],
   }
 }
 
@@ -314,12 +388,20 @@ const kpiCards = computed(() => {
   const summary = dashboard.value.summary
 
   return [
-    { key: 'ordersToday', title: "Orders Created Today", value: summary.ordersToday },
-    { key: 'completedOrdersToday', title: 'Orders Completed Today', value: summary.completedOrdersToday },
+    { key: 'ordersToday', title: 'Orders Created Today', value: summary.ordersToday },
+    {
+      key: 'completedOrdersToday',
+      title: 'Orders Completed Today',
+      value: summary.completedOrdersToday,
+    },
     { key: 'inProgressOrders', title: 'Orders In Progress', value: summary.inProgressOrders },
     { key: 'shortageOrders', title: 'Orders With Shortage', value: summary.shortageOrders },
-    { key: 'canceledOrdersToday', title: 'Orders Canceled Today', value: summary.canceledOrdersToday },
-    { key: 'activeOperators', title: 'Active Operators', value: summary.activeOperators }
+    {
+      key: 'canceledOrdersToday',
+      title: 'Orders Canceled Today',
+      value: summary.canceledOrdersToday,
+    },
+    { key: 'activeOperators', title: 'Active Operators', value: summary.activeOperators },
   ]
 })
 
@@ -331,30 +413,37 @@ const sharedScales = () => {
   return {
     x: {
       ticks: { color: palette.text },
-      grid: { color: `${palette.border}66` }
+      grid: { color: `${palette.border}66` },
     },
     y: {
       ticks: { color: palette.text, precision: 0 },
-      grid: { color: `${palette.border}66` }
-    }
+      grid: { color: `${palette.border}66` },
+    },
   }
 }
 
 const lineChartOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: { legend: { labels: { color: chartPalette().text } } },
-  scales: sharedScales()
+  scales: {
+    x: sharedScales().x,
+    y: {
+      ...sharedScales().y,
+      min: 0,
+      beginAtZero: true,
+    },
+  },
 }))
 
 const barChartOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: { legend: { labels: { color: chartPalette().text } } },
-  scales: sharedScales()
+  scales: sharedScales(),
 }))
 
 const doughnutChartOptions = computed(() => ({
   maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom', labels: { color: chartPalette().text } } }
+  plugins: { legend: { position: 'bottom', labels: { color: chartPalette().text } } },
 }))
 
 onMounted(() => {
