@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record ReplenishmentResponse(
     Long id,
+    String logicId,
     Long taskId,
     Long productId,
     Integer requestedQuantity,
@@ -17,6 +18,7 @@ public record ReplenishmentResponse(
 ) {
     public ReplenishmentResponse(
         Long id,
+        String logicId,
         Long taskId,
         Long productId,
         Integer requestedQuantity,
@@ -24,6 +26,6 @@ public record ReplenishmentResponse(
         Long destinationLocationId,
         LocalDateTime createdAt
     ) {
-        this(id, taskId, productId, requestedQuantity, status, destinationLocationId, null, null, createdAt);
+        this(id, logicId, taskId, productId, requestedQuantity, status, destinationLocationId, null, null, createdAt);
     }
 }

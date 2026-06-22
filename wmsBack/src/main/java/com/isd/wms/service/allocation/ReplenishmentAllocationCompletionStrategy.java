@@ -145,4 +145,14 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     }
 
     @Override
-    public
+    public boolean support(TaskType taskType) {
+        return TaskType.REPLENISHMENT == taskType;
+    }
+
+    private int resolvedDeliveredQuantity(Allocation allocation) {
+        if (allocation.getPickedQuantity().isPresent()) {
+            return allocation.getPickedQuantity().orElse(0);
+        }
+        return allocation.getStatus() == Status.CANCELED ? 0 : Optional.ofNullable(allocation.getQuantity()).orElse(0);
+    }
+}

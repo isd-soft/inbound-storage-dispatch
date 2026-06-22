@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for managing replenishment tasks.
@@ -104,6 +105,10 @@ public class ReplenishmentService {
 
         Replenishment replenishment = new Replenishment(product, request.requestedQuantity(), destinationLocation);
         replenishment.setStatus(Status.CREATED);
+
+        // АВТОГЕНЕРАЦИЯ ЛОГИЧЕСКОГО ID
+        replenishment.setLogicId("REPL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
         replenishment = replenishmentRepository.save(replenishment);
 
         return replenishmentMapper.toResponse(replenishment);
@@ -168,19 +173,23 @@ public class ReplenishmentService {
     @Transactional
     public void checkAndTriggerAutoReplenishment(Product product, Location location, int locationQty) {
         if (!Boolean.TRUE.equals(product.getAutoReplenish())) return;
-        if (product.getReplenishQty() == null) return;
 
-        if (locationQty <= product.getMinThreshold().orElseThrow()) {
+        if (product.getReplenishQty().isEmpty() || product.getMinThreshold().isEmpty()) return;
+
+        int minThreshold = product.getMinThreshold().get();
+        int replenishQty = product.getReplenishQty().get();
+
+        if (locationQty <= minThreshold) {
             boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusIn(
                 product.getId(), location.getId(), ACTIVE_STATUSES
             );
 
             if (!hasActive) {
                 log.info("Auto-triggering replenishment for product {} at location {} (Location Qty: {}, Threshold: {})",
-                    product.getBarcode(), location.getBarcode(), locationQty, product.getMinThreshold());
+                    product.getBarcode(), location.getBarcode(), locationQty, minThreshold);
 
                 ReplenishmentCreateRequest req = new ReplenishmentCreateRequest(
-                    product.getId(), product.getReplenishQty(), location.getId()
+                    product.getId(), replenishQty, location.getId()
                 );
                 createReplenishment(req);
             }

@@ -100,6 +100,12 @@
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
 
+      <Column field="logicId" header="Reference" sortable filter>
+        <template #body="slotProps">
+          <span class="font-bold text-blue-600">{{ slotProps.data.logicId || `REPL-${slotProps.data.id}` }}</span>
+        </template>
+      </Column>
+
       <Column field="productName" header="Product" sortable filter>
         <template #body="slotProps">
           <ProductLink
@@ -362,9 +368,6 @@ const isUniformSelection = computed(() => {
   return selectedReplenishments.value.every((task) => task.status === firstStatus)
 })
 
-const unifiedStatus = computed(() =>
-  isUniformSelection.value ? selectedReplenishments.value[0].status : null,
-)
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedReplenishmentIds.value.size > 0)
 
@@ -386,6 +389,7 @@ const handleImport = async (formData) => {
 const assignmentByTaskId = ref({})
 
 const replenishmentFilterFields = [
+  { field: 'logicId', label: 'Reference' },
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
   { field: 'destinationLocationId', label: 'Destination' },
@@ -601,12 +605,22 @@ const submitQuantityChanges = async () => {
       destinationLocationId: repl.destinationLocationId
     })))
 
-    toast.add({ severity: 'success', summary: 'Tasks updated', detail: `${changedTasks.length} task(s) updated.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Tasks updated',
+      detail: `${changedTasks.length} task(s) updated.`,
+      life: 3000
+    })
     editMode.value = false
     selectedReplenishments.value = []
     await loadData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }
@@ -622,7 +636,12 @@ const confirmResetChanges = (afterReset) => {
       replenishments.value = cloneRows(originalReplenishments.value)
       modifiedReplenishmentIds.value = new Set()
       selectedReplenishments.value = []
-      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved changes were discarded.', life: 2500 })
+      toast.add({
+        severity: 'info',
+        summary: 'Changes reset',
+        detail: 'Unsaved changes were discarded.',
+        life: 2500
+      })
       if (typeof afterReset === 'function') afterReset()
     }
   })
@@ -632,7 +651,12 @@ const handleCreate = async () => {
   actionLoading.value = true
   try {
     await replenishmentApi.create(newReplenishment.value)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Replenishment task created.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Replenishment task created.',
+      life: 3000
+    })
     createDialogVisible.value = false
     await loadData()
   } finally {
@@ -645,10 +669,20 @@ const assignReplenishment = async (id, operatorId) => {
   actionLoading.value = true
   try {
     await replenishmentApi.assign(id, operatorId)
-    toast.add({ severity: 'success', summary: 'Assigned', detail: `Replenishment #${id} assigned to operator.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Assigned',
+      detail: `Replenishment #${id} assigned to operator.`,
+      life: 3000
+    })
     await loadData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Assign failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }

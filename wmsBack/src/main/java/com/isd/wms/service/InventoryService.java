@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -54,8 +55,6 @@ public class InventoryService {
     private final InventoryHistoryMapper inventoryHistoryMapper;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
-
-    // ИСПРАВЛЕНИЕ: Используем EventPublisher для разрыва циклической зависимости
     private final ApplicationEventPublisher eventPublisher;
 
     public List<StockResponse> getAllStock() {
@@ -85,6 +84,27 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
+        if (location.getZone() == Zone.DISPATCH) {
+            throw new InvalidRequestException("Adding stock directly to the DISPATCH zone is strictly prohibited.");
+        }
+
+        LocalDate mfgDate = request.manufactureDate();
+        LocalDate expDate = request.expirationDate();
+        LocalDate today = LocalDate.now();
+
+        if (mfgDate != null) {
+            if (mfgDate.isAfter(today)) {
+                throw new InvalidRequestException("Manufacture date cannot be in the future.");
+            }
+            if (expDate != null && !expDate.isAfter(mfgDate)) {
+                throw new InvalidRequestException("Expiration date must be strictly after the manufacture date.");
+            }
+        }
+
+        if (expDate != null && expDate.isBefore(today)) {
+            throw new InvalidRequestException("Cannot add expired stock to the warehouse.");
+        }
+
         Stock stock = stockRepository.findByLocationId(location.getId())
             .orElseGet(() -> new Stock(product, location));
 
@@ -104,8 +124,8 @@ public class InventoryService {
 
         stock.setQuantity(stock.getQuantity() + quantity);
         stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
-        stock.setManufactureDate(request.manufactureDate());
-        stock.setExpirationDate(request.expirationDate());
+        stock.setManufactureDate(mfgDate);
+        stock.setExpirationDate(expDate);
 
         Stock savedStock = stockRepository.save(stock);
 
@@ -208,9 +228,10 @@ public class InventoryService {
     ) {
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
             InventoryOperationType.PICKING, adjustmentReason, comment, user);
+
+        triggerReplenishmentCheck(stock);
     }
 
-    // ИСПРАВЛЕНИЕ: Универсальный метод для фиксации недостач
     @Transactional
     public void recordShortageAdjustment(
         Stock stock,
@@ -236,6 +257,8 @@ public class InventoryService {
 
         log.info("Shortage adjustment recorded: stockId={}, operationType={}, shortageQuantity={}, quantityAfterChange={}",
             stock.getId(), operationType.name(), shortageQuantity, quantityAfterChange);
+
+        triggerReplenishmentCheck(stock);
     }
 
     private void createHistory(
@@ -276,7 +299,6 @@ public class InventoryService {
         }
         int locationQty = stock.getQuantity() - stock.getReservedQuantity();
 
-        // ИСПРАВЛЕНИЕ: Публикуем событие вместо прямой связи
         eventPublisher.publishEvent(new LowStockEvent(product, stock.getLocation(), locationQty));
     }
 

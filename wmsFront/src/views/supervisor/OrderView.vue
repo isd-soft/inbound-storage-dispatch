@@ -99,7 +99,8 @@
       </Column>
       <Column header="Total Qty" style="width: 8rem">
         <template #body="{ data }">
-          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data) }}</span>
+          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data)
+            }}</span>
         </template>
       </Column>
       <Column header="Status" sortable>
@@ -191,18 +192,19 @@
       <div class="flex flex-col gap-5">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="field">
-            <label for="logicId" class="block text-sm font-medium mb-1">Logic ID</label>
+            <label for="logicId" class="block text-sm font-medium mb-1">Logic ID (Optional)</label>
             <InputText
               id="logicId"
               v-model.trim="formData.logicId"
               class="w-full"
-              :invalid="submitted && !formData.logicId"
+              placeholder="Auto-generated if empty"
+              :disabled="isEditingOrder"
             />
-            <small v-if="submitted && !formData.logicId" class="text-red-400">Logic ID is required.</small>
           </div>
 
           <div class="field">
-            <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
+            <label for="location" class="block text-sm font-medium mb-1">Destination
+              Location</label>
             <Select
               id="location"
               v-model="formData.location"
@@ -214,7 +216,8 @@
               class="w-full"
               :invalid="submitted && !formData.location"
             />
-            <small v-if="submitted && !formData.location" class="text-red-400">Location is required.</small>
+            <small v-if="submitted && !formData.location" class="text-red-400">Location is
+              required.</small>
           </div>
         </div>
 
@@ -240,7 +243,8 @@
                 class="w-full min-w-0"
                 :invalid="submitted && !data.product"
               />
-              <small v-if="submitted && !data.product" class="text-red-400">Product is required.</small>
+              <small v-if="submitted && !data.product" class="text-red-400">Product is
+                required.</small>
             </template>
           </Column>
           <Column header="Quantity" style="min-width: 13rem">
@@ -253,7 +257,8 @@
                 class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
-              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum quantity is 1.</small>
+              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum
+                quantity is 1.</small>
             </template>
           </Column>
           <Column header="Actions" style="width: 6rem">
@@ -371,11 +376,11 @@ let nextLineId = 1
 
 const assignmentByOrderId = reactive({})
 
-const handleImport = async (formData) => {
-  if (!(formData instanceof FormData)) {
+const handleImport = async (importData) => {
+  if (!(importData instanceof FormData)) {
     throw new Error('Wrong Format!')
   }
-  return orderApi.importOrders(formData)
+  return orderApi.importOrders(importData)
 }
 
 const getErrorMessage = (error) =>
@@ -464,7 +469,12 @@ const openCreateDialog = async () => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Data load failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
   }
 }
 
@@ -492,7 +502,12 @@ const openEditDialog = async (orderData) => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Data load failed',
+      detail: getErrorMessage(error),
+      life: 4000
+    })
   }
 }
 
@@ -547,10 +562,20 @@ const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
   try {
     await orderApi.assign(orderId, operatorId)
-    toast.add({ severity: 'success', summary: 'Assigned', detail: `Order #${orderId} assigned.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Assigned',
+      detail: `Order #${orderId} assigned.`,
+      life: 3000
+    })
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Assign failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   }
 }
 
@@ -568,11 +593,21 @@ const deleteSelectedOrders = async () => {
   actionLoading.value = true
   try {
     await Promise.all(selectedOrders.value.map((entry) => orderApi.delete(entry.order.id)))
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedOrders.value.length} order(s) deleted.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Deleted',
+      detail: `${selectedOrders.value.length} order(s) deleted.`,
+      life: 3000
+    })
     selectedOrders.value = []
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Delete failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }
@@ -593,23 +628,31 @@ const getStatusSeverity = (status) =>
 
 const formatDate = (value) =>
   value
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+    ? new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(new Date(value))
     : '-'
 
 const onSubmit = async () => {
   submitted.value = true
 
-  const isTopValid = Boolean(formData.logicId && formData.location)
+  const isTopValid = Boolean(formData.location)
   const areLinesValid = formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity >= 1)
 
   if (!isTopValid || !areLinesValid) {
-    toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all fields.', life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please fill in all required fields.',
+      life: 4000
+    })
     return
   }
 
   const payload = {
     order: {
-      logicId: formData.logicId,
+      logicId: formData.logicId || null,
       destinationLocationId: formData.location,
     },
     lines: formData.lines.map((line) => ({
@@ -624,16 +667,26 @@ const onSubmit = async () => {
   try {
     if (isEditingOrder.value) {
       await orderApi.updateExtended(editingOrderId.value, payload)
-      toast.add({ severity: 'success', summary: 'Updated', detail: `Order ${formData.logicId} updated.`, life: 3000 })
+      toast.add({ severity: 'success', summary: 'Updated', detail: `Order updated.`, life: 3000 })
     } else {
       await orderApi.create(payload)
-      toast.add({ severity: 'success', summary: 'Created', detail: `Order ${formData.logicId} created.`, life: 3000 })
+      toast.add({
+        severity: 'success',
+        summary: 'Created',
+        detail: `Order created successfully.`,
+        life: 3000
+      })
     }
 
     closeFormDialog()
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Action failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Action failed',
+      detail: getErrorMessage(error),
+      life: 5000
+    })
   } finally {
     actionLoading.value = false
   }

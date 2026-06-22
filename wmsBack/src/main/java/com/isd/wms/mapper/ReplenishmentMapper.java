@@ -27,6 +27,7 @@ public class ReplenishmentMapper {
 
         return new ReplenishmentResponse(
             replenishment.getId(),
+            replenishment.getLogicId(),
             replenishment.getTask()
                 .map(Task::getId)
                 .orElse(null),

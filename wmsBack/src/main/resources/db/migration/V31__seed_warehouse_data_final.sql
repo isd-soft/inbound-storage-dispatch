@@ -267,3 +267,5 @@ SELECT setval('categories_sequence', (SELECT MAX(id) FROM categories));
 SELECT setval('products_sequence', (SELECT MAX(id) FROM products));
 SELECT setval('locations_sequence', (SELECT MAX(id) FROM locations));
 SELECT setval('transport_units_sequence', (SELECT MAX(id) FROM transport_units));
+
+ALTER TABLE replenishments ADD COLUMN logic_id VARCHAR(50);
