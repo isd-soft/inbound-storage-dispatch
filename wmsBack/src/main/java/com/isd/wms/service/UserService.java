@@ -21,6 +21,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Service for managing user accounts.
+ * <p>
+ * Handles user registration, email verification, account updates, deletion
+ * (soft deactivation), and retrieval of active users. Registration sends a
+ * verification email with a token; upon verification, the user sets a password.
+ * </p>
+ * <p>
+ * Only users with DEV role can update other users' details. Supervisors can
+ * only deactivate operator accounts. Deactivation of one's own account is prohibited.
+ * </p>
+ * <p>
+ * A scheduled job cleans up unverified accounts whose tokens have expired.
+ * </p>
+ *
+ * @see User
+ * @see EmailService
+ * @see SecurityFacade
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,6 +51,17 @@ public class UserService {
     private final UserMapper userMapper;
     private final SecurityFacade securityFacade;
 
+    /**
+     * Registers a new user or reactivates a deactivated account.
+     * <p>
+     * If the username or email already exists but the account is inactive,
+     * it is reactivated and a new verification email is sent.
+     * </p>
+     *
+     * @param request the registration request
+     * @throws AccessDeniedException if attempting to create a DEV account
+     * @throws RuntimeException if the username/email is already taken by an active account
+     */
     @Transactional
     public void registerUser(UserCreateRequest request) {
         if (request.userRole() == Role.ROLE_DEV) {
@@ -53,7 +83,8 @@ public class UserService {
                 throw new RuntimeException("This username is already taken by an active user.");
             }
             if (existingEmailOpt.isPresent() && !existingEmailOpt.get().getId().equals(user.getId())) {
-                throw new RuntimeException("This email belongs to a different deactivated account. Please use a unique combination.");
+                throw new RuntimeException("This email belongs to a different deactivated account. " +
+                    "Please use a unique combination.");
             }
             userToSave = user;
             log.info("Reactivating deactivated account for username: {}", request.username());
@@ -96,7 +127,8 @@ public class UserService {
         userRepository.save(userToSave);
 
         emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
-        log.info("User '{}' successfully reactivated, new verification email sent to {}", request.username(), request.email());
+        log.info("User '{}' successfully reactivated, new verification email sent to {}",
+            request.username(), request.email());
     }
 
     @Transactional
@@ -135,6 +167,14 @@ public class UserService {
         userRepository.save(existingUser);
     }
 
+    /**
+     * Verifies the user's email using a token and sets a new password.
+     *
+     * @param rawToken the verification token
+     * @param newPassword the new password to set
+     * @return true if verification succeeded, false if the token expired
+     * @throws RuntimeException if the token is invalid
+     */
     @Transactional
     public boolean verifyEmail(String rawToken, String newPassword) {
         String cleanToken = rawToken != null ? rawToken.trim() : "";
@@ -165,10 +205,14 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Scheduled job to delete expired unverified accounts.
+     */
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void cleanUpExpiredUnverifiedUsers() {
-        List<User> expiredUsers = userRepository.findAllByEmailVerifiedFalseAndVerificationTokenExpiresAtBefore(LocalDateTime.now());
+        List<User> expiredUsers =
+            userRepository.findAllByEmailVerifiedFalseAndVerificationTokenExpiresAtBefore(LocalDateTime.now());
 
         if (!expiredUsers.isEmpty()) {
             userRepository.deleteAll(expiredUsers);
@@ -177,6 +221,13 @@ public class UserService {
         }
     }
 
+    /**
+     * Soft‑deletes (deactivates) a user account.
+     *
+     * @param userId the ID of the user to deactivate
+     * @throws AccessDeniedException if the current user lacks permission
+     * @throws RuntimeException if trying to delete own account
+     */
     @Transactional
     public void deleteUser(Long userId) {
         User targetUser = userRepository.findById(userId)

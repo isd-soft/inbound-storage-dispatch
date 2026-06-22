@@ -19,6 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service for querying and summarising allocation data.
+ *
+ * <p>Provides read-oriented methods for both supervisors (full allocation list) and
+ * operators (a contextual response covering the current task, progress counters,
+ * destination, and the active allocation item). Write operations and step-by-step
+ * execution live in {@link AllocationExecutionService}.</p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,10 +38,27 @@ public class AllocationService {
     private final OrderLineRepository orderLineRepository;
     private final ReplenishmentRepository replenishmentRepository;
 
+    /**
+     * Returns all allocations in the system projected for the supervisor view.
+     *
+     * @return a list of {@link AllocationSupervisorProjection} objects
+     */
     public List<AllocationSupervisorProjection> getAllAllocations() {
         return allocationRepository.getAllAllocations();
     }
 
+    /**
+     * Builds the operator-facing allocation response for the authenticated operator's
+     * current active task.
+     *
+     * <p>Resolves the task type, determines the destination location barcode and logical
+     * ID (for picking-order tasks), calculates total and current position counters, and
+     * returns the first non-completed allocation item.</p>
+     *
+     * @return an {@link AllocationOperatorResponse} containing task metadata and the
+     *         active allocation details
+     * @throws AllocationsNotFoundException if no active allocation exists for the operator
+     */
     public AllocationOperatorResponse getAllocationsOperator() {
         String username = securityFacade.getCurrentUsername();
         Allocation allocation = getAllocationsForOperator(username);
@@ -62,7 +87,14 @@ public class AllocationService {
         );
     }
 
-    private @NonNull Result getResult(TaskType taskType, Task task, String username, String logicalId, String destinationLocationBarcode, Integer total, Integer current) {
+    private @NonNull Result getResult(
+        TaskType taskType,
+        Task task,
+        String username,
+        String logicalId,
+        String destinationLocationBarcode,
+        Integer total,
+        Integer current) {
         if (taskType == TaskType.PICKING_ORDER) {
             OrderLine orderLine = orderLineRepository.findByTaskId(task.getId())
                 .orElseThrow(() -> new AllocationsNotFoundException(username));

@@ -2,23 +2,31 @@ package com.isd.wms.entity;
 
 import com.isd.wms.enums.Role;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.Instant;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+/**
+ * Represents a system user.
+ * <p>
+ * Users have a username, email, encrypted password, and a role ({@link Role}).
+ * The account can be active or inactive, and email verification is tracked via
+ * a token with an expiry. This entity is used for authentication and authorisation
+ * in the WMS.
+ * </p>
+ *
+ * @see Role
+ */
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-public class User{
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")

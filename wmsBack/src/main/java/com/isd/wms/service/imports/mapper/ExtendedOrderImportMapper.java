@@ -14,6 +14,15 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Mapper for converting {@link ExtendedOrderInfo} DTOs to
+ * {@link ExtendedOrderCreateRequest} objects.
+ * <p>
+ * Resolves product and destination location by name. Each row produces an
+ * order with a single line. The import service later groups rows with the
+ * same logic ID to create multi‑line orders.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo, ExtendedOrderCreateRequest> {

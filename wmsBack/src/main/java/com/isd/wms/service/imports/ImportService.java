@@ -11,6 +11,24 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * Orchestrates the import of data from uploaded files.
+ * <p>
+ * This service determines the file type (CSV or Excel) from the file extension,
+ * selects the appropriate {@link ImportStrategy}, parses the file into a list
+ * of DTOs, and then uses a matching {@link ImportMapper} to convert those DTOs
+ * into entity or request objects that can be processed by the respective
+ * business services.
+ * </p>
+ * <p>
+ * The service relies on Spring's dependency injection to collect all available
+ * strategies and mappers.
+ * </p>
+ *
+ * @see ImportStrategy
+ * @see ImportMapper
+ * @see ImportType
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +47,22 @@ public class ImportService {
             );
     }
 
+    /**
+     * Imports data from an uploaded file.
+     * <p>
+     * The file type is inferred from the extension. The file is parsed into DTOs
+     * using the appropriate strategy, then each DTO is mapped to a business object
+     * (entity or request DTO) using a mapper that supports the DTO class.
+     * </p>
+     *
+     * @param file  the uploaded file
+     * @param clazz the DTO class that represents the file's data structure
+     * @param <T>   the DTO type
+     * @param <E>   the resulting entity/request type
+     * @return a list of converted business objects
+     * @throws InvalidRequestException if the file type is unsupported, the file name is missing,
+     *                                 or parsing/mapping fails
+     */
     public <T, E> List<E> importData(MultipartFile file, Class<T> clazz) {
 
         String filename = file.getOriginalFilename();

@@ -5,6 +5,12 @@ import com.isd.wms.service.imports.dto.CategoryInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper for converting {@link CategoryInfo} DTOs to {@link Category} entities.
+ * <p>
+ * Simply creates a new Category with the provided name.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class CategoryImportMapper implements ImportMapper<CategoryInfo, Category> {

@@ -14,6 +14,27 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Represents a unit of work to be performed by an operator.
+ * <p>
+ * Tasks can be of type {@link TaskType#PICKING_ORDER} or {@link TaskType#REPLENISHMENT}.
+ * They are created by a supervisor, optionally assigned to an operator, and track
+ * requested quantity, completion timestamp, and status. Each task contains a list
+ * of {@link Allocation}s that reserve the required stock.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link User} – supervisor who created the task</li>
+ *   <li>{@link User} – operator assigned to the task (optional)</li>
+ *   <li>{@link Allocation} – one‑to‑many, the allocations for this task</li>
+ * </ul>
+ * </p>
+ *
+ * @see TaskType
+ * @see TaskStatus
+ * @see Allocation
+ */
 @Entity
 @Getter
 @Setter
@@ -51,6 +72,11 @@ public class Task extends BaseTimestampEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Allocation> allocations = new ArrayList<>();
 
+    /**
+     * Returns the assigned operator, if any.
+     *
+     * @return an Optional containing the operator, or empty if not assigned
+     */
     public Optional<User> getOperator() {
         return Optional.ofNullable(operator);
     }

@@ -10,9 +10,27 @@ import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
+
+/**
+ * Completion strategy for replenishment allocations.
+ * <p>
+ * When a replenishment allocation is completed, this strategy moves the picked
+ * quantity from the source stock (REPL zone) to the destination location
+ * (picking zone). If the destination location already contains stock of the same
+ * product, the quantity is added; if it contains a different product, an error
+ * is thrown (unless the location is empty).
+ * </p>
+ * <p>
+ * After the move, the replenishment status is updated to COMPLETED if all
+ * allocations are done.
+ * </p>
+ *
+ * @see Replenishment
+ * @see Stock
+ * @see Location
+ */
 
 @Component
 @RequiredArgsConstructor
@@ -30,14 +48,12 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
         Location destinationLocation = replenishment.getDestinationLocation();
         Stock sourceStock = allocation.getStock();
 
-        Integer quantityToMove = Optional.ofNullable(allocation.getPickedQuantity()).orElse(allocation.getQuantity());
+        Integer quantityToMove = allocation.getPickedQuantity().orElse(allocation.getQuantity());
         Product product = sourceStock.getProduct()
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
-        if (allocation.getPickedQuantity() != null && allocation.getPickedQuantity() < allocation.getQuantity()) {
-            sourceStock.setQuantity(Math.max(0, sourceStock.getQuantity() - allocation.getQuantity()));
-            sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - allocation.getQuantity()));
-            stockRepository.save(sourceStock);
+        if (allocation.getPickedQuantity().isPresent()) {
+            allocation.getPickedQuantity();
         }
 
         if (quantityToMove <= 0) {
@@ -110,9 +126,8 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     }
 
     private int resolvedDeliveredQuantity(Allocation allocation) {
-        Integer pickedQuantity = allocation.getPickedQuantity();
-        if (pickedQuantity != null) {
-            return pickedQuantity;
+        if (allocation.getPickedQuantity().isPresent()) {
+            return allocation.getPickedQuantity().orElse(0);
         }
         return allocation.getStatus() == Status.CANCELED ? 0 : Optional.ofNullable(allocation.getQuantity()).orElse(0);
     }

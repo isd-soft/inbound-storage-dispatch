@@ -14,8 +14,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
-
-
+/**
+ * Service responsible for user authentication and JWT token generation.
+ *
+ * <p>Delegates credential verification to Spring Security's {@link AuthenticationManager}.
+ * On success, loads the full {@link UserDetails} and generates a signed JWT containing
+ * the username and role. Converts Spring Security authentication exceptions into
+ * domain-specific exceptions for cleaner API error responses.</p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,10 +31,19 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
 
+    /**
+     * Authenticates the given credentials and returns a signed JWT on success.
+     *
+     * @param username the username or email address of the user attempting to log in
+     * @param password the user's plain-text password
+     * @return a signed JWT string containing the username and role authority
+     * @throws UserNotVerifiedException    if the account exists but the email has not been verified
+     * @throws InvalidCredentialsException if the username or password is incorrect
+     */
     public String authenticateAndGenerateToken(String username, String password) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
+                new UsernamePasswordAuthenticationToken(username, password)
             );
         } catch (DisabledException e) {
             throw new UserNotVerifiedException("Please verify your email before logging in.");
@@ -38,8 +53,8 @@ public class AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         return jwtUtil.generateToken(
-                userDetails.getUsername(),
-                userDetails.getAuthorities().iterator().next().getAuthority()
+            userDetails.getUsername(),
+            userDetails.getAuthorities().iterator().next().getAuthority()
         );
     }
 }

@@ -13,9 +13,29 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for {@link Order} entities.
+ * <p>
+ * Provides advanced query capabilities: filtering orders by multiple criteria,
+ * retrieving orders by the supervisor who created them, checking order
+ * assignment to operators, and bulk status updates. Also includes methods
+ * for finding the next order for an operator during picking flow.
+ * </p>
+ */
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    /**
+     * Filters orders by optional criteria: logic ID, destination location,
+     * status, and creation/update timestamps.
+     *
+     * @param logicId        logical order ID (exact match)
+     * @param destinationId  destination location ID
+     * @param status         order status
+     * @param createdAt      exact creation timestamp
+     * @param updatedAt      exact update timestamp
+     * @return list of matching orders
+     */
     @Query("""
         SELECT o FROM Order o
         JOIN OrderLine ol ON ol.order = o
@@ -35,6 +55,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("updatedAt") LocalDateTime updatedAt
     );
 
+   /**
+     * Finds all orders created by a specific supervisor (by username).
+     *
+     * @param username the supervisor's username
+     * @return list of orders
+     */
     @Query("""
         SELECT DISTINCT o FROM Order o
         JOIN OrderLine ol ON ol.order = o
@@ -44,27 +70,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         """)
     List<Order> findAllByCreatedByUsername(@Param("username") String username);
 
-    @Query("""
-        SELECT DISTINCT o FROM Order o
-        JOIN OrderLine ol ON ol.order = o
-        JOIN Task t ON t = ol.task
-        JOIN User u ON u = t.supervisor
-        WHERE o.id = :id AND u.username = :username
-        """)
-    Optional<Order> findByIdAndCreatedByUsername(@Param("id") Long id, @Param("username") String username);
-
-    @Query(value = """
-            SELECT o.* FROM orders o
-            JOIN order_lines ol ON o.id = ol.order_id
-            JOIN tasks t ON ol.task_id = t.id
-            WHERE t.operator_id = :operatorId
-            AND o.status LIKE 'ASSIGNED'
-            LIMIT 1
-        """, nativeQuery = true)
-    Optional<Order> findOldestOrderAssignedToOperator(
-        @Param("operatorId") Long operatorId
-    );
-
+    /**
+     * Finds the oldest PICKED or PARTIALLY_COMPLETED order for an operator.
+     * Used to continue picking after dispatch.
+     *
+     * @param operatorId the operator's user ID
+     * @return an Optional containing the order, if any
+     */
     @Query(value = """
         SELECT DISTINCT o.* FROM orders o
         JOIN order_lines ol ON o.id = ol.order_id
@@ -78,6 +90,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("operatorId") Long operatorId
     );
 
+    /**
+     * Finds the operator ID assigned to a given order.
+     *
+     * @param orderId the order ID
+     * @return an Optional containing the operator ID, if assigned
+     */
     @Query("""
             SELECT DISTINCT u.id FROM Order o
             JOIN o.orderLines ol
@@ -87,6 +105,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         """)
     Optional<Long> findOperatorIdByOrderId(@Param("orderId") Long orderId);
 
+    /**
+     * Bulk‑updates the status of a single order.
+     *
+     * @param orderId     the order ID
+     * @param orderStatus the new status
+     * @return the number of updated rows (0 or 1)
+     */
     @Modifying
     @Query("""
             UPDATE Order o
@@ -97,22 +122,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("orderId") Long orderId,
         @Param("orderStatus") OrderStatus orderStatus);
 
-    @Modifying
-    @Query("""
-            UPDATE Order o
-                SET o.status = :orderStatus
-                WHERE o = :order
-                    AND NOT EXISTS (
-                          SELECT 1 FROM OrderLine ol
-                          WHERE ol.order = o
-                            AND ol.status NOT IN (com.isd.wms.enums.Status.COMPLETED, com.isd.wms.enums.Status.CANCELED)
-                      )
-        """)
-    int markOrderAsCompleted(
-        @Param("order") Order order,
-        @Param("orderStatus") OrderStatus orderStatus
-    );
-
+    /**
+     * Finds the order associated with a given task.
+     *
+     * @param task the task
+     * @return an Optional containing the order, if found
+     */
     @Query("""
             SELECT o FROM Order o
             JOIN OrderLine ol ON ol.order = o
@@ -122,12 +137,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("task") Task task
     );
 
+    /**
+     * Deletes all orders created before the cutoff date.
+     *
+     * @param cutoffDate the cutoff date
+     * @return the number of deleted orders
+     */
     @Modifying
     @Query("DELETE FROM Order o WHERE o.createdAt < :cutoffDate")
     int deleteOrdersOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 
     Optional<Order> findByLogicId(String logicId);
 
+    /**
+     * Checks whether a specific order is assigned to a given operator.
+     *
+     * @param order      the order
+     * @param operatorId the operator's user ID
+     * @return true if the order is assigned to the operator
+     */
     @Query("""
             SELECT COUNT(o) > 0
             FROM Order o
@@ -141,6 +169,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("operatorId") Long operatorId
     );
 
+    /**
+     * Finds the username of the operator assigned to a given order.
+     *
+     * @param order the order
+     * @return an Optional containing the operator's username, if assigned
+     */
     @Query("""
             SELECT u.username
             FROM Order o
