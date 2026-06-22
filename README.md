@@ -27,7 +27,6 @@
 - [Testing](#testing)
 - [Logging](#logging)
 - [Key Technologies Explained](#key-technologies-explained)
-- [License](#license)
 
 ---
 
@@ -390,16 +389,6 @@ Swagger UI: http://localhost:8080/swagger-ui/index.html
 
 ---
 
-## Scheduled Jobs
-
-| Job | Schedule | Description                                        |
-|-----|----------|----------------------------------------------------|
-| **Shortage Detection** | Daily at 8:00 AM | Scans inventory for items below minimum threshold  |
-| **Old Order Cleanup** | Daily at 2:00 AM | Deletes completed orders, tasks older than 2 weeks |
-| **Log Rotation** | Daily at midnight | Rotates application logs                           |
-
----
-
 ## Testing
 
 ### Run all tests:
@@ -467,12 +456,6 @@ Coverage report: `target/site/jacoco/index.html`
 3. User clicks confirmation link
 4. User confirm a valid strong password
 5. Account activated (redirect to login page)
-
----
-
-## License
-
-MIT License
 
 ---
 
