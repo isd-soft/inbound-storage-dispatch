@@ -210,14 +210,14 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="location" class="app-subtitle font-medium">Destination Location (Pick Zone)</label>
+          <label for="location" class="app-subtitle font-medium">Destination Location</label>
           <Dropdown
             id="location"
             v-model="newReplenishment.destinationLocationId"
             :options="locations"
             optionLabel="barcode"
             optionValue="id"
-            placeholder="Select Destination Zone"
+            placeholder="Select location"
             filter
             class="w-full"
           />

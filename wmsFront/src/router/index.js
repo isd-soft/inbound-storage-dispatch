@@ -12,7 +12,6 @@ import TasksView from '../views/supervisor/TasksView.vue'
 import HistoryView from '../views/supervisor/HistoryView.vue'
 import UsersView from '../views/supervisor/UsersView.vue'
 import OperatorConsole from '../views/operator/OperatorConsole.vue'
-import DevDashboard from '../views/dev/DevDashboard.vue'
 import VerifyEmailView from '../views/auth/VerifyEmailView.vue'
 import OrderForm from '../views/supervisor/OrderView.vue'
 import ReplenishmentsView from '../views/supervisor/ReplenishmentsView.vue'
@@ -40,47 +39,80 @@ const router = createRouter({
       path: '/access-denied',
       component: SupervisorLayout,
       meta: { requiresAuth: true },
-      children: [
-        { path: '', name: 'access-denied', component: AccessDeniedPage }
-      ]
+      children: [{ path: '', name: 'access-denied', component: AccessDeniedPage }],
     },
     {
       path: '/supervisor',
+      alias: '/dev',
       component: SupervisorLayout,
       meta: { requiresAuth: true, roles: SUPERVISOR_OR_DEV },
       children: [
-        { path: '', alias: '/dashboard', name: 'supervisor-dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
+        {
+          path: '',
+          alias: ['/dashboard', '/dev'],
+          name: 'supervisor-dashboard',
+          component: SuperDashboard,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
         { path: 'dashboard', component: SuperDashboard, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'inventory', alias: '/inventory', name: 'inventory', component: InventoryView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'allocations', name: 'allocations', component: AllocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'replenishments', name: 'replenishments', component: ReplenishmentsView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'products', name: 'products', component: ProductsView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'locations', name: 'locations', component: LocationsView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'history', alias: '/inventory/history', name: 'history', component: HistoryView, meta: { roles: SUPERVISOR_OR_DEV } },
+        {
+          path: 'inventory',
+          alias: '/inventory',
+          name: 'inventory',
+          component: InventoryView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+        {
+          path: 'allocations',
+          name: 'allocations',
+          component: AllocationsView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+        {
+          path: 'replenishments',
+          name: 'replenishments',
+          component: ReplenishmentsView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+        {
+          path: 'products',
+          name: 'products',
+          component: ProductsView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+        {
+          path: 'locations',
+          name: 'locations',
+          component: LocationsView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+        {
+          path: 'history',
+          alias: '/inventory/history',
+          name: 'history',
+          component: HistoryView,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
         { path: 'users', name: 'users', component: UsersView, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'orders', name: 'orders', component: OrderForm, meta: { roles: SUPERVISOR_OR_DEV } },
-        { path: 'dev', name: 'supervisor-dev', component: DevDashboard, meta: { roles: [DEV] } }
-      ]
+        {
+          path: 'orders',
+          name: 'orders',
+          component: OrderForm,
+          meta: { roles: SUPERVISOR_OR_DEV },
+        },
+      ],
     },
     {
       path: '/operator',
       name: 'operator',
       component: OperatorConsole,
-      meta: { requiresAuth: true, roles: [OPERATOR] }
+      meta: { requiresAuth: true, roles: [OPERATOR] },
     },
     {
       path: '/verify',
       name: 'verify',
       component: VerifyEmailView,
       meta: { guestOnly: true },
-    },
-    {
-      path: '/dev',
-      component: SupervisorLayout,
-      meta: { requiresAuth: true, roles: [DEV] },
-      children: [
-        { path: '', name: 'dev', component: DevDashboard, meta: { roles: [DEV] } }
-      ]
     },
   ],
 })
