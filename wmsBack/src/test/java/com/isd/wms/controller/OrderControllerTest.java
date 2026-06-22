@@ -129,12 +129,17 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "SUPERVISOR")
     void getExtendedOrderById_existingId_returns200() throws Exception {
-        ExtendedOrderResponse response = new ExtendedOrderResponse(new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null), new ArrayList<OrderLineResponse>());
+        ExtendedOrderResponse response = new ExtendedOrderResponse(
+            new OrderResponse(1L, "LOGIC-001", 1L, OrderStatus.CREATED, null, null),
+            new ArrayList<OrderLineResponse>(),
+            0
+        );
+
         when(orderService.getExtendedOrderById(1L)).thenReturn(response);
 
         mockMvc.perform(get(BASE_URL + "/extended/1").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.order.id").value(1L));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.order.id").value(1L));
     }
 
     @Test
