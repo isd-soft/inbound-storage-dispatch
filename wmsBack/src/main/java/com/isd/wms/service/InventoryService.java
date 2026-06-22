@@ -146,28 +146,6 @@ public class InventoryService {
         return stockMapper.toResponse(stock);
     }
 
-    /**
-     * Adjusts stock to a new total quantity using the {@link InventoryAdjustmentService}.
-     *
-     * @param request the adjustment request
-     * @return the updated stock response
-     */
-    @Transactional
-    public StockResponse adjustStock(AdjustStockRequest request) {
-        InventoryAdjustmentResponse response = inventoryAdjustmentService.adjustStock(
-            request.getStockId(),
-            new InventoryAdjustmentRequest(
-                request.getNewQuantity(),
-                request.getUserId(),
-                request.getReason(),
-                request.getComment(),
-                request.getManufactureDate(),
-                request.getExpirationDate()
-            )
-        );
-        return response.stock();
-    }
-
     public List<InventoryHistoryResponse> getAllHistory() {
         return inventoryHistoryRepository.findAll().stream()
             .map(inventoryHistoryMapper::toResponse)
