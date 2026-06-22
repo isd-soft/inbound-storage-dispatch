@@ -36,7 +36,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class InventoryController {
 
     private final InventoryService inventoryService;
-    private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
 
     /**
