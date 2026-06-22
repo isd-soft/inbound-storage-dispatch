@@ -22,4 +22,6 @@ public interface TransportUnitRepository extends JpaRepository<TransportUnit, Lo
     List<TransportUnit> findAllByReplenishment(Replenishment replenishment);
 
     Optional<TransportUnit> findFirstByReplenishmentOrderByCreatedAtAscIdAsc(Replenishment replenishment);
+
+    Object findByReplenishment(Replenishment replenishment);
 }

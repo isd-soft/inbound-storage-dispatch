@@ -1,21 +1,17 @@
 package com.isd.wms.service.allocation;
 
-import com.isd.wms.entity.Location;
+import com.isd.wms.dto.allocation.AllocationCompletionResult;
+import com.isd.wms.entity.Allocation;
 import com.isd.wms.entity.Order;
 import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
+import com.isd.wms.enums.AllocationCompletionStatus;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.AllocationRepository  ;
-import java.util.List;
-import java.util.Optional;
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,53 +19,59 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PickingAllocationCompletionStrategyTest {
 
-    @Mock
-    private AllocationRepository  allocationRepository ;
-
-    @Mock
-    private OrderLineRepository orderLineRepository;
-
-    @Mock
-    private OrderRepository orderRepository;
+    @Mock private OrderLineRepository orderLineRepository;
+    @Mock private OrderRepository orderRepository;
 
     @InjectMocks
     private PickingAllocationCompletionStrategy strategy;
 
+    private Task task;
+    private Order order;
+    private OrderLine orderLine;
+
+    @BeforeEach
+    void setUp() {
+        task = new Task();
+        ReflectionTestUtils.setField(task, "id", 1L);
+
+        order = new Order();
+        ReflectionTestUtils.setField(order, "id", 10L);
+
+        orderLine = new OrderLine(order, task, null, 10);
+        ReflectionTestUtils.setField(orderLine, "id", 100L);
+    }
+
     @Test
-    void handleMarksOrderPickedInsteadOfCompleted() {
-        Location destination = new Location("Dispatch", "DISP-01", null, null, true);
-        Product product = new Product("Widget", "WGT-01", null, null);
-        Location source = new Location("Pick", "PICK-01", null, null, true);
-        Stock stock = new Stock(product, source);
+    void result_returnsCompletedStatus() {
+        order.setStatus(OrderStatus.COMPLETED);
+        when(orderRepository.getOrderByTask(task)).thenReturn(Optional.of(order));
 
-        Order order = new Order("ORD-1", destination);
-        ReflectionTestUtils.setField(order, "status", OrderStatus.IN_PROGRESS);
-        ReflectionTestUtils.setField(order, "id", 1L);
+        AllocationCompletionResult result = strategy.result(task);
 
-        Task task = new Task(null, TaskType.PICKING_ORDER, 5);
-        ReflectionTestUtils.setField(task, "id", 2L);
+        assertThat(result.status()).isEqualTo(AllocationCompletionStatus.COMPLETED);
+        assertThat(result.taskType()).isEqualTo(TaskType.PICKING_ORDER);
+    }
 
-        OrderLine orderLine = new OrderLine(order, task, product, 5);
-        ReflectionTestUtils.setField(orderLine, "status", Status.IN_PROGRESS);
-        ReflectionTestUtils.setField(order, "orderLines", List.of(orderLine));
+    @Test
+    void updateStatus_computesPartialCompletionCorrectly() {
+        orderLine.setDeliveredQuantity(5);
+        when(orderLineRepository.findByTaskId(1L)).thenReturn(Optional.of(orderLine));
+        when(orderLineRepository.findAllByOrderId(10L)).thenReturn(List.of(orderLine));
 
-        Allocation allocation = new Allocation(task, stock, 5, Status.COMPLETED);
-        ReflectionTestUtils.setField(allocation, "id", 3L);
+        boolean res = strategy.updateStatus(task);
 
-        when(allocationRepository.findAllByTaskId(2L)).thenReturn(List.of(allocation));
-        when(orderLineRepository.findByTaskId(2L)).thenReturn(Optional.of(orderLine));
-
-        strategy.handle(allocation);
-
-        assertThat(orderLine.getStatus()).isEqualTo(Status.COMPLETED);
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED);
+        assertThat(res).isTrue();
+        assertThat(orderLine.getStatus()).isEqualTo(Status.PARTIALLY_COMPLETED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PARTIALLY_COMPLETED);
         verify(orderRepository).save(order);
     }
 }

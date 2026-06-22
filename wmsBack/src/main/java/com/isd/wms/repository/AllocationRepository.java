@@ -118,7 +118,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
             SELECT COUNT(DISTINCT a) FROM Allocation a
             JOIN OrderLine ol ON ol.task = a.task
             WHERE ol.order.id = :orderId
-            AND NOT a.status = Status.CANCELED
+            AND NOT a.status = com.isd.wms.enums.Status.CANCELED
         """)
     Integer countAllocationsInOrder(
         @Param("orderId") Long orderId
@@ -128,7 +128,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
             SELECT COUNT(DISTINCT a) FROM Allocation a
             JOIN OrderLine ol ON ol.task = a.task
             WHERE ol.order.id = :orderId
-            AND a.status = Status.COMPLETED
+            AND a.status = com.isd.wms.enums.Status.COMPLETED
         """)
     Integer countCompletedAllocationsInOrder(
         @Param("orderId") Long orderId
@@ -150,7 +150,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
                    pr.name AS productName,
                    pr.barcode AS productBarcode,
                    l.name AS locationName,
-                   l.barcode AS locationBarcode, --rename it
+                   l.barcode AS locationBarcode,
                    a.quantity AS quantity
             from oldest_order
                      left join order_lines ol on ol.order_id = oldest_order.order_id

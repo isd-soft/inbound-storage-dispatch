@@ -56,7 +56,6 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrder(id, request));
     }
 
-    // НОВЫЙ ЭНДПОИНТ: Обновление заказа вместе со строками
     @PutMapping("/extended/{id}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<ExtendedOrderResponse> updateExtendedOrder(@PathVariable Long id, @Valid @RequestBody ExtendedOrderCreateRequest request) {
