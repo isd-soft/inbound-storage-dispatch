@@ -351,7 +351,7 @@ public class SupervisorDashboardService {
                         Objects.equals(item.status(), "CRITICAL") ? "CRITICAL" : "WARNING",
                         item.productName() + " is low on stock",
                         "Location " + Optional.ofNullable(item.locationCode()).orElse("-")
-                                + " has " + item.quantity() + " units available, minimum " + item.minimumQuantity() + ".",
+                                + " has " + item.quantity() + " units getAvailableQuantity, minimum " + item.minimumQuantity() + ".",
                         item.productId(),
                         now
                 )));

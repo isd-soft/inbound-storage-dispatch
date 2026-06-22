@@ -70,17 +70,16 @@ public class ReplenishmentService {
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
     private void validateDestinationLocation(Product incomingProduct, Location destinationLocation) {
-        stockRepository.findByLocationId(destinationLocation.getId()).ifPresent(stock -> {
-            Product existingProduct = stock.getProduct().orElse(null);
-            if (existingProduct != null && !existingProduct.getId().equals(incomingProduct.getId())) {
-                if (stock.getQuantity() > 0 || stock.getReservedQuantity() > 0) {
+        stockRepository.findByLocationIdAndAvailableIsTrue(destinationLocation.getId())
+            .ifPresent(stock -> {
+                Product existingProduct = stock.getProduct().orElse(null);
+                if (existingProduct != null && !existingProduct.getId().equals(incomingProduct.getId())) {
                     throw new InvalidRequestException(
                         "Cannot route replenishment to " + destinationLocation.getBarcode() +
                             ". Location is already occupied by a different product: " + existingProduct.getName()
                     );
                 }
-            }
-        });
+            });
     }
 
     /**

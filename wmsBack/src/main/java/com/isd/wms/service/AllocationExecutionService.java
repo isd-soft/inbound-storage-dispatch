@@ -271,10 +271,10 @@ public class AllocationExecutionService {
             throw new InvalidRequestException("Wrong product barcode");
         }
 
-        stockRepository.findByProductIdAndLocationId(
+        stockRepository.findByProductIdAndLocationIdAndAvailableIsTrue(
                 expectedProduct.getId(),
-                expectedStock.getLocation().getId())
-            .orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
+                expectedStock.getLocation().getId()
+            ).orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
 
         allocation.setProductScanned(true);
         log.info("Product barcode scanned successfully for allocation {}", allocationId);
@@ -734,7 +734,7 @@ public class AllocationExecutionService {
             throw new InvalidRequestException("Picked quantity cannot exceed required quantity");
         }
         if (allocation.getStock().getQuantity() < pickedQuantity) {
-            throw new InvalidRequestException("Not enough stock available");
+            throw new InvalidRequestException("Not enough stock getAvailableQuantity");
         }
     }
 
