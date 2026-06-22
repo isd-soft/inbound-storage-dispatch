@@ -30,4 +30,10 @@ export const replenishmentApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  getShortageReplenishments() {
+    return apiClient.get('/replenishments/shortages')
+  },
+  getShortageDetails(replenishmentId) {
+    return apiClient.get(`/replenishments/${replenishmentId}/shortage-details`)
+  },
 }

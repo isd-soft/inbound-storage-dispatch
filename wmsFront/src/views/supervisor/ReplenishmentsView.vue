@@ -435,6 +435,7 @@ const formatDate = (ts) => {
 const getStatusSeverity = (status) => {
   switch (status) {
     case 'COMPLETED': return 'success'
+    case 'PARTIALLY_COMPLETED': return 'warning'
     case 'CANCELED': return 'secondary'
     case 'IN_PROGRESS':
     case 'ASSIGNED': return 'warning'
@@ -443,7 +444,7 @@ const getStatusSeverity = (status) => {
   }
 }
 
-const isAssignmentLocked = (task) => ['COMPLETED', 'CANCELED', 'CANCELLED'].includes(task.status)
+const isAssignmentLocked = (task) => ['ASSIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(task.status)
 
 const loadData = async () => {
   loading.value = true

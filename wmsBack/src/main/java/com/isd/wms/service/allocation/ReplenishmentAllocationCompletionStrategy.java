@@ -5,16 +5,21 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.AllocationCompletionStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class ReplenishmentAllocationCompletionStrategy implements AllocationCompletionStrategy {
 
     private final ReplenishmentRepository replenishmentRepository;
+    private final AllocationRepository allocationRepository;
     private final StockRepository stockRepository;
 
     @Override
@@ -25,9 +30,19 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
         Location destinationLocation = replenishment.getDestinationLocation();
         Stock sourceStock = allocation.getStock();
 
-        Integer quantityToMove = allocation.getQuantity();
+        Integer quantityToMove = Optional.ofNullable(allocation.getPickedQuantity()).orElse(allocation.getQuantity());
         Product product = sourceStock.getProduct()
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
+
+        if (allocation.getPickedQuantity() != null && allocation.getPickedQuantity() < allocation.getQuantity()) {
+            sourceStock.setQuantity(Math.max(0, sourceStock.getQuantity() - allocation.getQuantity()));
+            sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - allocation.getQuantity()));
+            stockRepository.save(sourceStock);
+        }
+
+        if (quantityToMove <= 0) {
+            return;
+        }
 
         stockRepository.findByLocationId(destinationLocation.getId())
             .ifPresentOrElse(existingStock -> {
@@ -57,7 +72,21 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
 
     @Override
     public boolean updateStatus(Task task) {
-        return replenishmentRepository.updateReplenishmentStatusByTask(task) > 0;
+        Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
+            .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
+        List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
+
+        boolean allCanceled = !allocations.isEmpty() && allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.CANCELED);
+        boolean hasPartialHistory = allocations.stream().anyMatch(allocation ->
+            allocation.getStatus() == Status.CANCELED
+                || allocation.getStatus() == Status.SHORTAGE
+                || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                || resolvedDeliveredQuantity(allocation) < Optional.ofNullable(allocation.getQuantity()).orElse(0)
+        );
+
+        replenishment.setStatus(allCanceled ? Status.CANCELED : hasPartialHistory ? Status.PARTIALLY_COMPLETED : Status.COMPLETED);
+        replenishmentRepository.save(replenishment);
+        return true;
     }
 
     @Override
@@ -65,7 +94,11 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
         Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
         return new AllocationCompletionResult(
-            replenishment.getStatus() == Status.COMPLETED ? AllocationCompletionStatus.COMPLETED : AllocationCompletionStatus.IN_PROGRESS,
+            replenishment.getStatus() == Status.COMPLETED
+                || replenishment.getStatus() == Status.PARTIALLY_COMPLETED
+                || replenishment.getStatus() == Status.CANCELED
+                ? AllocationCompletionStatus.COMPLETED
+                : AllocationCompletionStatus.IN_PROGRESS,
             TaskType.REPLENISHMENT,
             replenishment.getId()
         );
@@ -74,5 +107,13 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     @Override
     public boolean support(TaskType taskType) {
         return TaskType.REPLENISHMENT == taskType;
+    }
+
+    private int resolvedDeliveredQuantity(Allocation allocation) {
+        Integer pickedQuantity = allocation.getPickedQuantity();
+        if (pickedQuantity != null) {
+            return pickedQuantity;
+        }
+        return allocation.getStatus() == Status.CANCELED ? 0 : Optional.ofNullable(allocation.getQuantity()).orElse(0);
     }
 }

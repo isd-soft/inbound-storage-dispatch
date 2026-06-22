@@ -4,7 +4,8 @@ import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
-import com.isd.wms.entity.Task;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentDetailsResponse;
+import com.isd.wms.dto.replenishment.shortage.ShortageReplenishmentResponse;
 import com.isd.wms.service.ReplenishmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,18 @@ public class ReplenishmentController {
     @PostMapping("/search")
     public ResponseEntity<List<ReplenishmentResponse>> searchReplenishmentsFromBody(@RequestBody ReplenishmentSearchRequest request) {
         return ResponseEntity.ok(replenishmentService.searchReplenishments(request));
+    }
+
+    @GetMapping("/shortages")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<List<ShortageReplenishmentResponse>> getShortageReplenishments() {
+        return ResponseEntity.ok(replenishmentService.getShortageReplenishments());
+    }
+
+    @GetMapping("/{id}/shortage-details")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<ShortageReplenishmentDetailsResponse> getShortageDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(replenishmentService.getShortageDetails(id));
     }
 
     @PostMapping("/{replenishmentId}/operators/{operatorId}")

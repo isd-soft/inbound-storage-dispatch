@@ -122,11 +122,8 @@ public class WorkflowService {
 
         strategy.handle(allocation);
 
-        int taskFullyCompletedCount = taskRepository.markTaskAsCompleted(allocation.getTask().getId());
-
-        if (taskFullyCompletedCount != 0) {
-            strategy.updateStatus(task);
-        }
+        taskRepository.markTaskAsCompleted(allocation.getTask().getId());
+        strategy.updateStatus(task);
         return strategy.result(task);
     }
 }

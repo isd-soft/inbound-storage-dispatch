@@ -248,8 +248,22 @@ public class AllocationExecutionService {
         Allocation savedAllocation = allocationRepository.save(allocation);
 
         if (taskType == TaskType.REPLENISHMENT) {
+            boolean partialPick = pickedQuantity < allocation.getQuantity();
+            boolean zeroPickedQuantity = pickedQuantity == 0;
+            int shortageQuantity = partialPick ? Math.max(0, allocation.getQuantity() - pickedQuantity) : 0;
+
+            List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
+                ? createReplenishmentShortageAllocations(savedAllocation, shortageQuantity)
+                : List.of();
+
             AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
-            releaseTransportUnitForAllocation(savedAllocation);
+
+            if (!hasActiveAllocations(savedAllocation.getTask().getId())) {
+                releaseTransportUnitForAllocation(savedAllocation);
+            }
+
+            Allocation currentAllocation = findCurrentReplenishmentAllocation(savedAllocation.getTask().getId())
+                .orElse(savedAllocation);
             log.info("Replenishment allocation {} completed by operator {} with pickedQuantity={}",
                 allocationId, operator.getUsername(), pickedQuantity);
 
@@ -258,13 +272,17 @@ public class AllocationExecutionService {
                 result.taskType(),
                 result.id(),
                 pickedQuantity,
-                0,
-                false,
+                shortageQuantity,
+                !shortageAllocations.isEmpty(),
+                shortageAllocations.isEmpty() ? null : shortageAllocations.getFirst().getId(),
                 null,
                 null,
-                null,
-                "Allocation completed successfully.",
-                toReplenishmentSummary(savedAllocation)
+                shortageQuantity > 0
+                    ? (shortageAllocations.isEmpty()
+                        ? "No alternative stock found. Replenishment was partially completed."
+                        : "Alternative stock found. New replenishment task was created.")
+                    : "Allocation completed successfully.",
+                toReplenishmentSummary(currentAllocation)
             );
         }
 
@@ -504,6 +522,15 @@ public class AllocationExecutionService {
         );
     }
 
+    private Optional<Allocation> findCurrentReplenishmentAllocation(Long taskId) {
+        return allocationRepository.findAllByTaskId(taskId).stream()
+            .sorted(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId))
+            .filter(allocation -> allocation.getStatus() == Status.CREATED
+                || allocation.getStatus() == Status.ASSIGNED
+                || allocation.getStatus() == Status.IN_PROGRESS)
+            .findFirst();
+    }
+
     private OperatorOrderLineSummaryResponse toLineSummary(Order order, OrderLine orderLine, List<Allocation> orderedAllocations) {
         List<Allocation> lineAllocations = orderedAllocations.stream()
             .filter(allocation -> allocation.getTask().getId().equals(getTaskId(orderLine)))
@@ -604,6 +631,14 @@ public class AllocationExecutionService {
         return pickedQuantity < allocation.getQuantity() ? Status.PARTIALLY_COMPLETED : Status.COMPLETED;
     }
 
+    private boolean hasActiveAllocations(Long taskId) {
+        return allocationRepository.findAllByTaskId(taskId).stream().anyMatch(allocation ->
+            allocation.getStatus() == Status.CREATED
+                || allocation.getStatus() == Status.ASSIGNED
+                || allocation.getStatus() == Status.IN_PROGRESS
+        );
+    }
+
     private List<Allocation> createShortageAllocations(Allocation sourceAllocation, int shortageQuantity) {
         log.info("Picking shortage detected for allocation {} shortageQuantity={}", sourceAllocation.getId(), shortageQuantity);
         Product product = sourceAllocation.getStock().getProduct()
@@ -643,6 +678,53 @@ public class AllocationExecutionService {
 
         if (shortageAllocations.isEmpty()) {
             log.info("No alternative stock found for allocation {}", sourceAllocation.getId());
+        } else {
+            allocationRepository.saveAll(shortageAllocations);
+            stockRepository.saveAll(alternativeStocks);
+        }
+
+        return shortageAllocations;
+    }
+
+    private List<Allocation> createReplenishmentShortageAllocations(Allocation sourceAllocation, int shortageQuantity) {
+        log.info("Replenishment shortage detected for allocation {} shortageQuantity={}", sourceAllocation.getId(), shortageQuantity);
+        Product product = sourceAllocation.getStock().getProduct()
+            .orElseThrow(() -> new InvalidRequestException("Stock has no product"));
+        List<Stock> alternativeStocks = stockRepository.findAvailableStocksByProductIdAndZone(
+            product.getId(),
+            sourceAllocation.getStock().getLocation().getZone()
+        ).stream()
+            .filter(stock -> !stock.getId().equals(sourceAllocation.getStock().getId()))
+            .sorted(Comparator.comparing(this::availableQuantity).reversed().thenComparing(Stock::getId))
+            .toList();
+
+        List<Allocation> shortageAllocations = new java.util.ArrayList<>();
+        int remaining = shortageQuantity;
+        for (Stock stock : alternativeStocks) {
+            if (remaining <= 0) {
+                break;
+            }
+
+            int available = availableQuantity(stock);
+            if (available <= 0) {
+                continue;
+            }
+
+            int quantityToAllocate = Math.min(available, remaining);
+            stock.setReservedQuantity(stock.getReservedQuantity() + quantityToAllocate);
+            shortageAllocations.add(new Allocation(
+                sourceAllocation.getTask(),
+                stock,
+                quantityToAllocate,
+                Status.IN_PROGRESS
+            ));
+            remaining -= quantityToAllocate;
+            log.info("Alternative stock selected for replenishment shortage: allocationId={}, stockId={}, quantity={}",
+                sourceAllocation.getId(), stock.getId(), quantityToAllocate);
+        }
+
+        if (shortageAllocations.isEmpty()) {
+            log.info("No alternative stock found for replenishment allocation {}", sourceAllocation.getId());
         } else {
             allocationRepository.saveAll(shortageAllocations);
             stockRepository.saveAll(alternativeStocks);
@@ -709,12 +791,11 @@ public class AllocationExecutionService {
         }
 
         replenishmentRepository.findByTaskId(allocation.getTask().getId())
-            .flatMap(replenishment -> tuRepository.findByReplenishment(replenishment))
-            .ifPresent(transportUnit -> {
+            .ifPresent(replenishment -> tuRepository.findAllByReplenishment(replenishment).forEach(transportUnit -> {
                 transportUnit.setOrder(null);
                 transportUnit.setReplenishment(null);
                 tuRepository.save(transportUnit);
                 log.info("Released transport unit {} after replenishment completion", transportUnit.getBarcode());
-            });
+            }));
     }
 }
