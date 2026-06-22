@@ -6,6 +6,7 @@ import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentUpdateRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.mapper.ReplenishmentMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -106,7 +108,9 @@ class ReplenishmentServiceTest {
         when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
         TransportUnit tu = new TransportUnit("TU123456");
         tu.setReplenishment(replenishment);
-        when(transportUnitRepository.findByReplenishment(replenishment)).thenReturn(Optional.of(tu));
+
+        when(transportUnitRepository.findAllByReplenishment(replenishment)).thenReturn(List.of(tu));
+
         when(allocationRepository.findAllByTaskId(1L)).thenReturn(List.of());
         when(replenishmentRepository.save(any())).thenReturn(replenishment);
 
@@ -115,5 +119,21 @@ class ReplenishmentServiceTest {
         assertThat(tu.getReplenishment()).isNull();
         verify(transportUnitRepository).save(tu);
         assertThat(replenishment.getStatus()).isEqualTo(Status.CANCELED);
+    }
+
+    @Test
+    void assignReplenishment_validRequest_createsTaskAndUpdatesStatus() {
+        replenishment.setStatus(Status.CREATED);
+        when(replenishmentRepository.findById(1L)).thenReturn(Optional.of(replenishment));
+
+        Task newTask = new Task();
+        ReflectionTestUtils.setField(newTask, "id", 500L);
+        when(taskService.createTask(TaskType.REPLENISHMENT, 10, 1L)).thenReturn(newTask);
+
+        replenishmentService.assignReplenishment(1L, 2L);
+
+        verify(taskService).createTask(TaskType.REPLENISHMENT, 10, 1L);
+        verify(replenishmentRepository).saveAndFlush(replenishment);
+        assertThat(replenishment.getTask()).isPresent();
     }
 }

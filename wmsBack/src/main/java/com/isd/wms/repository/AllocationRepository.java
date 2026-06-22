@@ -150,7 +150,7 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
                    pr.name AS productName,
                    pr.barcode AS productBarcode,
                    l.name AS locationName,
-                   l.barcode AS locationBarcode, --rename it
+                   l.barcode AS locationBarcode,
                    a.quantity AS quantity
             from oldest_order
                      left join order_lines ol on ol.order_id = oldest_order.order_id

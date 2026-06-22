@@ -1,17 +1,16 @@
-package com.isd.wms.service;
+package com.isd.wms.service.allocation;
 
-import com.isd.wms.dto.allocation.BarcodeScanRequest;
-import com.isd.wms.dto.allocation.ConfirmPickedQuantityRequest;
 import com.isd.wms.dto.allocation.AllocationCompletionResponse;
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
+import com.isd.wms.dto.allocation.ConfirmPickedQuantityRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.*;
-import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.*;
+import com.isd.wms.service.AllocationExecutionService;
+import com.isd.wms.service.InventoryService;
+import com.isd.wms.service.PickingFlowService;
+import com.isd.wms.service.WorkflowService;
 import com.isd.wms.service.validation.SecurityFacade;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +24,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +43,7 @@ class AllocationExecutionServiceTest {
     @Mock private InventoryService inventoryService;
     @Mock private SecurityFacade securityFacade;
     @Mock private WorkflowService workflowService;
+    @Mock private ReplenishmentRepository replenishmentRepository;
     @Spy private PickingFlowService pickingFlowService;
 
     @InjectMocks
@@ -162,5 +165,37 @@ class AllocationExecutionServiceTest {
         allocation.setSourceLocationScanned(true);
         allocation.setProductScanned(true);
         allocation.setPickedQuantity(pickedQty);
+    }
+
+    @Test
+    void completeAllocation_replenishmentWithShortage_createsAlternativeAllocations() {
+        ReflectionTestUtils.setField(task, "taskType", TaskType.REPLENISHMENT);
+        allocation.setStatus(Status.IN_PROGRESS);
+        allocation.setSourceLocationScanned(true);
+        allocation.setProductScanned(true);
+        allocation.setPickedQuantity(7);
+
+        Stock alternativeStock = new Stock(product, new Location("Alt", "REPL-02", Zone.PICKING, null, true), 100, 0, null, null);
+        ReflectionTestUtils.setField(alternativeStock, "id", 99L);
+
+        Replenishment dummyReplenishment = new Replenishment(product, 10, new Location());
+        ReflectionTestUtils.setField(dummyReplenishment, "id", 777L);
+        when(replenishmentRepository.findByTaskId(40L)).thenReturn(Optional.of(dummyReplenishment));
+
+        when(allocationRepository.findById(50L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(allocation)).thenReturn(allocation);
+        when(workflowService.executeAllocationCompletion(allocation)).thenReturn(new AllocationCompletionResult(AllocationCompletionStatus.COMPLETED, TaskType.REPLENISHMENT, 50L));
+
+        when(stockRepository.findAvailableStocksByProductIdAndZone(10L, Zone.PICKING)).thenReturn(List.of(alternativeStock));
+
+        AllocationCompletionResponse response = allocationExecutionService.completeAllocation(50L);
+
+        verify(allocationRepository).saveAll(argThat(list -> {
+            List<Allocation> savedList = (List<Allocation>) list;
+            return savedList.size() == 1 && savedList.get(0).getQuantity() == 3 && savedList.get(0).getStock().getId().equals(99L);
+        }));
+
+        assertThat(response.shortageQuantity()).isEqualTo(3);
+        assertThat(response.newProcessCreated()).isTrue();
     }
 }
