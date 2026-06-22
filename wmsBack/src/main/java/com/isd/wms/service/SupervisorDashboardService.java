@@ -45,6 +45,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service that provides aggregated metrics and insights for the supervisor dashboard.
+ * <p>
+ * The dashboard includes summary statistics (orders, tasks, operators),
+ * order status breakdown, performance trends, operator performance,
+ * top picked products, low stock items, most active locations,
+ * items needing attention, and a recent activity feed.
+ * </p>
+ * <p>
+ * Data is filtered to the current supervisor's context where applicable.
+ * All time comparisons are based on the current date (today).
+ * </p>
+ *
+ * @see Order
+ * @see Task
+ * @see Stock
+ * @see InventoryHistory
+ * @see User
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -67,6 +86,11 @@ public class SupervisorDashboardService {
     private final UserRepository userRepository;
     private final SecurityFacade securityFacade;
 
+    /**
+     * Builds the complete supervisor dashboard response.
+     *
+     * @return a fully populated dashboard DTO
+     */
     public SupervisorDashboardResponse getDashboard() {
         String username = securityFacade.getCurrentUsername();
         LocalDate today = LocalDate.now();
@@ -127,12 +151,14 @@ public class SupervisorDashboardService {
             LocalDateTime startOfToday,
             LocalDateTime startOfTomorrow
     ) {
-        long ordersToday = orders.stream().filter(order -> isWithin(order.getCreatedAt(), startOfToday, startOfTomorrow)).count();
+        long ordersToday = orders.stream().filter(order -> isWithin(order.getCreatedAt(),
+            startOfToday, startOfTomorrow)).count();
         long completedOrdersToday = orders.stream()
                 .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
                 .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
                 .count();
-        long inProgressOrders = orders.stream().filter(order -> order.getStatus() == OrderStatus.IN_PROGRESS).count();
+        long inProgressOrders = orders.stream().filter(order ->
+            order.getStatus() == OrderStatus.IN_PROGRESS).count();
         long canceledOrdersToday = orders.stream()
                 .filter(order -> order.getStatus() == OrderStatus.CANCELED)
                 .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
@@ -146,7 +172,8 @@ public class SupervisorDashboardService {
                         .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
                         .toList()
         );
-        long ordersWaitingForDispatch = orders.stream().filter(order -> order.getStatus() == OrderStatus.PICKED).count();
+        long ordersWaitingForDispatch = orders.stream().filter(order ->
+            order.getStatus() == OrderStatus.PICKED).count();
         long stockMovementsToday = todayHistory.size();
         long inventoryAdjustmentsToday = todayHistory.stream()
                 .filter(item -> ADJUSTMENT_OPERATION_TYPES.contains(item.getOperationType()))
@@ -200,28 +227,30 @@ public class SupervisorDashboardService {
             LocalDateTime startOfTomorrow
     ) {
         return operators.stream()
-                .map(operator -> {
-                    long activeTasks = countActiveTasks(operator, tasks);
-                    long completedOrdersToday = orders.stream()
-                            .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
-                            .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
-                            .filter(order -> orderHasOperator(order, operator))
-                            .count();
-                    long averageCompletionMinutes = averageTaskCompletionMinutes(operator, tasks, startOfToday, startOfTomorrow);
-                    String status = operatorStatus(operator, tasks);
+            .map(operator -> {
+                long activeTasks = countActiveTasks(operator, tasks);
+                long completedOrdersToday = orders.stream()
+                        .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                        .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
+                        .filter(order -> orderHasOperator(order, operator))
+                        .count();
+                long averageCompletionMinutes = averageTaskCompletionMinutes(operator, tasks,
+                    startOfToday, startOfTomorrow);
+                String status = operatorStatus(operator, tasks);
 
-                    return new OperatorPerformanceResponse(
-                            operator.getId(),
-                            operator.getUsername(),
-                            completedOrdersToday,
-                            activeTasks,
-                            averageCompletionMinutes,
-                            status
-                    );
-                })
-                .sorted(Comparator.comparingLong(OperatorPerformanceResponse::completedOrdersToday).reversed()
-                        .thenComparing(OperatorPerformanceResponse::operatorName, Comparator.nullsLast(String::compareToIgnoreCase)))
-                .toList();
+                return new OperatorPerformanceResponse(
+                        operator.getId(),
+                        operator.getUsername(),
+                        completedOrdersToday,
+                        activeTasks,
+                        averageCompletionMinutes,
+                        status
+                );
+            })
+            .sorted(Comparator.comparingLong(OperatorPerformanceResponse::completedOrdersToday).reversed()
+                    .thenComparing(OperatorPerformanceResponse::operatorName,
+                        Comparator.nullsLast(String::compareToIgnoreCase)))
+            .toList();
     }
 
     private List<TopPickedProductResponse> buildTopPickedProducts(List<InventoryHistory> todayHistory) {
@@ -256,7 +285,8 @@ public class SupervisorDashboardService {
         return lowStockStocks.stream()
                 .map(stock -> {
                     Product product = stock.getProduct().orElse(null);
-                    int availableQuantity = Optional.ofNullable(stock.getQuantity()).orElse(0) - Optional.ofNullable(stock.getReservedQuantity()).orElse(0);
+                    int availableQuantity = Optional.ofNullable(stock.getQuantity()).orElse(0) -
+                        Optional.ofNullable(stock.getReservedQuantity()).orElse(0);
                     int minimumQuantity = lowStockThreshold(product);
                     return new LowStockItemResponse(
                             product == null ? null : product.getId(),

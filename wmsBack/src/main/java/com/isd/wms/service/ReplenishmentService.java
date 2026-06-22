@@ -24,7 +24,6 @@ import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +32,25 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing replenishment tasks.
+ * <p>
+ * Replenishments ensure that picking locations maintain sufficient stock.
+ * The service allows creation, update, cancellation, and assignment of
+ * replenishment tasks. It also supports automatic replenishment based on
+ * product thresholds and current stock levels.
+ * </p>
+ * <p>
+ * When a replenishment is assigned, a corresponding {@link Task} is created
+ * and allocated to an operator. Cancelling releases any reserved stock and
+ * disassociates any transport unit.
+ * </p>
+ *
+ * @see Replenishment
+ * @see Task
+ * @see Allocation
+ * @see Stock
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -53,7 +71,6 @@ public class ReplenishmentService {
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
 
-
     private void validateDestinationLocation(Product incomingProduct, Location destinationLocation) {
         stockRepository.findByLocationId(destinationLocation.getId()).ifPresent(stock -> {
             Product existingProduct = stock.getProduct().orElse(null);
@@ -68,6 +85,13 @@ public class ReplenishmentService {
         });
     }
 
+    /**
+     * Creates a new replenishment request.
+     *
+     * @param request the creation request
+     * @return the created replenishment response
+     * @throws InvalidRequestException if the destination location is already occupied by a different product
+     */
     @Transactional
     public ReplenishmentResponse createReplenishment(ReplenishmentCreateRequest request) {
         log.info("Creating replenishment: productId={}, requestedQuantity={}, destinationLocationId={}",
@@ -94,7 +118,8 @@ public class ReplenishmentService {
         if (replenishment.getStatus() == Status.IN_PROGRESS ||
             replenishment.getStatus() == Status.COMPLETED ||
             replenishment.getStatus() == Status.CANCELED) {
-            throw new InvalidRequestException("Cannot update replenishment that is currently in status: " + replenishment.getStatus().name());
+            throw new InvalidRequestException("Cannot update replenishment that is currently in status: " +
+                replenishment.getStatus().name());
         }
 
         Product product = getProduct(request.productId());
@@ -117,7 +142,11 @@ public class ReplenishmentService {
         return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
     }
 
-    private static void updateReplenishment(ReplenishmentUpdateRequest request, Replenishment replenishment, Product product, Location destinationLocation) {
+    private static void updateReplenishment(
+        ReplenishmentUpdateRequest request,
+        Replenishment replenishment,
+        Product product,
+        Location destinationLocation) {
         replenishment.setProduct(product);
         replenishment.setRequestedQuantity(request.requestedQuantity());
 
@@ -128,6 +157,14 @@ public class ReplenishmentService {
         replenishment.setDestinationLocation(destinationLocation);
     }
 
+    /**
+     * Automatically triggers a replenishment if stock at a location falls below
+     * the product's minimum threshold and no active replenishment exists.
+     *
+     * @param product     the product to replenish
+     * @param location    the picking location
+     * @param locationQty the current available quantity at the location
+     */
     @Transactional
     public void checkAndTriggerAutoReplenishment(Product product, Location location, int locationQty) {
         if (!Boolean.TRUE.equals(product.getAutoReplenish())) return;
@@ -177,6 +214,13 @@ public class ReplenishmentService {
         replenishmentRepository.delete(replenishment);
     }
 
+    /**
+     * Cancels a replenishment. Releases reserved stock and disassociates any transport unit.
+     *
+     * @param replenishmentId the ID of the replenishment to cancel
+     * @return the updated replenishment response (status CANCELED)
+     * @throws InvalidRequestException if the replenishment is already COMPLETED or CANCELED
+     */
     @Transactional
     public ReplenishmentResponse cancelReplenishment(Long replenishmentId) {
         log.info("Canceling replenishment: id={}", replenishmentId);
@@ -189,7 +233,8 @@ public class ReplenishmentService {
         transportUnitRepository.findAllByReplenishment(replenishment).forEach(tu -> {
             tu.setReplenishment(null);
             transportUnitRepository.save(tu);
-            log.info("Successfully released Transport Unit {} from canceled replenishment {}", tu.getBarcode(), replenishmentId);
+            log.info("Successfully released Transport Unit {} from canceled replenishment {}",
+                tu.getBarcode(), replenishmentId);
         });
 
         replenishment.getTask().ifPresent(task -> {
@@ -303,9 +348,9 @@ public class ReplenishmentService {
 
         int deliveredQuantity = sortedAllocations.stream()
             .filter(allocation -> allocation.getStatus() != Status.CANCELED)
-            .mapToInt(allocation -> Optional.ofNullable(allocation.getPickedQuantity()).orElse(0))
+            .mapToInt(allocation -> allocation.getPickedQuantity().orElse(0))
             .sum();
-        int requestedQuantity = Optional.ofNullable(replenishment.getRequestedQuantity()).orElse(0);
+        int requestedQuantity = Optional.of(replenishment.getRequestedQuantity()).orElse(0);
         int shortageQuantity = Math.max(0, requestedQuantity - deliveredQuantity);
 
         Long originalLocationId = sortedAllocations.isEmpty() ? null : sortedAllocations.getFirst().getStock().getLocation().getId();
@@ -338,10 +383,10 @@ public class ReplenishmentService {
     }
 
     private int resolvedShortageQuantity(Allocation allocation) {
-        Integer pickedQuantity = allocation.getPickedQuantity();
-        if (pickedQuantity == null) {
+        if (allocation.getPickedQuantity().isEmpty()) {
             return 0;
         }
+        Integer pickedQuantity = allocation.getPickedQuantity().orElse(0);
         return Math.max(0, Optional.ofNullable(allocation.getQuantity()).orElse(0) - pickedQuantity);
     }
 
@@ -360,13 +405,20 @@ public class ReplenishmentService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
     }
 
+    /**
+     * Assigns a replenishment to an operator by creating a task and linking it.
+     *
+     * @param replenishmentId the ID of the replenishment
+     * @param operatorId      the ID of the operator
+     */
     @Transactional
     public void assignReplenishment(Long replenishmentId, Long operatorId) {
         Replenishment replenishment = getReplenishment(replenishmentId);
         if (replenishment.getStatus() != Status.CREATED) {
             throw new InvalidRequestException("Replenishment assignment is only allowed for CREATED replenishments.");
         }
-        Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(), replenishment.getProduct().getId());
+        Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(),
+            replenishment.getProduct().getId());
         replenishment.setTask(task);
         replenishmentRepository.saveAndFlush(replenishment);
         taskService.assignTask(task.getId(), operatorId);
@@ -375,10 +427,6 @@ public class ReplenishmentService {
     @Transactional
     public void importReplenishmentsFromFile(MultipartFile file) {
         List<ReplenishmentCreateRequest> replenishments = importService.importData(file, ReplenishmentInfo.class);
-        try {
-            replenishments.forEach(this::createReplenishment);
-        } catch (DataIntegrityViolationException e) {
-            throw new InvalidRequestException("The imported file contains invalid replenishment data.");
-        }
+        replenishments.forEach(this::createReplenishment);
     }
 }

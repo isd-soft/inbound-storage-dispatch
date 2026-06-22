@@ -7,6 +7,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Import DTO for category data.
+ * <p>
+ * Represents a single category row from an import file. The field is bound
+ * to the column "Category" in both CSV (OpenCSV) and Excel (Poiji).
+ * </p>
+ */
 @Getter
 @Setter
 @NoArgsConstructor

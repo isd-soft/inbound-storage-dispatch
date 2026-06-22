@@ -17,6 +17,23 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Completion strategy for picking order allocations.
+ * <p>
+ * After an allocation is picked, this strategy updates the corresponding
+ * {@link OrderLine} status based on the delivered vs. requested quantity.
+ * It then computes the final status of the parent {@link Order} (COMPLETED,
+ * PARTIALLY_COMPLETED, or CANCELED) based on the status of all its lines.
+ * </p>
+ * <p>
+ * This strategy supports only {@link TaskType#PICKING_ORDER} tasks.
+ * </p>
+ *
+ * @see OrderLine
+ * @see Order
+ * @see OrderStatus
+ * @see Status
+ */
 @Component
 @RequiredArgsConstructor
 public class PickingAllocationCompletionStrategy implements AllocationCompletionStrategy {
@@ -44,7 +61,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
         OrderStatus finalStatus = computeFinalStatus(orderLines);
         order.setStatus(finalStatus);
         orderRepository.save(order);
-        return true;
+        return false;
     }
 
     @Override

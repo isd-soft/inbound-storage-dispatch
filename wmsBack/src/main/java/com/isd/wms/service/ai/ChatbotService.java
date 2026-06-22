@@ -9,6 +9,28 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 
+/**
+ * AI-powered chatbot service that provides a conversational interface for warehouse supervisors.
+ * <p>
+ * Uses Spring AI with a {@link ChatClient} configured with a system prompt that defines the
+ * assistant's role as a Senior Warehouse Data Analyst. The chatbot is equipped with tool
+ * functions ({@link InventoryAiTools}, {@link OrderAiTools}, {@link ReplenishmentAiTools},
+ * {@link WarehouseAiTools}) to perform real warehouse operations and queries.
+ * </p>
+ * <p>
+ * Conversation memory is maintained per user (using the current username as the conversation ID),
+ * allowing contextual follow-up questions. The service is stateless with respect to the chat
+ * session; memory is managed by the advisor.
+ * </p>
+ *
+ * @see ChatClient
+ * @see ChatModel
+ * @see InventoryAiTools
+ * @see OrderAiTools
+ * @see ReplenishmentAiTools
+ * @see WarehouseAiTools
+ * @see SecurityFacade
+ */
 @Slf4j
 @Service
 public class ChatbotService {
@@ -55,6 +77,16 @@ public class ChatbotService {
             .build();
     }
 
+    /**
+     * Processes a user's natural language question and returns an AI-generated response.
+     * <p>
+     * The question is sent to the chat model along with the conversation history for the current user.
+     * If an error occurs (e.g., model unavailable), a friendly error message is returned instead.
+     * </p>
+     *
+     * @param userMessage the user's question or command
+     * @return the AI response as a plain text string (may include Markdown tables)
+     */
     public String askQuestion(String userMessage) {
         try {
             return chatClient.prompt()

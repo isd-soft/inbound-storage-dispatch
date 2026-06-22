@@ -7,6 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Import DTO for replenishment data.
+ * <p>
+ * Describes a replenishment request with product name, requested quantity,
+ * and destination location name. The product and location are resolved by name
+ * during the import process.
+ * </p>
+ */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -32,6 +32,24 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing customer orders.
+ * <p>
+ * Provides full lifecycle management: creation, update, deletion, assignment
+ * to operators, and retrieval. Orders can be imported from files. The service
+ * also handles shortage reporting and extended order details.
+ * </p>
+ * <p>
+ * When an order is assigned, tasks and allocations are generated. Deleting an
+ * order releases any reserved stock and disassociates any transport unit.
+ * </p>
+ *
+ * @see Order
+ * @see OrderLine
+ * @see Task
+ * @see Allocation
+ * @see TransportUnit
+ */
 @Slf4j
 @Service
 @Transactional(readOnly = true)
@@ -50,6 +68,12 @@ public class OrderService {
     private final TaskService taskService;
     private final TransportUnitRepository transportUnitRepository;
 
+    /**
+     * Creates an extended order (order with multiple lines).
+     *
+     * @param request the extended order creation request
+     * @return the created order response
+     */
     @Transactional
     public OrderResponse addExtendedOrder(ExtendedOrderCreateRequest request) {
         Order order = addOrder(request.order());
@@ -76,13 +100,17 @@ public class OrderService {
         }
         Order order = getOrder(id);
 
+        updateOrder(request, order);
+
+        orderRepository.saveAndFlush(order);
+        Long operatorId = orderRepository.findOperatorIdByOrderId(order.getId()).orElse(null);
+        return orderMapper.toResponse(order, operatorId);
+    }
+
+    private void updateOrder(OrderUpdateRequest request, Order order) {
         order.setLogicId(request.logicId());
         order.setDestinationLocation(getLocation(request.destinationLocationId()));
         order.setStatus(request.status());
-
-        Order savedOrder = orderRepository.save(order);
-        Long operatorId = orderRepository.findOperatorIdByOrderId(savedOrder.getId()).orElse(null);
-        return orderMapper.toResponse(savedOrder, operatorId);
     }
 
     @Transactional
@@ -111,6 +139,11 @@ public class OrderService {
         return extendedOrderMapper.toResponse(getOrder(savedOrder.getId()), operatorId);
     }
 
+    /**
+     * Deletes an order and releases any reserved stock.
+     *
+     * @param id the ID of the order to delete
+     */
     @Transactional
     public void deleteOrderById(Long id) {
         Order order = getOrder(id);
@@ -144,6 +177,14 @@ public class OrderService {
             .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
+    /**
+     * Assigns an order to an operator. This generates tasks and allocations,
+     * updates the order status to ASSIGNED, and links tasks to the operator.
+     *
+     * @param orderId the ID of the order to assign
+     * @param operatorId the ID of the operator
+     * @throws InvalidRequestException if the order status does not allow assignment
+     */
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
         Order order = getOrder(orderId);
@@ -161,7 +202,11 @@ public class OrderService {
 
     private void assignTasks(Order order) {
         for (OrderLine orderLine : order.getOrderLines()) {
-            Task task = taskService.createTask(TaskType.PICKING_ORDER, orderLine.getRequestedQuantity(), orderLine.getProduct().getId());
+            Task task = taskService.createTask(
+                TaskType.PICKING_ORDER,
+                orderLine.getRequestedQuantity(),
+                orderLine.getProduct().getId()
+            );
             orderLine.setTask(task);
         }
         orderLineRepository.saveAllAndFlush(order.getOrderLines());
@@ -206,8 +251,9 @@ public class OrderService {
                 int updatedReservedQuantity = Math.max(0, stock.getReservedQuantity() -
                     Optional.ofNullable(allocation.getQuantity()).orElse(0));
                 stock.setReservedQuantity(updatedReservedQuantity);
-                log.info("Released reserved stock on order delete: orderId={}, orderLineId={}, stockId={}, releasedQuantity={}, remainingReserved={}",
-                    order.getId(), orderLine.getId(), stock.getId(), allocation.getQuantity(), updatedReservedQuantity);
+                log.info("Released reserved stock on order delete: orderId={}, orderLineId={}, " +
+                    "stockId={}, releasedQuantity={}, remainingReserved={}", order.getId(), orderLine.getId(),
+                    stock.getId(), allocation.getQuantity(), updatedReservedQuantity);
             }
         }
     }
@@ -276,16 +322,24 @@ public class OrderService {
 
         if (inconsistent) {
             throw new InvalidRequestException(
-                "Invalid import data: same order " + group.getFirst().order().logicId() + " has conflicting field destination."
+                "Invalid import data: same order " + group.getFirst().order().logicId()
+                    + " has conflicting field destination."
             );
         }
     }
 
+    /**
+     * Retrieves all orders with shortage conditions (partially completed,
+     * shortage, canceled) for the current user.
+     *
+     * @return list of shortage order summaries
+     */
     public List<ShortageOrderResponse> getShortageOrders() {
         return orderRepository.findAllByCreatedByUsername(securityFacade.getCurrentUsername()).stream()
             .filter(this::isShortageOrder)
             .map(this::toShortageOrderResponse)
-            .sorted((left, right) -> right.updatedAt().compareTo(left.updatedAt()))
+            .sorted((left, right) ->
+                right.updatedAt().compareTo(left.updatedAt()))
             .toList();
     }
 
@@ -314,7 +368,8 @@ public class OrderService {
 
     private boolean isShortageOrder(Order order) {
         List<OrderLine> lines = orderLineRepository.findAllByOrderId(order.getId());
-        boolean allCanceled = !lines.isEmpty() && lines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
+        boolean allCanceled = !lines.isEmpty() && lines.stream()
+            .allMatch(line -> line.getStatus() == Status.CANCELED);
         boolean hasShortage = lines.stream().anyMatch(line ->
             line.getStatus() == Status.PARTIALLY_COMPLETED
                 || line.getStatus() == Status.SHORTAGE
@@ -348,16 +403,23 @@ public class OrderService {
         );
     }
 
-    private AffectedOrderLineResponse toAffectedOrderLineResponse(Order order, OrderLine line, List<Allocation> allocations) {
+    private AffectedOrderLineResponse toAffectedOrderLineResponse(
+        Order order,
+        OrderLine line,
+        List<Allocation> allocations) {
         List<Allocation> lineAllocations = allocations.stream()
-            .filter(allocation -> allocation.getTask().getId().equals(line.getTask().map(Task::getId).orElse(null)))
+            .filter(allocation -> allocation.getTask().getId()
+                .equals(line.getTask().map(Task::getId).orElse(null)))
             .sorted(Comparator.comparing(BaseTimestampEntity::getCreatedAt))
             .toList();
 
         int deliveredQuantity = resolveDeliveredQuantity(line, lineAllocations);
-        int shortageQuantity = Optional.ofNullable(line.getShortageQuantity()).orElse(Math.max(0, line.getRequestedQuantity() - deliveredQuantity));
-        Long originalLocationId = lineAllocations.isEmpty() ? null : lineAllocations.getFirst().getStock().getLocation().getId();
-        String originalLocationBarcode = lineAllocations.isEmpty() ? null : lineAllocations.getFirst().getStock().getLocation().getBarcode();
+        int shortageQuantity = Optional.ofNullable(line.getShortageQuantity())
+            .orElse(Math.max(0, line.getRequestedQuantity() - deliveredQuantity));
+        Long originalLocationId = lineAllocations.isEmpty() ? null :
+            lineAllocations.getFirst().getStock().getLocation().getId();
+        String originalLocationBarcode = lineAllocations.isEmpty() ? null :
+            lineAllocations.getFirst().getStock().getLocation().getBarcode();
         Long reallocatedLocationId = lineAllocations.stream()
             .map(allocation -> allocation.getStock().getLocation())
             .filter(location -> location != null && !Objects.equals(location.getId(), originalLocationId))

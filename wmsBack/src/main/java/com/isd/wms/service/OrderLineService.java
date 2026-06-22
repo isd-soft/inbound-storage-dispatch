@@ -3,25 +3,14 @@ package com.isd.wms.service;
 import com.isd.wms.dto.order_line.OrderLineCreateRequest;
 import com.isd.wms.dto.order_line.OrderLineResponse;
 import com.isd.wms.dto.order_line.OrderLineUpdateRequest;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
-import com.isd.wms.entity.Task;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
-import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.OrderLineNotFoundException;
 import com.isd.wms.exception.OrderNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
 import com.isd.wms.exception.TaskNotFoundException;
 import com.isd.wms.mapper.OrderLineMapper;
-import com.isd.wms.repository.AllocationRepository;
-import com.isd.wms.repository.OrderLineRepository;
-import com.isd.wms.repository.OrderRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.TaskRepository;
+import com.isd.wms.repository.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +18,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service for managing order lines (line items) within orders.
+ * <p>
+ * Handles creation, update, deletion, and retrieval of order lines.
+ * When an order line is deleted, any reserved stock associated with its task
+ * is released (unless the allocations are already completed or canceled).
+ * </p>
+ *
+ * @see OrderLine
+ * @see Order
+ * @see Task
+ * @see Allocation
+ */
 @RequiredArgsConstructor
 @Service
 @Transactional(readOnly = true)
@@ -40,8 +42,13 @@ public class OrderLineService {
     private final TaskRepository taskRepository;
     private final AllocationRepository allocationRepository;
     private final StockRepository stockRepository;
-    private final TaskService taskService;
 
+    /**
+     * Adds a new order line to an order.
+     *
+     * @param order the parent order
+     * @param request the creation request containing product and quantity
+     */
     @Transactional
     public void addOrderLine(Order order, OrderLineCreateRequest request) {
         Product product = getProduct(request.productId());
@@ -49,6 +56,13 @@ public class OrderLineService {
         orderLineRepository.save(orderLine);
     }
 
+    /**
+     * Updates an existing order line.
+     *
+     * @param id the ID of the order line to update
+     * @param request the update request
+     * @return the updated order line response
+     */
     @Transactional
     public OrderLineResponse updateOrderLine(Long id, OrderLineUpdateRequest request) {
         OrderLine orderLine = getOrderLine(id);
@@ -66,6 +80,12 @@ public class OrderLineService {
         orderLine.setStatus(request.status());
     }
 
+    /**
+     * Deletes an order line and releases any reserved stock associated with it.
+     *
+     * @param orderLineId the ID of the order line to delete
+     */
+    @Transactional
     public void deleteOrderLine(Long orderLineId) {
         OrderLine orderLine = getOrderLine(orderLineId);
         releaseReservedStock(orderLine);
@@ -103,7 +123,7 @@ public class OrderLineService {
     }
 
     private void releaseReservedStock(OrderLine orderLine) {
-        if (orderLine.getTask() == null) {
+        if (orderLine.getTask().isEmpty()) {
             return;
         }
 

@@ -2,12 +2,31 @@ package com.isd.wms.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.util.Objects;
 
+/**
+ * Represents a physical transport unit (e.g., pallet, cart) used to move goods.
+ * <p>
+ * Each transport unit has a unique barcode and can be associated with either
+ * an order (for picking) or a replenishment (for moving stock). It can be
+ * "occupied" by linking to one of these processes, and "released" when the
+ * process is complete.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *   <li>{@link Order} – optional order that this TU is assigned to</li>
+ *   <li>{@link Replenishment} – optional replenishment that this TU is assigned to</li>
+ * </ul>
+ * </p>
+ *
+ * @see Order
+ * @see Replenishment
+ */
 @Entity
 @Table(name = "transport_units")
 @Getter
@@ -30,10 +49,6 @@ public class TransportUnit extends BaseTimestampEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "replenishment_id")
     private Replenishment replenishment;
-
-    public TransportUnit(String barcode) {
-        this.barcode = barcode;
-    }
 
     @Override
     public boolean equals(Object o) {

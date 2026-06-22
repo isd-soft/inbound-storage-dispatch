@@ -1,41 +1,20 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.inventory.AddStockRequest;
-import com.isd.wms.dto.inventory.AdjustStockRequest;
-import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
-import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
-import com.isd.wms.dto.inventory.InventoryHistoryResponse;
-import com.isd.wms.dto.inventory.RemoveStockRequest;
-import com.isd.wms.dto.inventory.StockResponse;
-import com.isd.wms.entity.InventoryHistory;
-import com.isd.wms.entity.Location;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Stock;
-import com.isd.wms.entity.User;
+import com.isd.wms.dto.inventory.*;
+import com.isd.wms.entity.*;
 import com.isd.wms.enums.InventoryAdjustmentReason;
 import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.event.LowStockEvent;
-import com.isd.wms.exception.InsufficientStockException;
-import com.isd.wms.exception.InvalidRequestException;
-import com.isd.wms.exception.LocationNotFoundException;
-import com.isd.wms.exception.ProductNotFoundException;
-import com.isd.wms.exception.StockNotFoundException;
-import com.isd.wms.exception.UserNotFoundException;
+import com.isd.wms.exception.*;
 import com.isd.wms.mapper.InventoryHistoryMapper;
 import com.isd.wms.mapper.StockMapper;
-import com.isd.wms.repository.AllocationRepository;
-import com.isd.wms.repository.InventoryHistoryRepository;
-import com.isd.wms.repository.LocationRepository;
-import com.isd.wms.repository.ProductRepository;
-import com.isd.wms.repository.StockRepository;
-import com.isd.wms.repository.UserRepository;
+import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +22,23 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Service for managing inventory (stock) operations.
+ * <p>
+ * Provides CRUD operations for stock records, including adding, removing,
+ * and adjusting quantities. It also records inventory history for each
+ * operation and triggers replenishment checks when stock levels drop.
+ * </p>
+ * <p>
+ * Import functionality is supported via {@link ImportService} for bulk
+ * stock additions from CSV/Excel files.
+ * </p>
+ *
+ * @see Stock
+ * @see InventoryHistory
+ * @see LowStockEvent
+ * @see InventoryAdjustmentService
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -56,9 +52,11 @@ public class InventoryService {
     private final UserRepository userRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
-    private final ApplicationEventPublisher eventPublisher;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
+
+    // ИСПРАВЛЕНИЕ: Используем EventPublisher для разрыва циклической зависимости
+    private final ApplicationEventPublisher eventPublisher;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAll().stream()
@@ -70,6 +68,14 @@ public class InventoryService {
         return stockMapper.toResponse(getStock(stockId));
     }
 
+    /**
+     * Adds stock to a location. If the location already contains stock of a
+     * different product, the operation is rejected unless the location is empty.
+     *
+     * @param request the add stock request
+     * @return the updated stock response
+     * @throws InvalidRequestException if the location is occupied by another product
+     */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
@@ -110,6 +116,13 @@ public class InventoryService {
         return stockMapper.toResponse(savedStock);
     }
 
+    /**
+     * Removes a specified quantity of unreserved stock from a location.
+     *
+     * @param request the remove stock request
+     * @return the updated stock response
+     * @throws InsufficientStockException if the available quantity is insufficient
+     */
     @Transactional
     public StockResponse removeStock(RemoveStockRequest request) {
         log.info("Removing stock: stockId={}, quantity={}, userId={}",
@@ -121,8 +134,9 @@ public class InventoryService {
         int availableQuantity = stock.getQuantity() - stock.getReservedQuantity();
 
         if (request.getQuantity() > availableQuantity) {
-            log.warn("Insufficient unreserved stock: stockId={}, requestedQuantity={}, availableQuantity={}, reservedQuantity={}, userId={}",
-                stock.getId(), request.getQuantity(), availableQuantity, stock.getReservedQuantity(), request.getUserId());
+            log.warn("Insufficient unreserved stock: stockId={}, requestedQuantity={}, " +
+                    "availableQuantity={}, reservedQuantity={}, userId={}", stock.getId(), request.getQuantity(),
+                availableQuantity, stock.getReservedQuantity(), request.getUserId());
             throw new InsufficientStockException(stock.getId(), request.getQuantity(), availableQuantity);
         }
 
@@ -139,6 +153,12 @@ public class InventoryService {
         return stockMapper.toResponse(savedStock);
     }
 
+    /**
+     * Adjusts stock to a new total quantity using the {@link InventoryAdjustmentService}.
+     *
+     * @param request the adjustment request
+     * @return the updated stock response
+     */
     @Transactional
     public StockResponse adjustStock(AdjustStockRequest request) {
         InventoryAdjustmentResponse response = inventoryAdjustmentService.adjustStock(
@@ -164,7 +184,7 @@ public class InventoryService {
     public List<InventoryHistoryResponse> getHistoryForStock(Long stockId) {
         Stock stock = getStock(stockId);
         Long productId = stock.getProduct().map(Product::getId).orElse(null);
-        Long locationId = stock.getLocation() == null ? null : stock.getLocation().getId();
+        Long locationId = stock.getLocation().getId();
         return inventoryHistoryRepository
             .findByProductIdAndSourceLocationIdOrProductIdAndDestinationLocationId(
                 productId, locationId, productId, locationId)
@@ -190,6 +210,7 @@ public class InventoryService {
             InventoryOperationType.PICKING, adjustmentReason, comment, user);
     }
 
+    // ИСПРАВЛЕНИЕ: Универсальный метод для фиксации недостач
     @Transactional
     public void recordShortageAdjustment(
         Stock stock,
@@ -230,17 +251,17 @@ public class InventoryService {
     ) {
         Product product = stock.getProduct().orElse(null);
         InventoryHistory history = new InventoryHistory(
-                product,
-                product == null ? null : product.getBarcode(),
-                alteredQuantity,
-                quantityAfterChange,
-                stock.getQuantity() - alteredQuantity,
-                sourceLocation,
-                destinationLocation,
-                operationType,
-                adjustmentReason,
-                comment,
-                user
+            product,
+            product == null ? null : product.getBarcode(),
+            alteredQuantity,
+            quantityAfterChange,
+            stock.getQuantity() - alteredQuantity,
+            sourceLocation,
+            destinationLocation,
+            operationType,
+            adjustmentReason,
+            comment,
+            user
         );
         history.setTimestamp(LocalDateTime.now());
         inventoryHistoryRepository.save(history);
@@ -255,6 +276,7 @@ public class InventoryService {
         }
         int locationQty = stock.getQuantity() - stock.getReservedQuantity();
 
+        // ИСПРАВЛЕНИЕ: Публикуем событие вместо прямой связи
         eventPublisher.publishEvent(new LowStockEvent(product, stock.getLocation(), locationQty));
     }
 
@@ -290,15 +312,14 @@ public class InventoryService {
             });
     }
 
+    /**
+     * Imports stock records from an uploaded file.
+     *
+     * @param file the multipart file containing stock data
+     */
     @Transactional
     public void importStocksFromFile(MultipartFile file) {
         List<AddStockRequest> stocks = importService.importData(file, StockInfo.class);
-        try {
-            for(AddStockRequest stockRequest: stocks) {
-                addStock(stockRequest);
-            }
-        } catch (DataIntegrityViolationException e) {
-            throw new InvalidRequestException("The imported file contains invalid stock data.");
-        }
+        stocks.forEach(this::addStock);
     }
 }
