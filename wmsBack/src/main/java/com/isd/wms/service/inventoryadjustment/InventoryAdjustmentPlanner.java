@@ -7,6 +7,7 @@ import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.Task;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
+import com.isd.wms.enums.TaskType;
 import com.isd.wms.enums.Zone;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.AllocationRepository;
@@ -42,12 +43,14 @@ public class InventoryAdjustmentPlanner {
         Map<Long, Integer> preservedOnAdjustedStockByTask = new LinkedHashMap<>();
         Map<Long, Integer> reducedOnAdjustedStockByTask = new LinkedHashMap<>();
         int remainingAdjustedStockCapacity = context.newQuantity();
+        int preservedQuantityOnAdjustedStock = 0;
 
         for (Allocation allocation : adjustedStockAllocations) {
             int originalQuantity = InventoryAdjustmentSupport.nullSafeQuantity(allocation.getQuantity());
             int preservedQuantity = Math.min(originalQuantity, remainingAdjustedStockCapacity);
             int reducedQuantity = originalQuantity - preservedQuantity;
             remainingAdjustedStockCapacity -= preservedQuantity;
+            preservedQuantityOnAdjustedStock += preservedQuantity;
 
             Long taskId = allocation.getTask().getId();
             preservedOnAdjustedStockByTask.merge(taskId, preservedQuantity, Integer::sum);
@@ -56,6 +59,7 @@ public class InventoryAdjustmentPlanner {
 
         Map<Long, Integer> availableAlternativeQuantityByStockId = loadAlternativeAvailability(context);
         List<AffectedTaskAdjustment> affectedTasks = adjustedStockAllocations.stream()
+            .filter(allocation -> allocation.getTask().getTaskType() == TaskType.PICKING_ORDER)
             .map(allocation -> allocation.getTask().getId())
             .distinct()
             .map(taskId -> calculateAffectedTaskAdjustment(
@@ -68,10 +72,6 @@ public class InventoryAdjustmentPlanner {
             .filter(Objects::nonNull)
             .sorted(Comparator.comparing(AffectedTaskAdjustment::orderCreatedAt).thenComparing(AffectedTaskAdjustment::orderId))
             .toList();
-
-        int preservedQuantityOnAdjustedStock = affectedTasks.stream()
-            .mapToInt(AffectedTaskAdjustment::preservedOnAdjustedStock)
-            .sum();
 
         return new InventoryAdjustmentPlan(context, affectedTasks, preservedQuantityOnAdjustedStock);
     }
