@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -74,6 +75,7 @@ public class InventoryService {
      */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
+        validateDate(request.manufactureDate(), request.expirationDate());
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
             request.productId(), request.locationId(), request.quantity(), request.userId());
 
@@ -187,11 +189,6 @@ public class InventoryService {
     }
 
     @Transactional
-    public void recordPickingHistory(Stock stock, Integer pickedQuantity, User user) {
-        recordPickingHistory(stock, pickedQuantity, user, null, null);
-    }
-
-    @Transactional
     public void recordPickingHistory(
         Stock stock,
         Integer pickedQuantity,
@@ -291,6 +288,12 @@ public class InventoryService {
                 log.warn("User not found: userId={}", userId);
                 return new UserNotFoundException(userId);
             });
+    }
+
+    private static void validateDate(LocalDate manufactureDate, LocalDate expirationDate) {
+        if(manufactureDate.isAfter(expirationDate)) {
+            throw new InvalidRequestException("Manufacture Date must be after Expiration Date");
+        }
     }
 
     /**

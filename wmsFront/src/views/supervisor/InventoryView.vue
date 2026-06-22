@@ -415,6 +415,23 @@ const submitQuantityChanges = async () => {
       return
     }
 
+    const invalidDatesStock = changedStocks.find(
+      (stock) =>
+        stock.manufactureDate &&
+        stock.expirationDate &&
+        new Date(stock.manufactureDate) >= new Date(stock.expirationDate),
+    )
+
+    if (invalidDatesStock) {
+      toast.add({
+        severity: 'error',
+        summary: 'Validation failed',
+        detail: 'Manufacture date must be before expiration date.',
+        life: 4000,
+      })
+      return
+    }
+
     await Promise.all(
       changedStocks.map((stock) =>
         inventoryApi.adjustStock(stock.id, {
@@ -517,6 +534,21 @@ const submitAction = async (payload) => {
       severity: 'error',
       summary: 'Missing user',
       detail: 'User id is required for stock changes.',
+      life: 4000,
+    })
+    return
+  }
+
+  const invalidDatesStock =
+    payload.manufactureDate &&
+    payload.expirationDate &&
+    new Date(payload.manufactureDate) >= new Date(payload.expirationDate)
+
+  if (invalidDatesStock) {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation failed',
+      detail: 'Manufacture date must be before expiration date.',
       life: 4000,
     })
     return

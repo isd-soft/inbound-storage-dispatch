@@ -2,11 +2,14 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
 import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.service.inventoryadjustment.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 /**
  * Service for handling inventory quantity adjustments with advanced logic
@@ -69,6 +72,7 @@ public class InventoryAdjustmentService {
         Long stockId,
         InventoryAdjustmentRequest request,
         boolean preview) {
+        validateDate(request.manufactureDate(), request.expirationDate());
         InventoryAdjustmentContext context = inventoryAdjustmentValidator.validateAndLoad(stockId, request);
         log.info(
             "Stock adjustment started: stockId={}, previousQuantity={}, newQuantity={}, " +
@@ -103,5 +107,11 @@ public class InventoryAdjustmentService {
         }
 
         return response;
+    }
+
+    private static void validateDate(LocalDate manufactureDate, LocalDate expirationDate) {
+        if(manufactureDate.isAfter(expirationDate)) {
+            throw new InvalidRequestException("Manufacture Date must be after Expiration Date");
+        }
     }
 }
