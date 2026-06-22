@@ -11,10 +11,7 @@ import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Replenishment;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.entity.User;
-import com.isd.wms.enums.InventoryAdjustmentReason;
-import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.Status;
-import com.isd.wms.enums.TaskType;
+import com.isd.wms.enums.*;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.AllocationsNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
@@ -279,8 +276,8 @@ public class AllocationExecutionService {
                 null,
                 shortageQuantity > 0
                     ? (shortageAllocations.isEmpty()
-                        ? "No alternative stock found. Replenishment was partially completed."
-                        : "Alternative stock found. New replenishment task was created.")
+                    ? "No alternative stock found. Replenishment was partially completed."
+                    : "Alternative stock found. New replenishment task was created.")
                     : "Allocation completed successfully.",
                 toReplenishmentSummary(currentAllocation)
             );
@@ -292,36 +289,36 @@ public class AllocationExecutionService {
 
         OrderLine orderLine = orderLineRepository.findByTaskId(allocation.getTask().getId())
             .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + allocation.getTask().getId()));
+
         int currentDeliveredQuantity = Optional.ofNullable(orderLine.getDeliveredQuantity()).orElse(0);
+        int previousPermanentShortage = Optional.ofNullable(orderLine.getShortageQuantity()).orElse(0);
         int totalDeliveredQuantity = zeroPickedQuantity ? 0 : currentDeliveredQuantity + pickedQuantity;
-        int totalShortageQuantity = zeroPickedQuantity ? orderLine.getRequestedQuantity() : Math.max(0,
-            orderLine.getRequestedQuantity() - totalDeliveredQuantity);
 
         orderLine.setDeliveredQuantity(totalDeliveredQuantity);
-        orderLine.setShortageQuantity(totalShortageQuantity);
-        if (zeroPickedQuantity) {
-            orderLine.setStatus(Status.CANCELED);
-        }
-
-        int stockQuantityBeforeShortageAdjustment = allocation.getStock().getQuantity();
 
         List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
             ? createShortageAllocations(savedAllocation, shortageQuantity)
             : List.of();
-        int remainingShortageQuantity = Math.max(0,
-            shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
+
+        int currentUnresolvedShortage = Math.max(0, shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
+
+        if (zeroPickedQuantity) {
+            orderLine.setStatus(Status.CANCELED);
+            currentUnresolvedShortage = orderLine.getRequestedQuantity() - currentDeliveredQuantity;
+        }
 
         if (partialPick) {
-            inventoryService.recordPickingShortageAdjustment(
+            inventoryService.recordShortageAdjustment(
                 savedAllocation.getStock(),
-                stockQuantityBeforeShortageAdjustment,
+                shortageQuantity,
                 operator,
+                InventoryOperationType.PICKING_SHORTAGE,
                 "Picking shortage"
             );
         }
 
         AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
-        if (!partialPick) {
+        if (pickedQuantity > 0) {
             inventoryService.recordPickingHistory(
                 savedAllocation.getStock(),
                 pickedQuantity,
@@ -330,13 +327,9 @@ public class AllocationExecutionService {
                 shortageQuantity > 0 ? "Picking shortage" : null
             );
         }
-        if (zeroPickedQuantity) {
-            autoAdvanceGroupedPickingFlow(savedAllocation);
-        } else if (!partialPick) {
-            autoAdvanceGroupedPickingFlow(savedAllocation);
-        }
+        autoAdvanceGroupedPickingFlow(savedAllocation);
 
-        orderLine.setShortageQuantity(remainingShortageQuantity);
+        orderLine.setShortageQuantity(previousPermanentShortage + currentUnresolvedShortage);
         orderLineRepository.save(orderLine);
         Status orderLineStatus = orderLine.getStatus();
         Order order = orderLine.getOrder();
@@ -456,10 +449,10 @@ public class AllocationExecutionService {
         boolean readyForCompletion = (order.getStatus() == OrderStatus.PICKED
             || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED)
             && orderedAllocations.stream().allMatch(allocation ->
-                allocation.getStatus() == Status.COMPLETED
-                    || allocation.getStatus() == Status.PARTIALLY_COMPLETED
-                    || allocation.getStatus() == Status.CANCELED
-            );
+            allocation.getStatus() == Status.COMPLETED
+                || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                || allocation.getStatus() == Status.CANCELED
+        );
 
 
         boolean isTuScannedForOrder = tuRepository.existsByOrder(order);
@@ -644,9 +637,9 @@ public class AllocationExecutionService {
         Product product = sourceAllocation.getStock().getProduct()
             .orElseThrow(() -> new InvalidRequestException("Stock has no product"));
         List<Stock> alternativeStocks = stockRepository.findAvailableStocksByProductIdAndZone(
-            product.getId(),
-            sourceAllocation.getStock().getLocation().getZone()
-        ).stream()
+                product.getId(),
+                sourceAllocation.getStock().getLocation().getZone()
+            ).stream()
             .filter(stock -> !stock.getId().equals(sourceAllocation.getStock().getId()))
             .sorted(Comparator.comparing(this::availableQuantity).reversed().thenComparing(Stock::getId))
             .toList();
@@ -691,9 +684,9 @@ public class AllocationExecutionService {
         Product product = sourceAllocation.getStock().getProduct()
             .orElseThrow(() -> new InvalidRequestException("Stock has no product"));
         List<Stock> alternativeStocks = stockRepository.findAvailableStocksByProductIdAndZone(
-            product.getId(),
-            sourceAllocation.getStock().getLocation().getZone()
-        ).stream()
+                product.getId(),
+                sourceAllocation.getStock().getLocation().getZone()
+            ).stream()
             .filter(stock -> !stock.getId().equals(sourceAllocation.getStock().getId()))
             .sorted(Comparator.comparing(this::availableQuantity).reversed().thenComparing(Stock::getId))
             .toList();

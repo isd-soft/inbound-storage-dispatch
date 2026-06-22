@@ -8,6 +8,7 @@ import com.isd.wms.enums.AllocationCompletionStatus;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
+import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.OrderLineRepository;
 import com.isd.wms.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
 
     private final OrderLineRepository orderLineRepository;
     private final OrderRepository orderRepository;
+    private final AllocationRepository allocationRepository; // ДОБАВЛЕНО ДЛЯ ЧТЕНИЯ ИЗ БД
 
     @Override
     public boolean updateStatus(Task task) {
@@ -85,7 +87,10 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
             return deliveredQuantity;
         }
 
-        return line.getTask().orElseThrow().getAllocations().stream()
+        return line.getTask()
+            .map(task -> allocationRepository.findAllByTaskId(task.getId()))
+            .orElse(List.of())
+            .stream()
             .filter(allocation -> allocation.getStatus() != Status.CANCELED)
             .mapToInt(allocation -> Optional.ofNullable(allocation.getQuantity()).orElse(0))
             .sum();
@@ -99,12 +104,13 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
         }
         if (deliveredQuantity < requestedQuantity) {
             boolean hasPendingAllocations = orderLine.getTask()
-                .map(task -> task.getAllocations().stream().anyMatch(allocation ->
+                .map(task -> allocationRepository.findAllByTaskId(task.getId()).stream().anyMatch(allocation ->
                     allocation.getStatus() == Status.ASSIGNED
                         || allocation.getStatus() == Status.IN_PROGRESS
                         || allocation.getStatus() == Status.CREATED
                 ))
                 .orElse(false);
+
             if (hasPendingAllocations) {
                 return Status.SHORTAGE;
             }

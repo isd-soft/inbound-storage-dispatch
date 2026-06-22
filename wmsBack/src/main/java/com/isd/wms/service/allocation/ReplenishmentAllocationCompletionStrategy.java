@@ -3,11 +3,13 @@ package com.isd.wms.service.allocation;
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.AllocationCompletionStatus;
+import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
+import com.isd.wms.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +23,7 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     private final ReplenishmentRepository replenishmentRepository;
     private final AllocationRepository allocationRepository;
     private final StockRepository stockRepository;
+    private final InventoryService inventoryService;
 
     @Override
     public void handle(Allocation allocation) {
@@ -35,9 +38,17 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
             .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
         if (allocation.getPickedQuantity() != null && allocation.getPickedQuantity() < allocation.getQuantity()) {
-            sourceStock.setQuantity(Math.max(0, sourceStock.getQuantity() - allocation.getQuantity()));
-            sourceStock.setReservedQuantity(Math.max(0, sourceStock.getReservedQuantity() - allocation.getQuantity()));
-            stockRepository.save(sourceStock);
+            int missingQuantity = allocation.getQuantity() - allocation.getPickedQuantity();
+            User operator = allocation.getTask().getOperator()
+                .orElseThrow(() -> new IllegalStateException("Task must have an assigned operator"));
+
+            inventoryService.recordShortageAdjustment(
+                sourceStock,
+                missingQuantity,
+                operator,
+                InventoryOperationType.REPLENISHMENT_SHORTAGE,
+                "Replenishment shortage"
+            );
         }
 
         if (quantityToMove <= 0) {
@@ -76,15 +87,26 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
         List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
 
-        boolean allCanceled = !allocations.isEmpty() && allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.CANCELED);
-        boolean hasPartialHistory = allocations.stream().anyMatch(allocation ->
-            allocation.getStatus() == Status.CANCELED
-                || allocation.getStatus() == Status.SHORTAGE
-                || allocation.getStatus() == Status.PARTIALLY_COMPLETED
-                || resolvedDeliveredQuantity(allocation) < Optional.ofNullable(allocation.getQuantity()).orElse(0)
+        boolean hasPending = allocations.stream().anyMatch(allocation ->
+            allocation.getStatus() == Status.CREATED
+                || allocation.getStatus() == Status.ASSIGNED
+                || allocation.getStatus() == Status.IN_PROGRESS
         );
 
-        replenishment.setStatus(allCanceled ? Status.CANCELED : hasPartialHistory ? Status.PARTIALLY_COMPLETED : Status.COMPLETED);
+        if (hasPending) {
+            replenishment.setStatus(Status.IN_PROGRESS);
+        } else {
+            boolean allCanceled = !allocations.isEmpty() && allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.CANCELED);
+            boolean hasPartialHistory = allocations.stream().anyMatch(allocation ->
+                allocation.getStatus() == Status.CANCELED
+                    || allocation.getStatus() == Status.SHORTAGE
+                    || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                    || resolvedDeliveredQuantity(allocation) < Optional.ofNullable(allocation.getQuantity()).orElse(0)
+            );
+
+            replenishment.setStatus(allCanceled ? Status.CANCELED : hasPartialHistory ? Status.PARTIALLY_COMPLETED : Status.COMPLETED);
+        }
+
         replenishmentRepository.save(replenishment);
         return true;
     }

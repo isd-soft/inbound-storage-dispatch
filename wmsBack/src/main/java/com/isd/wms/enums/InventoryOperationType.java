@@ -5,5 +5,7 @@ public enum InventoryOperationType {
     REMOVE_STOCK,
     ADJUST_STOCK,
     MOVE_STOCK,
-    PICKING
+    PICKING,
+    PICKING_SHORTAGE,
+    REPLENISHMENT_SHORTAGE
 }

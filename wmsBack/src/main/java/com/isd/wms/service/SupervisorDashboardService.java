@@ -370,6 +370,8 @@ public class SupervisorDashboardService {
             case REMOVE_STOCK -> "Removed stock for " + productName + ".";
             case ADJUST_STOCK -> "Adjusted stock for " + productName + ".";
             case MOVE_STOCK -> "Moved stock for " + productName + ".";
+            case PICKING_SHORTAGE -> "Registered picking shortage for " + productName + ".";
+            case REPLENISHMENT_SHORTAGE -> "Registered replenishment shortage for " + productName + ".";
         };
     }
 

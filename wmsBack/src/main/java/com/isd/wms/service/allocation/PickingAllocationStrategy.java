@@ -25,6 +25,6 @@ public class PickingAllocationStrategy implements StockAllocationStrategy {
     public void sortStocks(List<Stock> availableStocks) {
         availableStocks.sort(Comparator.comparingInt(
             (Stock s) -> s.getQuantity() - s.getReservedQuantity()
-        ).reversed());
+        ));
     }
 }

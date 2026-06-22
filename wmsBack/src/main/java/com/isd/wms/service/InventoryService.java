@@ -15,6 +15,7 @@ import com.isd.wms.entity.User;
 import com.isd.wms.enums.InventoryAdjustmentReason;
 import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Zone;
+import com.isd.wms.event.LowStockEvent;
 import com.isd.wms.exception.InsufficientStockException;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
@@ -33,6 +34,7 @@ import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,11 +53,10 @@ public class InventoryService {
     private final InventoryHistoryRepository inventoryHistoryRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
-    private final AllocationRepository allocationRepository;
     private final UserRepository userRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
-    private final ReplenishmentService replenishmentService;
+    private final ApplicationEventPublisher eventPublisher;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
 
@@ -94,7 +95,7 @@ public class InventoryService {
 
         int quantity = request.quantity() == null ? 0 : request.quantity();
         int reservedQuantity = request.reservedQuantity() == null ? 0 : request.reservedQuantity();
-        
+
         stock.setQuantity(stock.getQuantity() + quantity);
         stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
         stock.setManufactureDate(request.manufactureDate());
@@ -104,7 +105,7 @@ public class InventoryService {
 
         createHistory(savedStock, quantity, savedStock.getQuantity(), null, location,
             InventoryOperationType.ADD_STOCK, null, null, user);
-            
+
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
     }
@@ -190,7 +191,13 @@ public class InventoryService {
     }
 
     @Transactional
-    public void recordPickingShortageAdjustment(Stock stock, Integer shortageQuantity, User user, String comment) {
+    public void recordShortageAdjustment(
+        Stock stock,
+        Integer shortageQuantity,
+        User user,
+        InventoryOperationType operationType,
+        String comment
+    ) {
         if (shortageQuantity == null || shortageQuantity <= 0) {
             return;
         }
@@ -200,10 +207,14 @@ public class InventoryService {
         stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
         stockRepository.save(stock);
 
+        InventoryAdjustmentReason reason = (operationType == InventoryOperationType.PICKING_SHORTAGE)
+            ? InventoryAdjustmentReason.PICKING_SHORTAGE : null;
+
         createHistory(stock, -shortageQuantity, quantityAfterChange, stock.getLocation(), null,
-            InventoryOperationType.ADJUST_STOCK, InventoryAdjustmentReason.PICKING_SHORTAGE, comment, user);
-        log.info("Picking shortage adjustment recorded: stockId={}, shortageQuantity={}, quantityAfterChange={}",
-            stock.getId(), shortageQuantity, quantityAfterChange);
+            operationType, reason, comment, user);
+
+        log.info("Shortage adjustment recorded: stockId={}, operationType={}, shortageQuantity={}, quantityAfterChange={}",
+            stock.getId(), operationType.name(), shortageQuantity, quantityAfterChange);
     }
 
     private void createHistory(
@@ -244,7 +255,7 @@ public class InventoryService {
         }
         int locationQty = stock.getQuantity() - stock.getReservedQuantity();
 
-        replenishmentService.checkAndTriggerAutoReplenishment(product, stock.getLocation(), locationQty);
+        eventPublisher.publishEvent(new LowStockEvent(product, stock.getLocation(), locationQty));
     }
 
     private Stock getStock(Long stockId) {

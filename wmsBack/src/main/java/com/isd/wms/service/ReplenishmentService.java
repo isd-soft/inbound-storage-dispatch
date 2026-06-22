@@ -1,6 +1,5 @@
 package com.isd.wms.service;
 
-import com.isd.wms.dto.inventory.AddStockRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentCreateRequest;
 import com.isd.wms.dto.replenishment.ReplenishmentResponse;
 import com.isd.wms.dto.replenishment.ReplenishmentSearchRequest;
@@ -12,6 +11,7 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
+import com.isd.wms.event.LowStockEvent;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
@@ -23,6 +23,7 @@ import com.isd.wms.service.imports.dto.ReplenishmentInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,7 @@ public class ReplenishmentService {
     private final SecurityFacade securityFacade;
 
     private static final List<Status> ACTIVE_STATUSES = List.of(Status.CREATED, Status.ASSIGNED, Status.IN_PROGRESS);
+
 
     private void validateDestinationLocation(Product incomingProduct, Location destinationLocation) {
         stockRepository.findByLocationId(destinationLocation.getId()).ifPresent(stock -> {
@@ -146,6 +148,11 @@ public class ReplenishmentService {
                 createReplenishment(req);
             }
         }
+    }
+
+    @EventListener
+    public void handleLowStockEvent(LowStockEvent event) {
+        checkAndTriggerAutoReplenishment(event.product(), event.location(), event.availableQuantity());
     }
 
     @Transactional
