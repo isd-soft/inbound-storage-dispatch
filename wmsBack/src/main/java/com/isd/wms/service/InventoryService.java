@@ -214,12 +214,11 @@ public class InventoryService {
         if (shortageQuantity == null || shortageQuantity <= 0) {
             return;
         }
-
-        boolean pickingShortage = operationType == InventoryOperationType.PICKING_SHORTAGE;
-        int quantityAfterChange = pickingShortage ? 0 : Math.max(0, stock.getQuantity() - shortageQuantity);
+        int quantityAfterChange = Math.max(0, stock.getQuantity() - shortageQuantity);
 
         stock.setQuantity(quantityAfterChange);
-        stock.setReservedQuantity(pickingShortage ? 0 : Math.max(0, stock.getReservedQuantity() - shortageQuantity));
+        stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
+
         if (stock.getQuantity() == 0 && stock.getReservedQuantity() == 0) {
             stock.setAvailable(false);
         }
