@@ -103,7 +103,7 @@ public class SupervisorDashboardService {
         try {
             List<Order> orders = orderRepository.findAllByCreatedByUsername(username);
             List<Task> tasks = taskRepository.findAll();
-            List<Stock> stocks = stockRepository.findAll();
+            List<Stock> stocks = stockRepository.findAllByAvailableIsTrue();
             List<InventoryHistory> history = inventoryHistoryRepository.findAll();
             List<User> operators = userRepository.findAllByIsActiveTrue().stream()
                     .filter(user -> user.getUserRole() == Role.ROLE_OPERATOR)

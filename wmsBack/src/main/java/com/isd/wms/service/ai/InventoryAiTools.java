@@ -102,7 +102,7 @@ public class InventoryAiTools {
         Product product = findProductOrNull(productBarcode);
         if (product == null) return "Product with barcode " + productBarcode + " not found in the database.";
 
-        List<Stock> stocks = stockRepository.findAll().stream()
+        List<Stock> stocks = stockRepository.findAllByAvailableIsTrue().stream()
             .filter(s -> s.getProduct().isPresent() && s.getProduct().get().getId().equals(product.getId()))
             .toList();
 
@@ -116,7 +116,7 @@ public class InventoryAiTools {
         Location loc = findLocationOrNull(locationBarcode);
         if (loc == null) return "Error: Location with barcode " + locationBarcode + " not found.";
 
-        List<Stock> stocksInLocation = stockRepository.findAll().stream()
+        List<Stock> stocksInLocation = stockRepository.findAllByAvailableIsTrue().stream()
             .filter(s -> s.getLocation().getId().equals(loc.getId()))
             .toList();
 
@@ -198,7 +198,7 @@ public class InventoryAiTools {
         Location loc = findLocationOrNull(locationBarcode);
         if (loc == null) return "Error: Location not found.";
 
-        Stock stock = stockRepository.findAll().stream()
+        Stock stock = stockRepository.findAllByAvailableIsTrue().stream()
             .filter(s -> s.getProduct().isPresent() && s.getProduct().get().getId().equals(product.getId()) && s.getLocation().getId().equals(loc.getId()))
             .findFirst()
             .orElse(null);
@@ -280,7 +280,7 @@ public class InventoryAiTools {
 
         for (Product p : products) {
             if (p.getMinThreshold().isPresent()) {
-                int totalAvailable = stockRepository.findAll().stream()
+                int totalAvailable = stockRepository.findAllByAvailableIsTrue().stream()
                     .filter(s -> s.getProduct().isPresent() && s.getProduct().get().getId().equals(p.getId()))
                     .mapToInt(s -> s.getQuantity() - s.getReservedQuantity())
                     .sum();

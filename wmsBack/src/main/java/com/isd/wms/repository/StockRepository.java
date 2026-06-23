@@ -4,6 +4,7 @@ import com.isd.wms.entity.Location;
 import com.isd.wms.entity.Product;
 import com.isd.wms.entity.Stock;
 import com.isd.wms.enums.Zone;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -71,4 +72,6 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByLocationIdAndProductId(Long id, Long id1);
 
     Optional<Stock> findByLocationIdAndAvailableIsTrue(Long id);
+
+    boolean findByIdAndQuantityLessThan(Long id, @Min(0) Integer quantity);
 }
