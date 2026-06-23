@@ -11,12 +11,14 @@ import com.isd.wms.mapper.StockMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,6 +55,7 @@ public class InventoryService {
     private final ReplenishmentService replenishmentService;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
+    private final SecurityFacade securityFacade;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAllByAvailableIsTrue().stream()
@@ -108,15 +111,17 @@ public class InventoryService {
 
     @Transactional
     public void deleteStock(Long stockId) {
-        adjustStock(new AdjustStockRequest(
+        inventoryAdjustmentService.adjustStock(
             stockId,
-            0,
-            securityFacade.getCurrentUser().getId(),
-            InventoryAdjustmentReason.INVENTORY_MISMATCH,
-            "Deleted manually",
-            null,
-            null
-        ));
+            new InventoryAdjustmentRequest(
+                0,
+                securityFacade.getCurrentUser().getId(),
+                InventoryAdjustmentReason.INVENTORY_MISMATCH,
+                "Deleted manually",
+                null,
+                null
+            )
+        );
     }
 
     /**
