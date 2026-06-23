@@ -21,6 +21,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Service for managing inventory (stock) operations.
+ * <p>
+ * Provides CRUD operations for stock records, including adding, removing,
+ * and adjusting quantities. It also records inventory history for each
+ * operation and triggers replenishment checks when stock levels drop.
+ * </p>
+ * <p>
+ * Import functionality is supported via {@link ImportService} for bulk
+ * stock additions from CSV/Excel files.
+ * </p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,7 +69,6 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
-        // --- ВОССТАНОВЛЕННАЯ ВАЛИДАЦИЯ ЗОН И ДАТ ---
         if (location.getZone() == Zone.DISPATCH) {
             throw new InvalidRequestException("Adding stock directly to the DISPATCH zone is strictly prohibited.");
         }
@@ -78,7 +89,6 @@ public class InventoryService {
         if (expDate != null && expDate.isBefore(today)) {
             throw new InvalidRequestException("Cannot add expired stock to the warehouse.");
         }
-        // -------------------------------------------
 
         if(stockRepository.existsByLocationAndAvailableIsTrueAndProductIsNot(location, product)) {
             throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
@@ -171,10 +181,20 @@ public class InventoryService {
     ) {
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
             InventoryOperationType.PICKING, adjustmentReason, comment, user);
+        triggerReplenishmentCheck(stock);
     }
 
+    /**
+     * Universally records a shortage adjustment for any task type (Picking or Replenishment).
+     */
     @Transactional
-    public void recordPickingShortageAdjustment(Stock stock, Integer shortageQuantity, User user, String comment) {
+    public void recordShortageAdjustment(
+        Stock stock,
+        Integer shortageQuantity,
+        User user,
+        InventoryOperationType operationType,
+        String comment
+    ) {
         if (shortageQuantity == null || shortageQuantity <= 0) {
             return;
         }
@@ -184,10 +204,16 @@ public class InventoryService {
         stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
         stockRepository.save(stock);
 
+        InventoryAdjustmentReason reason = (operationType == InventoryOperationType.PICKING_SHORTAGE)
+            ? InventoryAdjustmentReason.PICKING_SHORTAGE : null;
+
         createHistory(stock, -shortageQuantity, quantityAfterChange, stock.getLocation(), null,
-            InventoryOperationType.ADJUST_STOCK, InventoryAdjustmentReason.PICKING_SHORTAGE, comment, user);
-        log.info("Picking shortage adjustment recorded: stockId={}, shortageQuantity={}, quantityAfterChange={}",
-            stock.getId(), shortageQuantity, quantityAfterChange);
+            operationType, reason, comment, user);
+
+        log.info("Shortage adjustment recorded: stockId={}, operationType={}, shortageQuantity={}, quantityAfterChange={}",
+            stock.getId(), operationType.name(), shortageQuantity, quantityAfterChange);
+
+        triggerReplenishmentCheck(stock);
     }
 
     private void createHistory(

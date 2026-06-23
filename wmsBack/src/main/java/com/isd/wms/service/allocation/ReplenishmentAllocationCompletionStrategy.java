@@ -3,14 +3,13 @@ package com.isd.wms.service.allocation;
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.AllocationCompletionStatus;
-import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -20,27 +19,12 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
 
     private final ReplenishmentRepository replenishmentRepository;
     private final AllocationRepository allocationRepository;
-    private final InventoryService inventoryService;
 
     @Override
     public void handle(Allocation allocation) {
-        Stock sourceStock = allocation.getStock();
-
-        // Фиксируем недостачу, если она есть.
-        // ФИЗИЧЕСКОЕ ЗАЧИСЛЕНИЕ УБРАНО! Оно происходит в dispatchAllocation.
-        if (allocation.getPickedQuantity().isPresent() && allocation.getPickedQuantity().get() < allocation.getQuantity()) {
-            int missingQuantity = allocation.getQuantity() - allocation.getPickedQuantity().get();
-            User operator = allocation.getTask().getOperator()
-                .orElseThrow(() -> new IllegalStateException("Task must have an assigned operator"));
-
-            inventoryService.recordShortageAdjustment(
-                sourceStock,
-                missingQuantity,
-                operator,
-                InventoryOperationType.REPLENISHMENT_SHORTAGE,
-                "Replenishment shortage"
-            );
-        }
+        // Оставлено пустым, так как:
+        // 1. Физическое перемещение товара (addQuantity) происходит в AllocationExecutionService.dispatchAllocation()
+        // 2. Списание недостачи (recordShortageAdjustment) происходит в AllocationExecutionService.completeAllocation()
     }
 
     @Override
@@ -49,7 +33,6 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
         List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
 
-        // ВОССТАНОВЛЕННАЯ ЛОГИКА СТАТУСОВ: Если есть активные аллокации, ставим IN_PROGRESS
         boolean hasPending = allocations.stream().anyMatch(allocation ->
             allocation.getStatus() == Status.CREATED
                 || allocation.getStatus() == Status.ASSIGNED

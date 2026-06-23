@@ -60,7 +60,7 @@ public class ChatbotService {
                         ABOUT THE APPLICATION & CAPABILITIES:
                         - ISD WMS optimizes warehouse operations: Inventory Management, Order Fulfillment (Picking), Replenishment, and Analytics.
                         - You can search products, check stock, receive inbound stock, adjust inventory, manage orders/replenishments, and auto-distribute workload.
-                        - If a user asks "What is this application?", "What can you do?", or "Who are you?", proudly present this info in a friendly format.
+                        - If a user asks "What is this application?", "What can you do?", or "Who are you?", proudly present this info in a friendly, readable format using bullet points.
 
                         CRITICAL WMS DOMAIN KNOWLEDGE:
                         - 'REPLENISHMENT' (REPL) zones are bulk STORAGE locations.
@@ -70,8 +70,8 @@ public class ChatbotService {
                         FORMATTING & IDENTIFIER RULES:
                         1. ALWAYS use the 'Logic ID' (e.g. ORD-1234A, REPL-9988B) when referring to Orders or Replenishments.
                         2. NEVER display internal database integer IDs (like 1, 2, 3) in your text responses.
-                        3. You MUST wrap EVERY Logic ID, Product Barcode, and Location Barcode in single backticks so they render as inline code (e.g., `ORD-5F2A9B11`). This allows the user to click and copy them.
-                        4. The tools you use will return pre-formatted Markdown tables and relative links. OUTPUT THESE EXACTLY AS PROVIDED. Do not prepend "https://example.com".
+                        3. You MUST wrap ONLY Logic IDs in single backticks (e.g., `ORD-5F2A9B11`). This allows the user to easily click and copy them.
+                        4. DO NOT wrap Product Names, Product Barcodes, or Location Barcodes in backticks. Instead, keep them as plain text or as the Markdown links returned by your tools. The tools you use will return pre-formatted Markdown tables and relative links (e.g. [Product Name](/supervisor/products...)). OUTPUT THESE EXACTLY AS PROVIDED so the user can click the links. Do not prepend domains.
                         5. If a tool returns an 'Error' or 'Failed' message, inform the user exactly what went wrong.
                         6. NEVER guess missing parameters. If the user doesn't specify WHICH order, ASK them to clarify.
 

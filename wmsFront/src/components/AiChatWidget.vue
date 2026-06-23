@@ -1,7 +1,5 @@
 <template>
   <div class="fixed bottom-6 right-6 z-50">
-    <Toast position="top-left" />
-
     <transition name="fade-slide">
       <div v-if="isOpen" class="absolute bottom-0 right-0 origin-bottom-right app-card shadow-2xl rounded-2xl w-[90vw] md:w-[600px] h-[650px] flex flex-col border border-white/10 overflow-hidden bg-gray-900">
         <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
@@ -45,7 +43,6 @@ import { chatApi } from '@/api/chatApi';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Toast from 'primevue/toast';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -64,7 +61,7 @@ marked.setOptions({ breaks: true, gfm: true });
 
 const renderMarkdown = (text) => {
   if (!text) return '';
-  return DOMPurify.sanitize(marked.parse(text));
+  return DOMPurify.sanitize(marked.parse(text), { ADD_ATTR: ['target'] });
 };
 
 const scrollToBottom = async () => {
@@ -76,14 +73,27 @@ const scrollToBottom = async () => {
 
 const handleChatInteraction = async (event) => {
   const linkTarget = event.target.closest('a');
+  if (linkTarget) {
+    let href = linkTarget.getAttribute('href');
+    if (href) {
+      event.preventDefault();
+      event.stopPropagation();
 
-  if (linkTarget && linkTarget.getAttribute('href')?.startsWith('/')) {
-    event.preventDefault();
-    router.push(linkTarget.getAttribute('href'));
-    return;
+      if (href.startsWith('https://supervisor')) {
+        href = href.replace('https://supervisor', '/supervisor');
+      } else if (href.startsWith('http://supervisor')) {
+        href = href.replace('http://supervisor', '/supervisor');
+      }
+
+      router.push(href);
+      return;
+    }
   }
 
   if (event.target && event.target.tagName === 'CODE') {
+    event.preventDefault();
+    event.stopPropagation();
+
     const textToCopy = event.target.innerText;
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -160,7 +170,7 @@ const sendMessage = async () => {
 
 :deep(.markdown-body code) {
   cursor: pointer;
-  background-color: rgba(59, 130, 246, 0.15); /* Light blue tint */
+  background-color: rgba(59, 130, 246, 0.15);
   color: #93c5fd;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
