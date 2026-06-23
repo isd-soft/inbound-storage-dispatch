@@ -1,17 +1,9 @@
 package com.isd.wms.controller;
 
-import com.isd.wms.dto.inventory.AddStockRequest;
-import com.isd.wms.dto.inventory.AdjustStockRequest;
-import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
-import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
-import com.isd.wms.dto.inventory.InventoryHistoryResponse;
-import com.isd.wms.dto.inventory.RemoveStockRequest;
-import com.isd.wms.dto.inventory.StockResponse;
-import com.isd.wms.service.InventoryService;
-import com.isd.wms.service.imports.ImportService;
+import com.isd.wms.dto.inventory.*;
 import com.isd.wms.service.InventoryAdjustmentService;
+import com.isd.wms.service.InventoryService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * REST controller for managing warehouse inventory (stock).
@@ -36,7 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class InventoryController {
 
     private final InventoryService inventoryService;
-    private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
 
     /**
@@ -96,6 +89,13 @@ public class InventoryController {
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<StockResponse> adjustStock(@Valid @RequestBody AdjustStockRequest request) {
         return ResponseEntity.ok(inventoryService.adjustStock(request));
+    }
+
+    @DeleteMapping("/{stockId}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
+    public ResponseEntity<String> deleteStock(@PathVariable Long stockId) {
+        inventoryService.deleteStock(stockId);
+        return ResponseEntity.noContent().build();
     }
 
     /**

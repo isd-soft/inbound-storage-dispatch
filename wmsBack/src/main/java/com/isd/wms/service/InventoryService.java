@@ -11,6 +11,7 @@ import com.isd.wms.mapper.StockMapper;
 import com.isd.wms.repository.*;
 import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
+import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class InventoryService {
     private final ReplenishmentService replenishmentService;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
+    private final SecurityFacade securityFacade;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAllByAvailableIsTrue().stream()
@@ -75,7 +77,7 @@ public class InventoryService {
      */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
-        validateDate(request.manufactureDate(), request.expirationDate());
+        validateStockDate(request.manufactureDate(), request.expirationDate());
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
             request.productId(), request.locationId(), request.quantity(), request.userId());
 
@@ -106,6 +108,19 @@ public class InventoryService {
 
         log.info("Stock added successfully: stockId={}, finalQuantity={}", savedStock.getId(), savedStock.getQuantity());
         return stockMapper.toResponse(savedStock);
+    }
+
+    @Transactional
+    public void deleteStock(Long stockId) {
+        adjustStock(new AdjustStockRequest(
+            stockId,
+            0,
+            securityFacade.getCurrentUser().getId(),
+            InventoryAdjustmentReason.INVENTORY_MISMATCH,
+            "Deleted manually",
+            null,
+            null
+        ));
     }
 
     /**
@@ -290,9 +305,22 @@ public class InventoryService {
             });
     }
 
-    private static void validateDate(LocalDate manufactureDate, LocalDate expirationDate) {
-        if(manufactureDate.isAfter(expirationDate)) {
-            throw new InvalidRequestException("Manufacture Date must be after Expiration Date");
+    static void validateStockDate(LocalDate manufactureDate, LocalDate expirationDate) {
+        LocalDate today = LocalDate.now();
+
+        if ((manufactureDate == null) != (expirationDate == null)) {
+            throw new InvalidRequestException(
+                "Both manufactureDate and expirationDate must be provided together.");
+        }
+
+        if (manufactureDate != null && manufactureDate.isAfter(today)) {
+            throw new InvalidRequestException(
+                "Manufacture Date must be before today.");
+        }
+
+        if (expirationDate != null && expirationDate.isBefore(today)) {
+            throw new InvalidRequestException(
+                "Expiration Date must be after today.");
         }
     }
 
