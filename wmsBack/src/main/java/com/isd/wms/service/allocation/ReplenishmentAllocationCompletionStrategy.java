@@ -20,12 +20,6 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
     private final ReplenishmentRepository replenishmentRepository;
     private final AllocationRepository allocationRepository;
 
-    @Override
-    public void handle(Allocation allocation) {
-        // Оставлено пустым, так как:
-        // 1. Физическое перемещение товара (addQuantity) происходит в AllocationExecutionService.dispatchAllocation()
-        // 2. Списание недостачи (recordShortageAdjustment) происходит в AllocationExecutionService.completeAllocation()
-    }
 
     @Override
     public boolean updateStatus(Task task) {

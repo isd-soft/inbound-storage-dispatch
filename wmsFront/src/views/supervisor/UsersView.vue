@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast />
     <ConfirmDialog />
     <AppDataTable
       v-model:selection="selectedUsers"
@@ -62,9 +61,9 @@
         </template>
       </Column>
       <Column field="email" header="Email" filter></Column>
-      <Column field="userRole" header="Role" sortable filter>
+      <Column field="formattedRole" header="Role" sortable filter>
         <template #body="{ data }">
-          <Tag :severity="getRoleSeverity(data.userRole)" :value="formatRoleLabel(data.userRole)" />
+          <Tag :severity="getRoleSeverity(data.userRole)" :value="data.formattedRole" />
         </template>
       </Column>
     </AppDataTable>
@@ -76,7 +75,6 @@
       class="w-full max-w-md"
     >
       <div class="flex flex-col gap-4 mt-2">
-        <!-- Username -->
         <div class="flex flex-col gap-2">
           <label for="username" class="app-subtitle font-medium"
           >Username <span class="text-red-500">*</span></label
@@ -178,7 +176,7 @@ const deletableSelectedUsers = computed(() => selectedUsers.value.filter(canDele
 const userFilterFields = [
   { field: 'username', label: 'Username' },
   { field: 'email', label: 'Email' },
-  { field: 'userRole', label: 'Role' },
+  { field: 'formattedRole', label: 'Role' },
 ]
 
 const formData = ref({
@@ -243,14 +241,12 @@ const loadUsers = async () => {
   loading.value = true
   try {
     const res = await userApi.getAll()
-    users.value = res.data
+    users.value = res.data.map(u => ({
+      ...u,
+      formattedRole: formatRoleLabel(u.userRole)
+    }))
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Load Failed',
-      detail: error.message,
-      life: 4000,
-    })
+    toast.add({ severity: 'error', summary: 'Load Failed', detail: error.message, life: 4000 })
   } finally {
     loading.value = false
   }
@@ -258,13 +254,7 @@ const loadUsers = async () => {
 
 const openCreateDialog = () => {
   dialogMode.value = 'add'
-  formData.value = {
-    id: null,
-    username: '',
-    email: '',
-    userRole: null,
-    originalRole: null,
-  }
+  formData.value = { id: null, username: '', email: '', userRole: null, originalRole: null }
   dialogVisible.value = true
 }
 
@@ -286,53 +276,26 @@ const openEditDialog = (user) => {
 }
 
 const submitAction = async () => {
-  if (dialogMode.value === 'add') {
-    await registerUser()
-  } else {
-    await updateUser()
-  }
+  if (dialogMode.value === 'add') await registerUser()
+  else await updateUser()
 }
 
 const handleBackendError = (error) => {
-  if (
-    error.response?.status === 400 &&
-    typeof error.response.data === 'object' &&
-    !error.response.data.error
-  ) {
+  if (error.response?.status === 400 && typeof error.response.data === 'object' && !error.response.data.error) {
     for (const [field, msg] of Object.entries(error.response.data)) {
-      toast.add({
-        severity: 'error',
-        summary: `Invalid ${field}`,
-        detail: msg,
-        life: 6000,
-      })
+      toast.add({ severity: 'error', summary: `Invalid ${field}`, detail: msg, life: 6000 })
     }
   } else {
-    const errorMsg = error.response?.data?.error || 'Operation failed'
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: errorMsg,
-      life: 5000,
-    })
+    toast.add({ severity: 'error', summary: 'Error', detail: error.response?.data?.error || 'Operation failed', life: 5000 })
   }
 }
 
 const registerUser = async () => {
   actionLoading.value = true
   try {
-    const payload = {
-      username: formData.value.username,
-      email: formData.value.email,
-      userRole: formData.value.userRole,
-    }
+    const payload = { username: formData.value.username, email: formData.value.email, userRole: formData.value.userRole }
     await userApi.register(payload)
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'User registered successfully',
-      life: 3000,
-    })
+    toast.add({ severity: 'success', summary: 'Success', detail: 'User registered successfully', life: 3000 })
     dialogVisible.value = false
     await loadUsers()
   } catch (error) {
@@ -345,17 +308,9 @@ const registerUser = async () => {
 const updateUser = async () => {
   actionLoading.value = true
   try {
-    const payload = {
-      username: formData.value.username,
-      userRole: formData.value.userRole,
-    }
+    const payload = { username: formData.value.username, userRole: formData.value.userRole }
     await userApi.update(formData.value.id, payload)
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'User updated successfully',
-      life: 3000,
-    })
+    toast.add({ severity: 'success', summary: 'Success', detail: 'User updated successfully', life: 3000 })
     dialogVisible.value = false
     await loadUsers()
   } catch (error) {
@@ -374,15 +329,8 @@ const deleteSelectedUsers = () => {
     accept: async () => {
       loading.value = true
       try {
-        await Promise.all(
-          deletableSelectedUsers.value.map((user) => userApi.delete(user.id))
-        )
-        toast.add({
-          severity: 'success',
-          summary: 'Deleted',
-          detail: `${deletableSelectedUsers.value.length} user(s) deleted.`,
-          life: 3000,
-        })
+        await Promise.all(deletableSelectedUsers.value.map((user) => userApi.delete(user.id)))
+        toast.add({ severity: 'success', summary: 'Deleted', detail: `${deletableSelectedUsers.value.length} user(s) deleted.`, life: 3000 })
         selectedUsers.value = []
         await loadUsers()
       } catch (error) {
@@ -394,7 +342,5 @@ const deleteSelectedUsers = () => {
   })
 }
 
-onMounted(() => {
-  loadUsers()
-})
+onMounted(loadUsers)
 </script>

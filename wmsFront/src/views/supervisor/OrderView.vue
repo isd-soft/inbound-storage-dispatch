@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast position="top-right" />
     <ConfirmDialog />
 
     <Message v-if="loadError" severity="error" class="mb-6" :closable="false">
@@ -12,7 +11,6 @@
       :value="orders"
       :loading="loading"
       :filterFields="orderFilterFields"
-      v-model:filters="filters"
       paginator
       :rows="10"
       :rowsPerPageOptions="[10, 25, 50]"
@@ -71,6 +69,7 @@
       </template>
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+
       <Column expander style="width: 3rem">
         <template #body="{ data, rowTogglerCallback }">
           <Button
@@ -84,10 +83,11 @@
           />
         </template>
       </Column>
+
       <Column field="order.logicId" header="Logic ID" sortable filter />
-      <Column header="Destination" sortable>
+      <Column field="order.locationLabel" header="Destination" sortable filter>
         <template #body="{ data }">
-          {{ getLocationLabel(data.order.destinationLocationId) }}
+          {{ data.order.locationLabel }}
         </template>
       </Column>
       <Column header="Lines" style="width: 7rem">
@@ -98,20 +98,15 @@
           />
         </template>
       </Column>
-      <Column header="Total Qty" style="width: 8rem">
-        <template #body="{ data }">
-          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data) }}</span>
-        </template>
-      </Column>
-      <Column header="Status" sortable>
+      <Column field="order.formattedStatus" header="Status" sortable filter>
         <template #body="{ data }">
           <Tag
             :severity="getStatusSeverity(data.order.status || data.order.Status)"
-            :value="data.order.status || data.order.Status || 'CREATED'"
+            :value="data.order.formattedStatus"
           />
         </template>
       </Column>
-      <Column header="Assigned Operator" style="min-width: 14rem">
+      <Column field="order.assignedOperatorName" header="Assigned Operator" style="min-width: 14rem" filter>
         <template #body="{ data }">
           <Dropdown
             v-model="assignmentByOrderId[data.order.id]"
@@ -127,17 +122,18 @@
         </template>
       </Column>
 
-      <Column header="Transport Unit">
+      <Column field="order.transportUnitBarcode" header="Transport Unit" filter>
         <template #body="{ data }">
           <span class="font-mono font-semibold">{{ data.order.transportUnitBarcode || '-' }}</span>
         </template>
       </Column>
 
-      <Column field="order.createdAt" header="Created" sortable filter>
+      <Column field="order.formattedCreatedAt" header="Created" sortable filter>
         <template #body="{ data }">
-          {{ formatDate(data.order.createdAt) }}
+          {{ data.order.formattedCreatedAt }}
         </template>
       </Column>
+
       <template #expansion="{ data }">
         <div class="order-lines-expansion">
           <AppDataTable
@@ -169,9 +165,9 @@
                 <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
               </template>
             </Column>
-            <Column field="status" header="Status" filter>
+            <Column field="formattedStatus" header="Status" filter>
               <template #body="{ data: line }">
-                <Tag :severity="getStatusSeverity(line.status)" :value="line.status || 'CREATED'" />
+                <Tag :severity="getStatusSeverity(line.status)" :value="line.formattedStatus" />
               </template>
             </Column>
           </AppDataTable>
@@ -302,7 +298,6 @@ import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useRoute } from 'vue-router'
-import { FilterMatchMode } from '@primevue/core/api'
 
 import Button from 'primevue/button'
 import Column from 'primevue/column'
@@ -313,7 +308,6 @@ import Message from 'primevue/message'
 import Select from 'primevue/select'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
-import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
 import { orderApi } from '@/api/orderApi.js'
@@ -345,22 +339,24 @@ const actionLoading = ref(false)
 const loadError = ref('')
 const submitted = ref(false)
 
-const filters = ref({
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  'order.id': { value: null, matchMode: FilterMatchMode.EQUALS }
-})
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
 
 const orderFilterFields = [
   { field: 'order.logicId', label: 'Logic ID' },
-  { field: 'order.destinationLocationId', label: 'Destination' },
-  { field: 'order.status', label: 'Status' },
-  { field: 'order.createdAt', label: 'Created' },
+  { field: 'order.locationLabel', label: 'Destination' },
+  { field: 'order.formattedStatus', label: 'Status' },
+  { field: 'order.assignedOperatorName', label: 'Assigned Operator' },
+  { field: 'order.transportUnitBarcode', label: 'Transport Unit' },
+  { field: 'order.formattedCreatedAt', label: 'Created' },
 ]
 
 const orderLineFilterFields = [
   { field: 'productId', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
-  { field: 'status', label: 'Status' },
+  { field: 'formattedStatus', label: 'Status' },
 ]
 
 const orderCreateLineFilterFields = [
@@ -388,16 +384,22 @@ const handleImport = async (importData) => {
 const getErrorMessage = (error) =>
   error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 
-const normalizeOrder = (order) => ({
-  order: order.order || order,
-  lines: order.lines || [],
-})
+const normalizeOrder = (entry) => {
+  const order = entry.order || entry;
+  const lines = entry.lines || [];
 
-const checkUrlFilter = () => {
-  if (route.query.id) {
-    filters.value['order.id'].value = Number(route.query.id)
-  } else {
-    filters.value['order.id'].value = null
+  return {
+    order: {
+      ...order,
+      locationLabel: getLocationLabel(order.destinationLocationId),
+      formattedStatus: formatString(order.status || order.Status || 'CREATED'),
+      assignedOperatorName: operators.value.find(o => o.id === order.assignedOperatorId)?.username || '',
+      formattedCreatedAt: formatDate(order.createdAt)
+    },
+    lines: lines.map(line => ({
+      ...line,
+      formattedStatus: formatString(line.status || 'CREATED')
+    }))
   }
 }
 
@@ -407,7 +409,16 @@ const loadOrders = async () => {
 
   try {
     const response = await orderApi.getAll()
-    orders.value = (response.data || []).map(normalizeOrder)
+    let fetchedOrders = (response.data || []).map(normalizeOrder)
+
+    // ИСПРАВЛЕНИЕ: Фильтруем массив напрямую, если есть URL ID
+    if (route.query.id) {
+      const targetId = Number(route.query.id)
+      fetchedOrders = fetchedOrders.filter(entry => entry.order.id === targetId)
+    }
+
+    orders.value = fetchedOrders
+
     const currentOrderIds = new Set(orders.value.map((entry) => entry.order?.id).filter(Boolean))
     expandedRows.value = Object.fromEntries(
       Object.entries(expandedRows.value).filter(
@@ -419,7 +430,6 @@ const loadOrders = async () => {
       assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
     })
 
-    checkUrlFilter()
   } catch (error) {
     orders.value = []
     expandedRows.value = {}
@@ -437,7 +447,7 @@ const toggleEditMode = () => {
 const canEditSelected = computed(() => {
   if (selectedOrders.value.length !== 1) return false
   const orderData = selectedOrders.value[0].order
-  return orderData.status === 'CREATED' || orderData.Status === 'CREATED'
+  return ['CREATED', 'Created'].includes(orderData.status || orderData.Status || 'CREATED')
 })
 
 const loadOrderCreateData = async () => {
@@ -545,7 +555,7 @@ const getProduct = (productId) => products.value.find((product) => product.id ==
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(
     (total, line) =>
-      line.status === 'CANCELED' || line.status === 'CANCELLED'
+      ['CANCELED', 'CANCELLED', 'Canceled'].includes(line.status || line.Status)
         ? total
         : total + Number(line.requestedQuantity ?? line.quantity ?? 0),
     0,
@@ -566,7 +576,9 @@ const getLocationLabel = (locationId) => {
 }
 
 const isAssignmentLocked = (order) =>
-  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(order?.status || order?.Status)
+  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(
+    String(order?.status || order?.Status).toUpperCase().replace(/ /g, '_'),
+  )
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
@@ -634,7 +646,7 @@ const getStatusSeverity = (status) =>
     COMPLETED: 'success',
     CANCELED: 'danger',
     CANCELLED: 'danger',
-  })[status] || 'secondary'
+  })[String(status).toUpperCase().replace(/ /g, '_')] || 'secondary'
 
 const formatDate = (value) =>
   value
@@ -703,11 +715,12 @@ const onSubmit = async () => {
 }
 
 watch(() => route.query.id, () => {
-  checkUrlFilter()
+  loadOrders()
 })
 
 onMounted(async () => {
-  await Promise.all([loadOrders(), loadOrderCreateData()])
+  await loadOrderCreateData()
+  await loadOrders()
 })
 </script>
 

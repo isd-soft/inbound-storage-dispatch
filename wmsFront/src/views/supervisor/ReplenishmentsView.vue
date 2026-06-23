@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast position="top-right" />
     <ConfirmDialog />
 
     <AppDataTable
@@ -8,7 +7,6 @@
       :value="replenishments"
       :loading="loading"
       :filterFields="replenishmentFilterFields"
-      v-model:filters="tableFilters"
       :editMode="editMode ? 'cell' : null"
       paginator
       :rows="10"
@@ -120,19 +118,19 @@
       <Column field="requestedQuantity" header="Requested Qty" sortable filter>
         <template #body="slotProps">
           <span class="text-primary font-bold text-base">{{
-            slotProps.data.requestedQuantity
-          }}</span>
+              slotProps.data.requestedQuantity
+            }}</span>
         </template>
         <template #editor="{ data, field }">
           <InputNumber v-model="data[field]" :min="1" autofocus class="w-full" />
         </template>
       </Column>
 
-      <Column field="destinationLocationId" header="Destination" sortable filter>
+      <Column field="destinationLocationId" filterField="destinationLocationLabel" header="Destination" sortable filter>
         <template #body="slotProps">
           <span class="app-subtitle font-semibold">{{
-            getLocationName(slotProps.data.destinationLocationId)
-          }}</span>
+              slotProps.data.destinationLocationLabel
+            }}</span>
         </template>
         <template #editor="{ data, field }">
           <Dropdown
@@ -147,16 +145,16 @@
         </template>
       </Column>
 
-      <Column field="status" header="Status" sortable filter>
+      <Column field="status" filterField="formattedStatus" header="Status" sortable filter>
         <template #body="slotProps">
           <Tag
             :severity="getStatusSeverity(slotProps.data.status)"
-            :value="slotProps.data.status"
+            :value="slotProps.data.formattedStatus"
           />
         </template>
       </Column>
 
-      <Column field="assignedOperatorId" header="Assigned Operator">
+      <Column field="assignedOperatorName" header="Assigned Operator" filter>
         <template #body="slotProps">
           <Dropdown
             v-model="assignmentByTaskId[slotProps.data.taskId]"
@@ -180,9 +178,9 @@
         </template>
       </Column>
 
-      <Column field="createdAt" header="Created" sortable filter>
+      <Column field="formattedCreatedAt" header="Created" sortable filter>
         <template #body="slotProps">
-          <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
+          <span class="app-muted text-sm">{{ slotProps.data.formattedCreatedAt }}</span>
         </template>
       </Column>
     </AppDataTable>
@@ -328,7 +326,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useRoute } from 'vue-router'
-import { FilterMatchMode } from '@primevue/core/api'
 
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -337,7 +334,6 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
-import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
 import { replenishmentApi } from '@/api/replenishmentApi'
@@ -368,11 +364,6 @@ const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
 
-const tableFilters = ref({
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  id: { value: null, matchMode: FilterMatchMode.EQUALS },
-})
-
 const hasSelection = computed(() => selectedReplenishments.value.length > 0)
 
 const isUniformSelection = computed(() => {
@@ -380,6 +371,11 @@ const isUniformSelection = computed(() => {
   const firstStatus = selectedReplenishments.value[0].status
   return selectedReplenishments.value.every((task) => task.status === firstStatus)
 })
+
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
 
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedReplenishmentIds.value.size > 0)
@@ -405,9 +401,10 @@ const replenishmentFilterFields = [
   { field: 'logicId', label: 'Logic ID' },
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
-  { field: 'destinationLocationId', label: 'Destination' },
-  { field: 'status', label: 'Status' },
-  { field: 'createdAt', label: 'Created' },
+  { field: 'destinationLocationLabel', label: 'Destination' },
+  { field: 'formattedStatus', label: 'Status' },
+  { field: 'assignedOperatorName', label: 'Operator' },
+  { field: 'formattedCreatedAt', label: 'Created' },
 ]
 
 const newReplenishment = ref({
@@ -493,11 +490,8 @@ const loadData = async () => {
       detail: getErrorMessage(error),
       life: 4000,
     })
-  }
-  {
-    {
-      loading.value = false
-    }
+  } finally {
+    loading.value = false
   }
 }
 
@@ -508,11 +502,9 @@ const applyFilters = async () => {
       Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''),
     )
 
+    // ИСПРАВЛЕНИЕ: Отправляем ID в API, если он есть в URL
     if (route.query.id) {
       cleanFilters.id = Number(route.query.id)
-      tableFilters.value.id.value = Number(route.query.id)
-    } else {
-      tableFilters.value.id.value = null
     }
 
     const res = await replenishmentApi.filter(cleanFilters)
@@ -521,7 +513,9 @@ const applyFilters = async () => {
       ...task,
       productName: getProductName(task.productId),
       assignedOperatorName: getOperatorName(task.assignedOperatorId),
-      destinationLocationId: task.destinationLocationId,
+      destinationLocationLabel: getLocationName(task.destinationLocationId),
+      formattedStatus: formatString(task.status),
+      formattedCreatedAt: formatDate(task.createdAt)
     }))
 
     originalReplenishments.value = cloneRows(replenishments.value)
@@ -617,6 +611,10 @@ const onCellEditComplete = ({ data, newValue, field }) => {
     data[field] = newValue
   }
 
+  if (field === 'destinationLocationId') {
+    data.destinationLocationLabel = getLocationName(data.destinationLocationId)
+  }
+
   const original = originalReplenishments.value.find((item) => item.id === data.id)
   if (!original) return
 
@@ -687,6 +685,12 @@ const confirmResetChanges = (afterReset) => {
     acceptClass: 'p-button-warning',
     accept: () => {
       replenishments.value = cloneRows(originalReplenishments.value)
+
+      replenishments.value.forEach(repl => {
+        repl.destinationLocationLabel = getLocationName(repl.destinationLocationId)
+        repl.formattedStatus = formatString(repl.status)
+      })
+
       modifiedReplenishmentIds.value = new Set()
       selectedReplenishments.value = []
       toast.add({

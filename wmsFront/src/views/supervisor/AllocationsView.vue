@@ -1,10 +1,10 @@
 <template>
   <div class="p-6">
-    <Toast />
 
     <AppDataTable
       :value="allocations"
       :loading="loading"
+      :filterFields="allocationFilterFields"
       paginator
       :rows="10"
       dataKey="allocationId"
@@ -22,13 +22,13 @@
         />
       </template>
 
-      <Column field="type" header="Task Type" sortable>
+      <Column field="formattedType" header="Task Type" sortable filter>
         <template #body="{ data }">
-          <Tag :value="data.type" :severity="data.type === 'REPLENISHMENT' ? 'info' : 'success'" />
+          <Tag :value="data.formattedType" :severity="data.type === 'REPLENISHMENT' ? 'info' : 'success'" />
         </template>
       </Column>
 
-      <Column header="Reference">
+      <Column header="Reference" field="reference" filter>
         <template #body="{ data }">
           <AllocationReferenceLink
             :type="data.type"
@@ -46,7 +46,7 @@
 
       <Column field="locationName" header="Location" sortable filter />
 
-      <Column field="requestedQuantity" header="Requested Qty" sortable>
+      <Column field="requestedQuantity" header="Requested Qty" sortable filter>
         <template #body="{ data }">
           <span class="font-bold">
             {{ data.requestedQuantity }}
@@ -54,7 +54,7 @@
         </template>
       </Column>
 
-      <Column field="deliveredQuantity" header="Delivered Qty" sortable>
+      <Column field="deliveredQuantity" header="Delivered Qty" sortable filter>
         <template #body="{ data }">
           <span class="font-bold">
             {{ data.deliveredQuantity ?? 0 }}
@@ -88,9 +88,9 @@
         </template>
       </Column>
 
-      <Column field="status" header="Status" sortable>
+      <Column field="formattedStatus" header="Status" sortable filter>
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+          <Tag :value="data.formattedStatus" :severity="statusSeverity(data.status)" />
         </template>
       </Column>
     </AppDataTable>
@@ -114,6 +114,21 @@ const toast = useToast()
 const allocations = ref([])
 const loading = ref(false)
 
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+const allocationFilterFields = [
+  { field: 'formattedType', label: 'Task Type' },
+  { field: 'reference', label: 'Reference' },
+  { field: 'productName', label: 'Product' },
+  { field: 'locationName', label: 'Location' },
+  { field: 'requestedQuantity', label: 'Requested Qty' },
+  { field: 'deliveredQuantity', label: 'Delivered Qty' },
+  { field: 'formattedStatus', label: 'Status' }
+]
+
 const getErrorMessage = (error) => {
   return (
     error.response?.data?.message ||
@@ -124,7 +139,7 @@ const getErrorMessage = (error) => {
 }
 
 const statusSeverity = (status) => {
-  switch (status) {
+  switch (status?.toUpperCase()?.replace(/ /g, '_')) {
     case 'COMPLETED':
       return 'success'
     case 'PARTIALLY_COMPLETED':
@@ -148,7 +163,12 @@ const loadAllocations = async () => {
 
   try {
     const response = await allocationApi.getSupervisorAllocations()
-    allocations.value = response.data
+    allocations.value = response.data.map(item => ({
+      ...item,
+      formattedType: formatString(item.type),
+      formattedStatus: formatString(item.status),
+      reference: item.type === 'REPLENISHMENT' ? `REPL-${item.replenishmentId}` : `ORD-${item.orderId}`
+    }))
 
   } catch (error) {
     toast.add({

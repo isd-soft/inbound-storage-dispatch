@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast />
     <ConfirmDialog />
 
     <AppDataTable
@@ -95,7 +94,7 @@
           @click="confirmDeleteSelected"
         />
         <span v-if="canManageProducts && editMode" class="app-muted text-sm"
-          >{{ selectedProducts.length }} selected</span
+        >{{ selectedProducts.length }} selected</span
         >
       </template>
       <Column
@@ -103,6 +102,7 @@
         selectionMode="multiple"
         headerStyle="width: 3rem"
       />
+
       <Column field="name" header="Product" sortable filter>
         <template #body="slotProps">
           <span v-if="editMode" class="font-semibold text-primary">{{ slotProps.data.name }}</span>
@@ -114,11 +114,12 @@
             class="font-semibold"
           />
         </template>
-        <template #editor="{ data, field }">
-          <InputText v-model="data[field]" class="w-full" autofocus />
+        <template #editor="{ data }">
+          <InputText v-model="data.name" class="w-full" autofocus />
         </template>
       </Column>
-      <Column field="categoryId" filterField="categoryName" header="Category" sortable filter>
+
+      <Column field="categoryName" header="Category" sortable filter>
         <template #body="slotProps">
           <Tag severity="info" :value="slotProps.data.categoryName" />
         </template>
@@ -133,17 +134,18 @@
           />
         </template>
       </Column>
+
       <Column field="barcode" header="Barcode" sortable filter>
-        <template #editor="{ data, field }">
-          <InputText v-model="data[field]" class="w-full" />
+        <template #editor="{ data }">
+          <InputText v-model="data.barcode" class="w-full" />
         </template>
       </Column>
 
-      <Column field="autoReplenish" header="Auto Replenish" sortable filter>
+      <Column field="autoReplenish" filterField="formattedAutoReplenish" header="Auto Replenish" sortable filter>
         <template #body="slotProps">
           <Tag
             :severity="slotProps.data.autoReplenish ? 'success' : 'secondary'"
-            :value="slotProps.data.autoReplenish ? 'Active' : 'Disabled'"
+            :value="slotProps.data.formattedAutoReplenish"
           />
         </template>
         <template #editor="{ data, field }">
@@ -157,31 +159,27 @@
         </template>
       </Column>
 
-      <Column field="minThreshold" header="Min Threshold" sortable filter>
+      <Column field="minThreshold" filterField="formattedMinThreshold" header="Min Threshold" sortable filter>
         <template #body="slotProps">
-          <span class="app-subtitle">{{
-            slotProps.data.autoReplenish ? (slotProps.data.minThreshold ?? '-') : '-'
-          }}</span>
+          <span class="app-subtitle">{{ slotProps.data.formattedMinThreshold }}</span>
         </template>
         <template #editor="{ data, field }">
-          <InputNumber v-model="data[field]" :min="0" class="w-full" />
+          <InputNumber v-model="data[field]" :min="0" class="w-full" :disabled="!data.autoReplenish" />
         </template>
       </Column>
 
-      <Column field="replenishQty" header="Replenish Qty" sortable filter>
+      <Column field="replenishQty" filterField="formattedReplenishQty" header="Replenish Qty" sortable filter>
         <template #body="slotProps">
-          <span class="app-subtitle">{{
-            slotProps.data.autoReplenish ? (slotProps.data.replenishQty ?? '-') : '-'
-          }}</span>
+          <span class="app-subtitle">{{ slotProps.data.formattedReplenishQty }}</span>
         </template>
         <template #editor="{ data, field }">
-          <InputNumber v-model="data[field]" :min="1" class="w-full" />
+          <InputNumber v-model="data[field]" :min="1" class="w-full" :disabled="!data.autoReplenish" />
         </template>
       </Column>
 
-      <Column field="createdAt" header="Created" sortable filter>
+      <Column field="createdAt" filterField="formattedCreatedAt" header="Created" sortable filter>
         <template #body="slotProps">
-          <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
+          <span class="app-muted text-sm">{{ slotProps.data.formattedCreatedAt }}</span>
         </template>
       </Column>
     </AppDataTable>
@@ -205,7 +203,7 @@
               autofocus
             />
             <small v-if="submitted && !form.name" class="text-red-500"
-              >Product name is required.</small
+            >Product name is required.</small
             >
           </div>
 
@@ -228,7 +226,7 @@
               />
             </div>
             <small v-if="submitted && !form.barcode" class="text-red-500"
-              >Barcode is required.</small
+            >Barcode is required.</small
             >
           </div>
         </div>
@@ -256,7 +254,7 @@
             />
           </div>
           <small v-if="submitted && !form.categoryId" class="text-red-500"
-            >Category is required.</small
+          >Category is required.</small
           >
         </div>
 
@@ -266,7 +264,7 @@
           <div class="flex items-center gap-3 mb-4">
             <InputSwitch inputId="autoReplenish" v-model="form.autoReplenish" />
             <label for="autoReplenish" class="font-semibold cursor-pointer"
-              >Enable Auto-Replenishment</label
+            >Enable Auto-Replenishment</label
             >
           </div>
 
@@ -280,12 +278,12 @@
                 class="w-full"
               />
               <small class="app-muted text-xs"
-                >When total stock falls below this, a task is created.</small
+              >When total stock falls below this, a task is created.</small
               >
               <small
                 v-if="submitted && form.autoReplenish && form.minThreshold === null"
                 class="text-red-500"
-                >Required</small
+              >Required</small
               >
             </div>
             <div class="flex flex-col gap-2">
@@ -300,7 +298,7 @@
               <small
                 v-if="submitted && form.autoReplenish && !form.replenishQty"
                 class="text-red-500"
-                >Required (>0)</small
+              >Required (>0)</small
               >
             </div>
           </div>
@@ -359,7 +357,7 @@
           autofocus
         />
         <small v-if="categorySubmitted && !categoryForm.name" class="app-danger"
-          >Category name is required.</small
+        >Category name is required.</small
         >
       </form>
       <template #footer>
@@ -459,34 +457,45 @@ const canManageProducts = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR'
 const highlightedProductId = computed(() =>
   route.query.productId ? Number(route.query.productId) : null,
 )
+
 const productFilterFields = [
   { field: 'name', label: 'Product' },
   { field: 'barcode', label: 'Barcode' },
   { field: 'categoryName', label: 'Category' },
-  { field: 'autoReplenish', label: 'Auto Replenish' },
-  { field: 'minThreshold', label: 'Min Threshold' },
-  { field: 'replenishQty', label: 'Replenish Qty' },
-  { field: 'createdAt', label: 'Created' },
+  { field: 'formattedAutoReplenish', label: 'Auto Replenish' },
+  { field: 'formattedMinThreshold', label: 'Min Threshold' },
+  { field: 'formattedReplenishQty', label: 'Replenish Qty' },
+  { field: 'formattedCreatedAt', label: 'Created' },
 ]
 
 const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
     throw new Error('Expected FormData')
   }
-
   return productApi.importProducts(formData)
 }
 
 const getErrorMessage = (error) =>
   error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+
 const categoryName = (categoryId) =>
   categories.value.find((c) => c.id === categoryId)?.name || `Category #${categoryId}`
+
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+
 const enrichProducts = (items) =>
-  (items || []).map((product) => ({
-    ...product,
-    categoryName: categoryName(product.categoryId),
-  }))
+  (items || []).map((product) => {
+    const isAuto = product.autoReplenish === true;
+    return {
+      ...product,
+      categoryName: categoryName(product.categoryId),
+      formattedAutoReplenish: isAuto ? 'Active' : 'Disabled',
+      formattedMinThreshold: isAuto ? (product.minThreshold ?? '-') : '-',
+      formattedReplenishQty: isAuto ? (product.replenishQty ?? '-') : '-',
+      formattedCreatedAt: formatDate(product.createdAt)
+    }
+  })
+
 const snapshotProducts = () => {
   originalProducts.value = cloneRows(products.value)
   modifiedProductIds.value = new Set()
@@ -575,13 +584,23 @@ const refreshModifiedState = (product) => {
 
 const onCellEditComplete = ({ data, newValue, field }) => {
   if (!editMode.value) return
-  if (newValue !== undefined)
+
+  if (newValue !== undefined) {
     data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
-  if (field === 'categoryId') data.categoryName = categoryName(data.categoryId)
-  if (field === 'autoReplenish' && !data.autoReplenish) {
-    data.minThreshold = null
-    data.replenishQty = null
   }
+
+  if (field === 'categoryId') data.categoryName = categoryName(data.categoryId)
+
+  if (field === 'autoReplenish' || field === 'minThreshold' || field === 'replenishQty') {
+    if (!data.autoReplenish) {
+      data.minThreshold = null
+      data.replenishQty = null
+    }
+    data.formattedAutoReplenish = data.autoReplenish ? 'Active' : 'Disabled';
+    data.formattedMinThreshold = data.autoReplenish ? (data.minThreshold ?? '-') : '-';
+    data.formattedReplenishQty = data.autoReplenish ? (data.replenishQty ?? '-') : '-';
+  }
+
   refreshModifiedState(data)
 }
 

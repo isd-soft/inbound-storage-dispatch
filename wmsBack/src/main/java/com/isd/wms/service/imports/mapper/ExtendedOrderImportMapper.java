@@ -14,15 +14,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * Mapper for converting {@link ExtendedOrderInfo} DTOs to
- * {@link ExtendedOrderCreateRequest} objects.
- * <p>
- * Resolves product and destination location by name. Each row produces an
- * order with a single line. The import service later groups rows with the
- * same logic ID to create multi‑line orders.
- * </p>
- */
 @Component
 @RequiredArgsConstructor
 public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo, ExtendedOrderCreateRequest> {
@@ -33,9 +24,12 @@ public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo
     @Override
     public ExtendedOrderCreateRequest toEntity(ExtendedOrderInfo info) {
         try {
+            String rawLogicId = info.getOrderInfo().getLogicId();
+            String finalLogicId = (rawLogicId == null || rawLogicId.trim().isEmpty()) ? null : rawLogicId.trim();
+
             return new ExtendedOrderCreateRequest(
                 new OrderCreateRequest(
-                    info.getOrderInfo().getLogicId(),
+                    finalLogicId,
                     getLocationId(info.getOrderInfo().getDestinationLocationName())
                 ),
                 List.of(new OrderLineCreateRequest(
@@ -45,9 +39,7 @@ public class ExtendedOrderImportMapper implements ImportMapper<ExtendedOrderInfo
                 ))
             );
         } catch (Exception e) {
-            System.out.println(getProductId(info.getOrderLineInfo().getProductName()));
-            System.out.println(getLocationId(info.getOrderInfo().getDestinationLocationName()));
-            throw new InvalidRequestException(String.format("An error occurred at parsing the order %s.", info.getOrderInfo().getLogicId()));
+            throw new InvalidRequestException("An error occurred at parsing order data.");
         }
     }
 

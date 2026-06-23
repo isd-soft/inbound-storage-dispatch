@@ -10,19 +10,6 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * Import DTO for extended order data.
- * <p>
- * This DTO is structured to handle both order header information and a single
- * order line per row. It contains two inner classes: {@link OrderInfo} and
- * {@link OrderLineInfo}. The {@code @CsvRecurse} and {@code @ExcelCellRange}
- * annotations allow both parts to be read from the same flat file row.
- * </p>
- * <p>
- * For orders with multiple lines, the import service groups rows with the same
- * logic ID before creating the complete order.
- * </p>
- */
 @Getter
 @Setter
 @ToString
@@ -39,10 +26,8 @@ public class ExtendedOrderInfo {
     @Setter
     @ToString
     public static class OrderInfo {
-        @ExcelCellName(value = "Logic ID", mandatoryCell = true, mandatoryHeader = true)
-        @CsvBindByName(column = "Logic ID", required = true)
-        @NonNull
-        @NotBlank
+        @ExcelCellName(value = "Logic ID")
+        @CsvBindByName(column = "Logic ID")
         private String logicId;
 
         @ExcelCellName(value = "Destination Location", mandatoryCell = true, mandatoryHeader = true)

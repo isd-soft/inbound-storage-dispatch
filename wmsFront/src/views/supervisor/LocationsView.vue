@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast />
     <ConfirmDialog />
 
     <AppDataTable
@@ -70,7 +69,7 @@
           @click="confirmDeleteSelected"
         />
         <span v-if="editMode" class="app-muted text-sm"
-          >{{ selectedLocations.length }} selected</span
+        >{{ selectedLocations.length }} selected</span
         >
       </template>
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
@@ -91,7 +90,10 @@
         </template>
       </Column>
 
-      <Column field="zone" header="Zone" sortable filter>
+      <Column field="zone" filterField="formattedZone" header="Zone" sortable filter>
+        <template #body="{ data }">
+          <span class="app-subtitle">{{ data.formattedZone }}</span>
+        </template>
         <template #editor="{ data, field }">
           <Dropdown v-model="data[field]" :options="zones" filter class="w-full" />
         </template>
@@ -106,11 +108,11 @@
         </template>
       </Column>
 
-      <Column field="available" header="Status" sortable filter>
+      <Column field="available" filterField="formattedStatus" header="Status" sortable filter>
         <template #body="{ data }">
           <Tag
             :severity="data.available ? 'success' : 'danger'"
-            :value="data.available ? 'AVAILABLE' : 'DISABLED'"
+            :value="data.formattedStatus"
           />
         </template>
         <template #editor="{ data, field }">
@@ -133,8 +135,8 @@
     >
       <div class="flex flex-col gap-4 mt-2">
         <div class="flex flex-col gap-2">
-          <label for="barcode" class="app-subtitle font-medium"
-            >Name <span class="text-red-500">*</span></label
+          <label for="name" class="app-subtitle font-medium"
+          >Name <span class="text-red-500">*</span></label
           >
           <InputText
             id="name"
@@ -148,21 +150,20 @@
 
         <div class="flex flex-col gap-2">
           <label for="barcode" class="app-subtitle font-medium"
-            >Barcode <span class="text-red-500">*</span></label
+          >Barcode <span class="text-red-500">*</span></label
           >
           <InputText
             id="barcode"
             v-model="formData.barcode"
             placeholder="e.g., PICK-A-01"
             required
-            autofocus
             class="w-full"
           />
         </div>
 
         <div class="flex flex-col gap-2">
           <label for="zone" class="app-subtitle font-medium"
-            >Zone <span class="text-red-500">*</span></label
+          >Zone <span class="text-red-500">*</span></label
           >
           <Dropdown
             id="zone"
@@ -188,7 +189,7 @@
         <div class="flex items-center gap-3 mt-2" v-if="isEditing">
           <InputSwitch inputId="available" v-model="formData.available" />
           <label for="available" class="app-title font-medium cursor-pointer"
-            >Location is Available</label
+          >Location is Available</label
           >
         </div>
       </div>
@@ -234,7 +235,6 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Dropdown from 'primevue/dropdown'
 import InputSwitch from 'primevue/inputswitch'
-import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
 import { locationApi } from '@/api/locationApi'
@@ -254,6 +254,11 @@ const isEditing = ref(false)
 const editMode = ref(false)
 const modifiedLocationIds = ref(new Set())
 
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const formData = ref({
   id: null,
   name: '',
@@ -269,18 +274,19 @@ const availabilityOptions = ref([
   { label: 'DISABLED', value: false },
 ])
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
+
 const locationFilterFields = [
   { field: 'barcode', label: 'Barcode' },
-  { field: 'zone', label: 'Zone' },
+  { field: 'name', label: 'Name' },
+  { field: 'formattedZone', label: 'Zone' },
   { field: 'description', label: 'Description' },
-  { field: 'available', label: 'Status' },
+  { field: 'formattedStatus', label: 'Status' },
 ]
 
 const handleImport = async (formData) => {
   if (!(formData instanceof FormData)) {
     throw new Error('Expected FormData')
   }
-
   return locationApi.importLocations(formData)
 }
 
@@ -292,7 +298,11 @@ const loadLocations = async () => {
   loading.value = true
   try {
     const res = await locationApi.getAll()
-    locations.value = res.data
+    locations.value = res.data.map(loc => ({
+      ...loc,
+      formattedZone: formatString(loc.zone),
+      formattedStatus: loc.available ? 'Available' : 'Disabled'
+    }))
     originalLocations.value = cloneRows(res.data)
     modifiedLocationIds.value = new Set()
     selectedLocations.value = []
@@ -336,6 +346,10 @@ const refreshModifiedState = (location) => {
 const onCellEditComplete = ({ data, newValue, field }) => {
   if (!editMode.value) return
   data[field] = typeof newValue === 'string' ? newValue.trim() : newValue
+
+  if (field === 'zone') data.formattedZone = formatString(data.zone)
+  if (field === 'available') data.formattedStatus = data.available ? 'Available' : 'Disabled'
+
   refreshModifiedState(data)
 }
 
@@ -384,12 +398,7 @@ const submitLocationChanges = async () => {
         }),
       ),
     )
-    toast.add({
-      severity: 'success',
-      summary: 'Changes saved',
-      detail: `${changedLocations.length} location(s) updated.`,
-      life: 3000,
-    })
+    toast.add({ severity: 'success', summary: 'Changes saved', detail: `${changedLocations.length} location(s) updated.`, life: 3000 })
     editMode.value = false
     await loadLocations()
   } catch (error) {
@@ -407,13 +416,13 @@ const confirmResetChanges = (afterReset) => {
     acceptClass: 'p-button-warning',
     accept: () => {
       locations.value = cloneRows(originalLocations.value)
-      modifiedLocationIds.value = new Set()
-      toast.add({
-        severity: 'info',
-        summary: 'Changes reset',
-        detail: 'Unsaved location changes were discarded.',
-        life: 2500,
+      // re-map formatted fields after revert
+      locations.value.forEach(loc => {
+        loc.formattedZone = formatString(loc.zone)
+        loc.formattedStatus = loc.available ? 'Available' : 'Disabled'
       })
+      modifiedLocationIds.value = new Set()
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved location changes were discarded.', life: 2500 })
       if (typeof afterReset === 'function') afterReset()
     },
   })
@@ -473,12 +482,7 @@ const deleteSelectedLocations = async () => {
   actionLoading.value = true
   try {
     await Promise.all(selectedLocations.value.map((location) => locationApi.delete(location.id)))
-    toast.add({
-      severity: 'success',
-      summary: 'Deleted',
-      detail: `${selectedLocations.value.length} location(s) deleted.`,
-      life: 3000,
-    })
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedLocations.value.length} location(s) deleted.`, life: 3000 })
     selectedLocations.value = []
     await loadLocations()
   } catch (error) {
@@ -489,11 +493,7 @@ const deleteSelectedLocations = async () => {
 }
 
 const showError = (summary, error) => {
-  const detail =
-    error.response?.data?.message ||
-    error.response?.data?.error ||
-    error.message ||
-    'An error occurred'
+  const detail = error.response?.data?.message || error.response?.data?.error || error.message || 'An error occurred'
   toast.add({ severity: 'error', summary, detail, life: 5000 })
 }
 
