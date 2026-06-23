@@ -2,14 +2,18 @@ package com.isd.wms.service;
 
 import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
 import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
+import com.isd.wms.entity.Stock;
 import com.isd.wms.exception.InvalidRequestException;
+import com.isd.wms.repository.StockRepository;
 import com.isd.wms.service.inventoryadjustment.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 /**
  * Service for handling inventory quantity adjustments with advanced logic
@@ -39,6 +43,7 @@ public class InventoryAdjustmentService {
     private final InventoryAdjustmentPlanner inventoryAdjustmentPlanner;
     private final InventoryAdjustmentApplier inventoryAdjustmentApplier;
     private final InventoryAdjustmentResponseMapper inventoryAdjustmentResponseMapper;
+    private final StockRepository stockRepository;
 
     /**
      * Previews an adjustment without persisting any changes.
@@ -106,6 +111,9 @@ public class InventoryAdjustmentService {
                 stockId, request.reason());
         }
 
+        stockRepository.findById(stockId)
+            .filter(s -> s.getQuantity() == 0)
+            .ifPresent(s -> s.setAvailable(false));
         return response;
     }
 }
