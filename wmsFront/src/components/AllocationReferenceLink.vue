@@ -19,7 +19,7 @@ const props = defineProps({
 })
 
 const label = computed(() => {
-  if (props.type === 'PICKING_ORDER' && props.orderId) {
+  if ((props.type === 'PICKING_ORDER' || props.type === 'ORDER') && props.orderId) {
     return `Order #${props.orderId}`
   }
 
@@ -33,17 +33,17 @@ const label = computed(() => {
 const title = computed(() => `Open ${label.value}`)
 
 const target = computed(() => {
-  if (props.type === 'PICKING_ORDER' && props.orderId) {
+  if ((props.type === 'PICKING_ORDER' || props.type === 'ORDER') && props.orderId) {
     return {
-      name: 'orders',
-      query: { orderId: props.orderId },
+      path: '/supervisor/orders',
+      query: { id: props.orderId },
     }
   }
 
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
     return {
-      name: 'replenishments',
-      query: { replenishmentId: props.replenishmentId },
+      path: '/supervisor/replenishments',
+      query: { id: props.replenishmentId },
     }
   }
 

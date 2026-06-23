@@ -512,7 +512,6 @@ const stopLongPress = () => {
 onBeforeUnmount(() => {
   stopLongPress()
 })
-// ------------------------------------------------
 
 const handleLogout = async () => {
   await authStore.logout()
@@ -605,8 +604,11 @@ const hydrateState = (payload) => {
   shortageComment.value = ''
 
   const alloc = payload?.currentAllocation
-  const maxQty = alloc?.quantity ?? alloc?.requiredQuantity ?? alloc?.requestedQuantity ?? 1
-  pickedQuantity.value = alloc?.pickedQuantity ?? maxQty
+  if (alloc) {
+    pickedQuantity.value = alloc.quantity ?? alloc.requiredQuantity ?? alloc.requestedQuantity ?? 0
+  } else {
+    pickedQuantity.value = 0
+  }
 
   if (payload?.taskType) {
     lastTaskType.value = payload.taskType
@@ -665,6 +667,11 @@ const loadCurrentTask = async () => {
       }
     }
   } catch (error) {
+    if (error?.response?.status === 404 && savedDestinationBarcode.value) {
+      showFinalSummary.value = true
+      summary.value = null
+      return
+    }
     if (error?.response?.status === 204) {
       if (savedDestinationBarcode.value) {
         showFinalSummary.value = true
@@ -822,6 +829,9 @@ const submitPickedQuantity = async () => {
 
   try {
     const allocationId = currentAllocation.value.allocationId
+    const isZeroQuantity = pickedQuantity.value === 0
+    const totalLinesCount = orderedAllocations.value.length
+    const currentTaskIsReplenishment = isReplenishmentTask.value
 
     await allocationApi.confirmPickedQuantity(allocationId, {
       pickedQuantity: pickedQuantity.value,
@@ -831,14 +841,37 @@ const submitPickedQuantity = async () => {
     const response = await allocationApi.completeAssignedAllocation(allocationId)
 
     const completion = response.data
-    if (completion.orderStatus === 'CANCELED') {
+
+    if (isZeroQuantity && (totalLinesCount <= 1 || currentTaskIsReplenishment)) {
+      localStorage.removeItem('active_tu_barcode')
       summary.value = null
       showFinalSummary.value = false
       showDestinationScan.value = false
       lastTaskType.value = ''
       savedDestinationBarcode.value = ''
       finalAllocationsSummary.value = []
-      pickedQuantity.value = 1
+      pickedQuantity.value = 0
+      shortageComment.value = ''
+      await loadCurrentTask()
+
+      toast.add({
+        severity: 'warn',
+        summary: 'Task Cancelled',
+        detail: 'Quantity set to 0. Task was cancelled and TU released.',
+        life: 4000,
+      })
+      return
+    }
+
+    if (completion.orderStatus === 'CANCELED') {
+      localStorage.removeItem('active_tu_barcode')
+      summary.value = null
+      showFinalSummary.value = false
+      showDestinationScan.value = false
+      lastTaskType.value = ''
+      savedDestinationBarcode.value = ''
+      finalAllocationsSummary.value = []
+      pickedQuantity.value = 0
       shortageComment.value = ''
       await loadCurrentTask()
     } else if (completion.newProcessCreated && completion.summary?.currentAllocation) {

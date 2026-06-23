@@ -190,12 +190,8 @@ public class OrderService {
     @Transactional
     public void assignOrder(Long orderId, Long operatorId) {
         Order order = getOrder(orderId);
-        if (order.getStatus() == OrderStatus.IN_PROGRESS
-            || order.getStatus() == OrderStatus.PARTIALLY_COMPLETED
-            || order.getStatus() == OrderStatus.SHORTAGE
-            || order.getStatus() == OrderStatus.COMPLETED
-            || order.getStatus() == OrderStatus.CANCELED) {
-            throw new InvalidRequestException("Order assignment is not allowed for IN_PROGRESS, PARTIALLY_COMPLETED, SHORTAGE, COMPLETED or CANCELED orders");
+        if (order.getStatus() != OrderStatus.CREATED) {
+            throw new InvalidRequestException("Order assignment is not allowed for this order");
         }
 
         assignTasks(order);

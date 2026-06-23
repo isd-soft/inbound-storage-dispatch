@@ -69,19 +69,21 @@
       </template>
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
+
       <Column expander style="width: 3rem">
         <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
-            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi chevron-right'"
+            :icon="isExpanded(data) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
             text
-            rounded
             size="small"
+            class="order-expander-button"
             aria-label="Toggle order lines"
             @click="toggleOrderExpansion(data, rowTogglerCallback, $event)"
           />
         </template>
       </Column>
+
       <Column field="order.logicId" header="Logic ID" sortable filter />
       <Column field="order.locationLabel" header="Destination" sortable filter>
         <template #body="{ data }">
@@ -94,12 +96,6 @@
             severity="info"
             :value="`${data.lines?.length || 0} line${(data.lines?.length || 0) === 1 ? '' : 's'}`"
           />
-        </template>
-      </Column>
-      <Column header="Total Qty" style="width: 8rem">
-        <template #body="{ data }">
-          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data)
-            }}</span>
         </template>
       </Column>
       <Column field="order.formattedStatus" header="Status" sortable filter>
@@ -137,6 +133,7 @@
           {{ data.order.formattedCreatedAt }}
         </template>
       </Column>
+
       <template #expansion="{ data }">
         <div class="order-lines-expansion">
           <AppDataTable
@@ -160,16 +157,12 @@
             </Column>
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                    line.requestedQuantity ?? line.quantity ?? 0
-                  }}</span>
+                <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="deliveredQuantity" header="Delivered Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                    line.deliveredQuantity ?? line.allocatedQuantity ?? 0
-                  }}</span>
+                <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="formattedStatus" header="Status" filter>
@@ -202,8 +195,7 @@
           </div>
 
           <div class="field">
-            <label for="location" class="block text-sm font-medium mb-1">Destination
-              Location</label>
+            <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
             <Select
               id="location"
               v-model="formData.location"
@@ -215,8 +207,7 @@
               class="w-full"
               :invalid="submitted && !formData.location"
             />
-            <small v-if="submitted && !formData.location" class="text-red-400">Location is
-              required.</small>
+            <small v-if="submitted && !formData.location" class="text-red-400">Location is required.</small>
           </div>
         </div>
 
@@ -242,8 +233,7 @@
                 class="w-full min-w-0"
                 :invalid="submitted && !data.product"
               />
-              <small v-if="submitted && !data.product" class="text-red-400">Product is
-                required.</small>
+              <small v-if="submitted && !data.product" class="text-red-400">Product is required.</small>
             </template>
           </Column>
           <Column header="Quantity" style="min-width: 13rem">
@@ -256,8 +246,9 @@
                 class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
-              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum
-                quantity is 1.</small>
+              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400"
+              >Minimum quantity is 1.</small
+              >
             </template>
           </Column>
           <Column header="Actions" style="width: 6rem">
@@ -303,9 +294,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
 
 import Button from 'primevue/button'
 import Column from 'primevue/column'
@@ -316,7 +308,6 @@ import Message from 'primevue/message'
 import Select from 'primevue/select'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
-import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
 import { orderApi } from '@/api/orderApi.js'
@@ -325,6 +316,7 @@ import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
 import UploadFile from '@/components/UploadFile.vue'
 
+const route = useRoute()
 const importDialogVisible = ref(false)
 const toast = useToast()
 const confirm = useConfirm()
@@ -417,7 +409,16 @@ const loadOrders = async () => {
 
   try {
     const response = await orderApi.getAll()
-    orders.value = (response.data || []).map(normalizeOrder)
+    let fetchedOrders = (response.data || []).map(normalizeOrder)
+
+    // ИСПРАВЛЕНИЕ: Фильтруем массив напрямую, если есть URL ID
+    if (route.query.id) {
+      const targetId = Number(route.query.id)
+      fetchedOrders = fetchedOrders.filter(entry => entry.order.id === targetId)
+    }
+
+    orders.value = fetchedOrders
+
     const currentOrderIds = new Set(orders.value.map((entry) => entry.order?.id).filter(Boolean))
     expandedRows.value = Object.fromEntries(
       Object.entries(expandedRows.value).filter(
@@ -428,6 +429,7 @@ const loadOrders = async () => {
     orders.value.forEach((entry) => {
       assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
     })
+
   } catch (error) {
     orders.value = []
     expandedRows.value = {}
@@ -443,10 +445,10 @@ const toggleEditMode = () => {
 }
 
 const canEditSelected = computed(() => {
-  if (selectedOrders.value.length !== 1) return false;
-  const orderData = selectedOrders.value[0].order;
-  return ['CREATED', 'Created'].includes(orderData.status || orderData.Status || 'CREATED');
-});
+  if (selectedOrders.value.length !== 1) return false
+  const orderData = selectedOrders.value[0].order
+  return ['CREATED', 'Created'].includes(orderData.status || orderData.Status || 'CREATED')
+})
 
 const loadOrderCreateData = async () => {
   const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
@@ -489,26 +491,31 @@ const openCreateDialog = async () => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Data load failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   }
 }
 
 const openEditDialog = async (orderData) => {
   resetForm()
 
-  const order = orderData.order;
-  const lines = orderData.lines;
+  const order = orderData.order
+  const lines = orderData.lines
 
-  formData.logicId = order.logicId;
-  formData.location = order.destinationLocationId;
+  formData.logicId = order.logicId
+  formData.location = order.destinationLocationId
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
     formData.lines.push({
       id: nextLineId++,
       product: line.productId,
-      quantity: line.requestedQuantity
-    });
-  });
+      quantity: line.requestedQuantity,
+    })
+  })
 
   isEditingOrder.value = true
   editingOrderId.value = order.id
@@ -517,7 +524,12 @@ const openEditDialog = async (orderData) => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Data load failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   }
 }
 
@@ -572,10 +584,20 @@ const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
   try {
     await orderApi.assign(orderId, operatorId)
-    toast.add({ severity: 'success', summary: 'Assigned', detail: `Order #${orderId} assigned.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Assigned',
+      detail: `Order #${orderId} assigned.`,
+      life: 3000,
+    })
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Assign failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   }
 }
 
@@ -593,11 +615,21 @@ const deleteSelectedOrders = async () => {
   actionLoading.value = true
   try {
     await Promise.all(selectedOrders.value.map((entry) => orderApi.delete(entry.order.id)))
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedOrders.value.length} order(s) deleted.`, life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Deleted',
+      detail: `${selectedOrders.value.length} order(s) deleted.`,
+      life: 3000,
+    })
     selectedOrders.value = []
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Delete failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   } finally {
     actionLoading.value = false
   }
@@ -620,7 +652,7 @@ const formatDate = (value) =>
   value
     ? new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
-      timeStyle: 'short'
+      timeStyle: 'short',
     }).format(new Date(value))
     : '-'
 
@@ -631,7 +663,12 @@ const onSubmit = async () => {
   const areLinesValid = formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity >= 1)
 
   if (!isTopValid || !areLinesValid) {
-    toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please fill in all required fields.',
+      life: 4000,
+    })
     return
   }
 
@@ -655,20 +692,45 @@ const onSubmit = async () => {
       toast.add({ severity: 'success', summary: 'Updated', detail: `Order updated.`, life: 3000 })
     } else {
       await orderApi.create(payload)
-      toast.add({ severity: 'success', summary: 'Created', detail: `Order created successfully.`, life: 3000 })
+      toast.add({
+        severity: 'success',
+        summary: 'Created',
+        detail: `Order created successfully.`,
+        life: 3000,
+      })
     }
 
     closeFormDialog()
     await loadOrders()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Action failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Action failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   } finally {
     actionLoading.value = false
   }
 }
+
+watch(() => route.query.id, () => {
+  loadOrders()
+})
 
 onMounted(async () => {
   await loadOrderCreateData()
   await loadOrders()
 })
 </script>
+
+<style scoped>
+.order-expander-button {
+  flex-shrink: 0;
+  height: 2rem;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0;
+  width: 2rem;
+}
+</style>
