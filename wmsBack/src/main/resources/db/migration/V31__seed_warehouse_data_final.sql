@@ -59,11 +59,11 @@ VALUES
 
 INSERT INTO products (id, name, barcode, description, category_id, auto_replenish, min_threshold, replenish_qty)
 VALUES
-    (1, 'Laptop Pro 15', 'LAP-PRO-001', 'High-performance laptop', 1, false, NULL, NULL),
-    (2, 'USB-C Cable 2m', 'CBL-USBC-2M', 'USB-C cable', 1, false, NULL, NULL),
-    (3, 'HDMI Adapter', 'ADP-HDMI-01', '4K HDMI Adapter', 1, false, NULL, NULL),
-    (4, 'Wireless Mouse', 'MSE-WLS-02', 'Ergonomic mouse', 1, true, 10, 50),
-    (5, 'Mechanical Keyboard', 'KEY-MCH-05', 'RGB keyboard', 1, false, NULL, NULL),
+    (1, 'Yellow Notes', 'NOT-YLW-3X3', 'Yellow sticky notes 3x3 inches 100 sheets', 8, true, 30, 100),
+    (2, 'Round Paper Clips', 'CLP-RND-100', 'Standard round paper clips box of 100', 8, true, 50, 200),
+    (3, 'Neon Self-Stick Notes', 'NOT-NEON-4PK', 'Assorted neon self-stick notes 4 pack', 8, true, 20, 80),
+    (4, 'Adhesive Film Index', 'IND-FLM-FLAGS', 'Colored adhesive film page index flags', 8, true, 25, 100),
+    (5, 'Permanent Marker', 'MRK-PERM-BLK', 'Black permanent marker chisel tip', 8, true, 15, 50),
     (6, 'A4 Paper Box', 'PAPER-A4-001', 'A4 paper 500 sheets', 8, true, 50, 200),
     (7, 'Bottled Water 0.5L', 'WTR-0500-24', 'Water 24 bottles', 2, true, 100, 300),
     (8, 'Canned Beans 400g', 'BEANS-400G', 'Canned beans', 2, false, NULL, NULL),
