@@ -8,6 +8,7 @@
       :value="replenishments"
       :loading="loading"
       :filterFields="replenishmentFilterFields"
+      v-model:filters="tableFilters"
       :editMode="editMode ? 'cell' : null"
       paginator
       :rows="10"
@@ -100,9 +101,9 @@
 
       <Column v-if="editMode" selectionMode="multiple" headerStyle="width: 3rem" />
 
-      <Column field="logicId" header="Reference" sortable filter>
+      <Column field="logicId" header="Logic ID" sortable filter>
         <template #body="slotProps">
-          <span class="font-bold text-blue-600">{{ slotProps.data.logicId || `REPL-${slotProps.data.id}` }}</span>
+          <span>{{ slotProps.data.logicId || `REPL-${slotProps.data.id}` }}</span>
         </template>
       </Column>
 
@@ -118,7 +119,9 @@
 
       <Column field="requestedQuantity" header="Requested Qty" sortable filter>
         <template #body="slotProps">
-          <span class="text-primary font-bold text-base">{{ slotProps.data.requestedQuantity }}</span>
+          <span class="text-primary font-bold text-base">{{
+            slotProps.data.requestedQuantity
+          }}</span>
         </template>
         <template #editor="{ data, field }">
           <InputNumber v-model="data[field]" :min="1" autofocus class="w-full" />
@@ -127,7 +130,9 @@
 
       <Column field="destinationLocationId" header="Destination" sortable filter>
         <template #body="slotProps">
-          <span class="app-subtitle font-semibold">{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+          <span class="app-subtitle font-semibold">{{
+            getLocationName(slotProps.data.destinationLocationId)
+          }}</span>
         </template>
         <template #editor="{ data, field }">
           <Dropdown
@@ -319,9 +324,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
+import { useRoute } from 'vue-router'
+import { FilterMatchMode } from '@primevue/core/api'
 
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -339,6 +346,7 @@ import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
 import UploadFile from '@/components/UploadFile.vue'
 
+const route = useRoute()
 const importDialogVisible = ref(false)
 const toast = useToast()
 const confirm = useConfirm()
@@ -359,6 +367,11 @@ const editDialogVisible = ref(false)
 const editMode = ref(false)
 
 const filters = ref({ productId: null, destinationLocationId: null, status: null })
+
+const tableFilters = ref({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  id: { value: null, matchMode: FilterMatchMode.EQUALS },
+})
 
 const hasSelection = computed(() => selectedReplenishments.value.length > 0)
 
@@ -389,7 +402,7 @@ const handleImport = async (formData) => {
 const assignmentByTaskId = ref({})
 
 const replenishmentFilterFields = [
-  { field: 'logicId', label: 'Reference' },
+  { field: 'logicId', label: 'Logic ID' },
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
   { field: 'destinationLocationId', label: 'Destination' },
@@ -438,17 +451,26 @@ const formatDate = (ts) => {
 
 const getStatusSeverity = (status) => {
   switch (status) {
-    case 'COMPLETED': return 'success'
-    case 'PARTIALLY_COMPLETED': return 'warning'
-    case 'CANCELED': return 'secondary'
+    case 'COMPLETED':
+      return 'success'
+    case 'PARTIALLY_COMPLETED':
+      return 'warning'
+    case 'CANCELED':
+      return 'secondary'
     case 'IN_PROGRESS':
-    case 'ASSIGNED': return 'warning'
-    case 'CREATED': return 'info'
-    default: return 'danger'
+    case 'ASSIGNED':
+      return 'warning'
+    case 'CREATED':
+      return 'info'
+    default:
+      return 'danger'
   }
 }
 
-const isAssignmentLocked = (task) => ['ASSIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(task.status)
+const isAssignmentLocked = (task) =>
+  ['ASSIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(
+    task.status,
+  )
 
 const loadData = async () => {
   loading.value = true
@@ -465,9 +487,17 @@ const loadData = async () => {
 
     await applyFilters()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Load Failed', detail: getErrorMessage(error), life: 4000 })
-  } finally {
-    loading.value = false
+    toast.add({
+      severity: 'error',
+      summary: 'Load Failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
+  }
+  {
+    {
+      loading.value = false
+    }
   }
 }
 
@@ -478,13 +508,20 @@ const applyFilters = async () => {
       Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''),
     )
 
+    if (route.query.id) {
+      cleanFilters.id = Number(route.query.id)
+      tableFilters.value.id.value = Number(route.query.id)
+    } else {
+      tableFilters.value.id.value = null
+    }
+
     const res = await replenishmentApi.filter(cleanFilters)
 
     replenishments.value = res.data.map((task) => ({
       ...task,
       productName: getProductName(task.productId),
       assignedOperatorName: getOperatorName(task.assignedOperatorId),
-      destinationLocationId: task.destinationLocationId
+      destinationLocationId: task.destinationLocationId,
     }))
 
     originalReplenishments.value = cloneRows(replenishments.value)
@@ -494,7 +531,12 @@ const applyFilters = async () => {
       replenishments.value.map((task) => [task.taskId, task.assignedOperatorId || null]),
     )
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Filtering Failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Filtering Failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }
@@ -553,7 +595,12 @@ const handleUpdate = async () => {
     editDialogVisible.value = false
     await loadData()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   } finally {
     actionLoading.value = false
   }
@@ -561,7 +608,7 @@ const handleUpdate = async () => {
 
 const normalizeRepl = (repl) => ({
   requestedQuantity: repl.requestedQuantity,
-  destinationLocationId: repl.destinationLocationId
+  destinationLocationId: repl.destinationLocationId,
 })
 
 const onCellEditComplete = ({ data, newValue, field }) => {
@@ -588,28 +635,34 @@ const confirmSubmitChanges = () => {
     header: 'Submit Changes',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-success',
-    accept: submitQuantityChanges
+    accept: submitQuantityChanges,
   })
 }
 
 const submitQuantityChanges = async () => {
   actionLoading.value = true
   try {
-    const changedTasks = replenishments.value.filter((repl) => modifiedReplenishmentIds.value.has(repl.id))
+    const changedTasks = replenishments.value.filter((repl) =>
+      modifiedReplenishmentIds.value.has(repl.id),
+    )
 
-    await Promise.all(changedTasks.map((repl) => replenishmentApi.update(repl.id, {
-      taskId: repl.taskId,
-      productId: repl.productId,
-      requestedQuantity: repl.requestedQuantity,
-      status: repl.status,
-      destinationLocationId: repl.destinationLocationId
-    })))
+    await Promise.all(
+      changedTasks.map((repl) =>
+        replenishmentApi.update(repl.id, {
+          taskId: repl.taskId,
+          productId: repl.productId,
+          requestedQuantity: repl.requestedQuantity,
+          status: repl.status,
+          destinationLocationId: repl.destinationLocationId,
+        }),
+      ),
+    )
 
     toast.add({
       severity: 'success',
       summary: 'Tasks updated',
       detail: `${changedTasks.length} task(s) updated.`,
-      life: 3000
+      life: 3000,
     })
     editMode.value = false
     selectedReplenishments.value = []
@@ -619,7 +672,7 @@ const submitQuantityChanges = async () => {
       severity: 'error',
       summary: 'Save failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -640,10 +693,10 @@ const confirmResetChanges = (afterReset) => {
         severity: 'info',
         summary: 'Changes reset',
         detail: 'Unsaved changes were discarded.',
-        life: 2500
+        life: 2500,
       })
       if (typeof afterReset === 'function') afterReset()
-    }
+    },
   })
 }
 
@@ -655,7 +708,7 @@ const handleCreate = async () => {
       severity: 'success',
       summary: 'Success',
       detail: 'Replenishment task created.',
-      life: 3000
+      life: 3000,
     })
     createDialogVisible.value = false
     await loadData()
@@ -673,7 +726,7 @@ const assignReplenishment = async (id, operatorId) => {
       severity: 'success',
       summary: 'Assigned',
       detail: `Replenishment #${id} assigned to operator.`,
-      life: 3000
+      life: 3000,
     })
     await loadData()
   } catch (error) {
@@ -681,7 +734,7 @@ const assignReplenishment = async (id, operatorId) => {
       severity: 'error',
       summary: 'Assign failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -733,6 +786,13 @@ const cancelSelectedReplenishments = async () => {
     loading.value = false
   }
 }
+
+watch(
+  () => route.query.id,
+  () => {
+    applyFilters()
+  },
+)
 
 onMounted(loadData)
 </script>
