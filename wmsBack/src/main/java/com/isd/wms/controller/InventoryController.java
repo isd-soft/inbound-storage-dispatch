@@ -79,18 +79,6 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.removeStock(request));
     }
 
-    /**
-     * Adjusts a stock entry's quantity using the legacy adjust endpoint.
-     *
-     * @param request the adjustment request specifying the stock and new quantity; must be valid
-     * @return {@code 200 OK} with the updated {@link StockResponse} after adjustment
-     */
-    @PutMapping("/adjust")
-    @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<StockResponse> adjustStock(@Valid @RequestBody AdjustStockRequest request) {
-        return ResponseEntity.ok(inventoryService.adjustStock(request));
-    }
-
     @DeleteMapping("/{stockId}")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
     public ResponseEntity<String> deleteStock(@PathVariable Long stockId) {
