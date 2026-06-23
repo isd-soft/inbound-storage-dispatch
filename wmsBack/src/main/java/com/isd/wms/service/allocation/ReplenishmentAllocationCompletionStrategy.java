@@ -19,15 +19,14 @@ import java.util.Optional;
 /**
  * Completion strategy for replenishment allocations.
  * <p>
- * When a replenishment allocation is completed, this strategy moves the picked
- * quantity from the source stock (REPL zone) to the destination location
- * (picking zone). If the destination location already contains stock of the same
- * product, the quantity is added; if it contains a different product, an error
- * is thrown (unless the location is empty).
+ * When a replenishment allocation is completed, this strategy handles shortage
+ * adjustments if the picked quantity is less than requested.
+ * The physical movement of stock to the destination location is intentionally
+ * NOT handled here; it occurs during the dispatch (drop-off) phase.
  * </p>
  * <p>
- * After the move, the replenishment status is updated to COMPLETED if all
- * allocations are done.
+ * After processing, the replenishment status is updated to COMPLETED,
+ * PARTIALLY_COMPLETED, or CANCELED based on the state of its allocations.
  * </p>
  *
  * @see Replenishment
@@ -60,11 +59,6 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
                 "Replenishment shortage"
             );
         }
-    }
-
-    private void createStock(Stock sourceStock, Product product, Location destinationLocation, int quantityToMove) {
-        Stock newStock = new Stock(product, destinationLocation, quantityToMove, sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-        stockRepository.save(newStock);
     }
 
     @Override

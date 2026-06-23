@@ -133,6 +133,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             JOIN OrderLine ol ON ol.order = o
             WHERE ol.task = :task
         """)
+
+
     Optional<Order> getOrderByTask(
         @Param("task") Task task
     );
@@ -184,4 +186,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                 WHERE o = :order
         """)
     Optional<String> findOperatorUsernameByOrder(@Param("order") Order order);
+
+    Optional<Order> findByLogicIdIgnoreCase(String logicId);
 }

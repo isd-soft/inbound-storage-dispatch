@@ -118,4 +118,9 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
         JOIN t.supervisor u
         WHERE u.username = :username
         """)
-    List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);}
+    List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);
+
+    Optional<Replenishment> findByLogicIdIgnoreCase(String logicId);
+
+}
+
