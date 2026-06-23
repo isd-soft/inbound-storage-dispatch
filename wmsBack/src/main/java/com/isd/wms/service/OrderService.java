@@ -26,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -86,10 +83,15 @@ public class OrderService {
 
     @Transactional
     public Order addOrder(OrderCreateRequest request) {
-        if (orderRepository.findByLogicId(request.logicId()).isPresent()) {
-            throw new InvalidRequestException("An order with logicId " + request.logicId() + " already exists");
+        String logicId = request.logicId();
+
+        if (logicId == null || logicId.isBlank()) {
+            logicId = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } else if (orderRepository.findByLogicId(logicId).isPresent()) {
+            throw new InvalidRequestException("An order with logicId " + logicId + " already exists");
         }
-        Order order = new Order(request.logicId(), getLocation(request.destinationLocationId()));
+
+        Order order = new Order(logicId, getLocation(request.destinationLocationId()));
         return orderRepository.save(order);
     }
 

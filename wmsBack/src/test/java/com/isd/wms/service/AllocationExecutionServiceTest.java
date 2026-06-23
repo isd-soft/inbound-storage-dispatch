@@ -1,4 +1,4 @@
-package com.isd.wms.service.allocation;
+package com.isd.wms.service;
 
 import com.isd.wms.dto.allocation.AllocationCompletionResponse;
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
@@ -6,10 +6,6 @@ import com.isd.wms.dto.allocation.ConfirmPickedQuantityRequest;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.*;
 import com.isd.wms.repository.*;
-import com.isd.wms.service.AllocationExecutionService;
-import com.isd.wms.service.InventoryService;
-import com.isd.wms.service.PickingFlowService;
-import com.isd.wms.service.WorkflowService;
 import com.isd.wms.service.validation.SecurityFacade;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -149,7 +145,7 @@ class AllocationExecutionServiceTest {
 
         AllocationCompletionResponse response = allocationExecutionService.completeAllocation(50L);
 
-        verify(inventoryService).recordPickingShortageAdjustment(eq(stock), eq(50), eq(operator), eq("Picking shortage"));
+        verify(inventoryService).recordShortageAdjustment(eq(stock), eq(3), eq(operator), eq(InventoryOperationType.PICKING_SHORTAGE), eq("Picking shortage"));
 
         verify(allocationRepository).saveAll(argThat(list -> {
             List<Allocation> savedList = (List<Allocation>) list;

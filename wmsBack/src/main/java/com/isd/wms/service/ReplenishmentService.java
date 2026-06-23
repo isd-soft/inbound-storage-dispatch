@@ -11,6 +11,7 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
+import com.isd.wms.event.LowStockEvent;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.LocationNotFoundException;
 import com.isd.wms.exception.ProductNotFoundException;
@@ -22,6 +23,7 @@ import com.isd.wms.service.imports.dto.ReplenishmentInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for managing replenishment tasks.
@@ -101,6 +104,10 @@ public class ReplenishmentService {
 
         Replenishment replenishment = new Replenishment(product, request.requestedQuantity(), destinationLocation);
         replenishment.setStatus(Status.CREATED);
+
+        // АВТОГЕНЕРАЦИЯ ЛОГИЧЕСКОГО ID
+        replenishment.setLogicId("REPL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
         replenishment = replenishmentRepository.save(replenishment);
 
         return replenishmentMapper.toResponse(replenishment);
@@ -165,23 +172,32 @@ public class ReplenishmentService {
     @Transactional
     public void checkAndTriggerAutoReplenishment(Product product, Location location, int locationQty) {
         if (!Boolean.TRUE.equals(product.getAutoReplenish())) return;
-        if (product.getReplenishQty() == null) return;
 
-        if (locationQty <= product.getMinThreshold().orElseThrow()) {
+        if (product.getReplenishQty().isEmpty() || product.getMinThreshold().isEmpty()) return;
+
+        int minThreshold = product.getMinThreshold().get();
+        int replenishQty = product.getReplenishQty().get();
+
+        if (locationQty <= minThreshold) {
             boolean hasActive = replenishmentRepository.existsByProductIdAndDestinationLocationIdAndStatusIn(
                 product.getId(), location.getId(), ACTIVE_STATUSES
             );
 
             if (!hasActive) {
                 log.info("Auto-triggering replenishment for product {} at location {} (Location Qty: {}, Threshold: {})",
-                    product.getBarcode(), location.getBarcode(), locationQty, product.getMinThreshold());
+                    product.getBarcode(), location.getBarcode(), locationQty, minThreshold);
 
                 ReplenishmentCreateRequest req = new ReplenishmentCreateRequest(
-                    product.getId(), product.getReplenishQty(), location.getId()
+                    product.getId(), replenishQty, location.getId()
                 );
                 createReplenishment(req);
             }
         }
+    }
+
+    @EventListener
+    public void handleLowStockEvent(LowStockEvent event) {
+        checkAndTriggerAutoReplenishment(event.product(), event.location(), event.availableQuantity());
     }
 
     @Transactional

@@ -42,6 +42,9 @@ public class Replenishment extends BaseTimestampEntity{
     @SequenceGenerator(name = "replenishment_seq", sequenceName = "replenishments_sequence", allocationSize = 1)
     private Long id;
 
+    @Column(name = "logic_id", unique = true, length = 50)
+    private String logicId;
+
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "task_id", referencedColumnName = "id")
     private Task task;

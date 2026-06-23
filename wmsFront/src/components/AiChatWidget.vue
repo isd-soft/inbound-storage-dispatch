@@ -1,15 +1,15 @@
 <template>
   <div class="fixed bottom-6 right-6 z-50">
-
     <transition name="fade-slide">
-      <div v-if="isOpen" class="absolute bottom-0 right-0 origin-bottom-right app-card shadow-2xl rounded-2xl w-[90vw] md:w-[600px] h-[650px] flex flex-col border border-white/10 overflow-hidden bg-gray-900">        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
+      <div v-if="isOpen" class="absolute bottom-0 right-0 origin-bottom-right app-card shadow-2xl rounded-2xl w-[90vw] md:w-[600px] h-[650px] flex flex-col border border-white/10 overflow-hidden bg-gray-900">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
           <h2 class="text-lg font-bold text-white flex items-center gap-2 m-0">
             <i class="pi pi-sparkles"></i> WMS Assistant
           </h2>
           <Button icon="pi pi-times" text rounded severity="secondary" @click="isOpen = false" />
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scroll-smooth" ref="chatBox" @click="handleLinkClick">
+        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scroll-smooth" ref="chatBox" @click="handleChatInteraction">
           <div
             v-for="(msg, idx) in messages"
             :key="idx"
@@ -40,12 +40,14 @@
 import { ref, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { chatApi } from '@/api/chatApi';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 const router = useRouter();
+const toast = useToast();
 const isOpen = ref(false);
 const messages = ref([{
   role: 'ai',
@@ -59,7 +61,7 @@ marked.setOptions({ breaks: true, gfm: true });
 
 const renderMarkdown = (text) => {
   if (!text) return '';
-  return DOMPurify.sanitize(marked.parse(text));
+  return DOMPurify.sanitize(marked.parse(text), { ADD_ATTR: ['target'] });
 };
 
 const scrollToBottom = async () => {
@@ -69,13 +71,47 @@ const scrollToBottom = async () => {
   }
 };
 
-const handleLinkClick = (event) => {
-  const target = event.target.closest('a');
+const handleChatInteraction = async (event) => {
+  const linkTarget = event.target.closest('a');
+  if (linkTarget) {
+    let href = linkTarget.getAttribute('href');
+    if (href) {
+      event.preventDefault();
+      event.stopPropagation();
 
-  if (target && target.getAttribute('href')?.startsWith('/')) {
+      if (href.startsWith('https://supervisor')) {
+        href = href.replace('https://supervisor', '/supervisor');
+      } else if (href.startsWith('http://supervisor')) {
+        href = href.replace('http://supervisor', '/supervisor');
+      }
+
+      router.push(href);
+      return;
+    }
+  }
+
+  if (event.target && event.target.tagName === 'CODE') {
     event.preventDefault();
-    const href = target.getAttribute('href');
-    router.push(href);
+    event.stopPropagation();
+
+    const textToCopy = event.target.innerText;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      toast.add({
+        severity: 'success',
+        summary: 'Copied!',
+        detail: `${textToCopy} copied to clipboard`,
+        life: 2000
+      });
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to copy to clipboard',
+        life: 2000
+      });
+    }
   }
 };
 
@@ -130,6 +166,25 @@ const sendMessage = async () => {
   list-style-type: disc;
   padding-left: 1.5rem;
   margin-bottom: 0.5rem;
+}
+
+:deep(.markdown-body code) {
+  cursor: pointer;
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-family: monospace;
+}
+
+:deep(.markdown-body code:hover) {
+  background-color: rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+}
+
+:deep(.markdown-body code:active) {
+  transform: scale(0.95);
 }
 
 :deep(.markdown-body table) {

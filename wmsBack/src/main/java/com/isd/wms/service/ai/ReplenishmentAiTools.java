@@ -20,18 +20,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * AI tool functions for managing replenishment tasks.
- * <p>
- * Provides tools for creating, assigning, cancelling, and querying replenishments.
- * Replenishments move stock from bulk storage (REPL zone) to picking zones.
- * All operations delegate to the core {@link ReplenishmentService}.
- * </p>
- *
- * @see ReplenishmentService
- * @see Replenishment
- * @see Task
- */
 @Slf4j
 @Service("replenishmentAiTools")
 @RequiredArgsConstructor
@@ -43,15 +31,6 @@ public class ReplenishmentAiTools {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Creates a new replenishment task to move a specified quantity of a product
-     * to a destination picking location.
-     *
-     * @param productBarcode             the product barcode
-     * @param quantity                   the quantity to replenish
-     * @param destinationLocationBarcode the destination location (must exist)
-     * @return a success or error message
-     */
     @Tool(description = "Creates a new Replenishment Task to move existing stock from a REPL zone to a PICK zone.")
     public String createReplenishmentTask(
         @ToolParam(description = "Barcode of the product to replenish") String productBarcode,
@@ -73,52 +52,40 @@ public class ReplenishmentAiTools {
         }
     }
 
-    /**
-     * Assigns a replenishment task to an operator by its ID and operator username.
-     *
-     * @param replenishmentId   the replenishment reference ID
-     * @param operatorUsername  the operator's username
-     * @return a success or error message
-     */
-    @Tool(description = "Assigns a specific Replenishment Task to an Operator using the Ref ID.")
+    @Tool(description = "Assigns a specific Replenishment Task to an Operator using the Replenishment Logic ID.")
     public String assignReplenishmentToOperator(
-        @ToolParam(description = "The Replenishment ID (Ref ID) to assign") Long replenishmentId,
+        @ToolParam(description = "The Replenishment Logic ID (e.g. 'REPL-123')") String logicId,
         @ToolParam(description = "Exact username of the operator") String operatorUsername) {
 
         log.info("AI invoked assignReplenishmentToOperator");
+        Replenishment repl = replenishmentRepository.findByLogicIdIgnoreCase(logicId).orElse(null);
+        if (repl == null) return "Error: Replenishment with logical ID " + logicId + " not found.";
+
         User operator = findOperatorOrNull(operatorUsername);
         if (operator == null) return "Error: Operator not found.";
 
         try {
-            replenishmentService.assignReplenishment(replenishmentId, operator.getId());
-            return "Success! Replenishment task #" + replenishmentId + " has been assigned to " + operatorUsername;
+            replenishmentService.assignReplenishment(repl.getId(), operator.getId());
+            return "Success! Replenishment task " + logicId + " has been assigned to " + operatorUsername;
         } catch (Exception e) {
             return "Failed to assign replenishment: " + e.getMessage();
         }
     }
 
-    /**
-     * Cancels an active replenishment task. Releases any reserved stock.
-     *
-     * @param replenishmentId the replenishment reference ID
-     * @return a success or error message
-     */
-    @Tool(description = "Cancels an existing active Replenishment Task using its Replenishment ID (Ref ID).")
-    public String cancelReplenishmentTask(@ToolParam(description = "The Replenishment ID (Ref ID) to cancel") Long replenishmentId) {
-        log.info("AI invoked cancelReplenishmentTask for ID {}", replenishmentId);
+    @Tool(description = "Cancels an existing active Replenishment Task using its Replenishment Logic ID.")
+    public String cancelReplenishmentTask(@ToolParam(description = "The Replenishment Logic ID (e.g. 'REPL-123') to cancel") String logicId) {
+        log.info("AI invoked cancelReplenishmentTask for Logic ID {}", logicId);
+        Replenishment repl = replenishmentRepository.findByLogicIdIgnoreCase(logicId).orElse(null);
+        if (repl == null) return "Error: Replenishment with logical ID " + logicId + " not found.";
+
         try {
-            replenishmentService.cancelReplenishment(replenishmentId);
-            return "Success! Replenishment ID " + replenishmentId + " has been canceled and stock is released.";
+            replenishmentService.cancelReplenishment(repl.getId());
+            return "Success! Replenishment " + logicId + " has been canceled and stock is released.";
         } catch (Exception e) {
             return "Failed to cancel replenishment: " + e.getMessage();
         }
     }
 
-    /**
-     * Returns a summary of all active replenishment tasks (CREATED, ASSIGNED, IN_PROGRESS).
-     *
-     * @return a Markdown table with task details
-     */
     @Tool(description = "Returns a summary of all currently active (CREATED, ASSIGNED, IN_PROGRESS) replenishment tasks.")
     public String getActiveReplenishmentsInfo() {
         log.info("AI invoked getActiveReplenishmentsInfo tool");
@@ -143,8 +110,8 @@ public class ReplenishmentAiTools {
 
     private String formatActiveTasks(List<Replenishment> tasks) {
         StringBuilder sb = new StringBuilder("### Active Replenishment Tasks\n");
-        sb.append("| Ref ID | Product | Quantity | Destination | Operator | Status |\n");
-        sb.append("|--------|---------|----------|-------------|----------|--------|\n");
+        sb.append("| Logic ID | Product | Quantity | Destination | Operator | Status |\n");
+        sb.append("|----------|---------|----------|-------------|----------|--------|\n");
 
         tasks.forEach(r -> {
             String dest = r.getDestinationLocation() != null ? r.getDestinationLocation().getBarcode() : "N/A";
@@ -154,8 +121,8 @@ public class ReplenishmentAiTools {
                 .map(User::getUsername)
                 .orElse("Unassigned");
 
-            sb.append(String.format("| %d | %s | %d | %s | %s | %s |\n",
-                r.getId(), r.getProduct().getName(), r.getRequestedQuantity(), dest, operator, r.getStatus().name()));
+            sb.append(String.format("| %s | %s | %d | %s | %s | %s |\n",
+                r.getLogicId(), r.getProduct().getName(), r.getRequestedQuantity(), dest, operator, r.getStatus().name()));
         });
 
         return sb.toString();

@@ -5,7 +5,7 @@ import com.isd.wms.enums.Status;
 import lombok.NonNull;
 
 public record OrderUpdateRequest(
-        @NonNull String logicId,
+        String logicId,
         @NonNull Long destinationLocationId,
         @NonNull OrderStatus status
 ) {

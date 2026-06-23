@@ -353,19 +353,24 @@
                       fluid
                       inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
                     />
-                    <div class="flex gap-5 w-full justify-center mt-1">
+                    <div class="flex gap-5 w-full justify-center mt-1 touch-none select-none">
+                      <!-- ИСПРАВЛЕНО: Добавлены обработчики для долгого нажатия -->
                       <Button
                         icon="pi pi-minus"
                         severity="danger"
-                        class="w-12 h-12 rounded-full"
-                        @click="decrementQuantity"
+                        class="w-12 h-12 rounded-full flex-shrink-0"
+                        @pointerdown="startLongPress(decrementQuantity)"
+                        @pointerup="stopLongPress"
+                        @pointerleave="stopLongPress"
                         :disabled="pickedQuantity <= 0"
                       />
                       <Button
                         icon="pi pi-plus"
                         severity="success"
-                        class="w-12 h-12 rounded-full"
-                        @click="incrementQuantity(currentAllocation.requiredQuantity)"
+                        class="w-12 h-12 rounded-full flex-shrink-0"
+                        @pointerdown="startLongPress(() => incrementQuantity(currentAllocation.requiredQuantity))"
+                        @pointerup="stopLongPress"
+                        @pointerleave="stopLongPress"
                         :disabled="pickedQuantity >= currentAllocation.requiredQuantity"
                       />
                     </div>
@@ -393,7 +398,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, ref, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { allocationApi } from '@/api/allocationApi'
@@ -402,7 +407,6 @@ import BarcodeScanner from '@/components/BarcodeScanner.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Button from 'primevue/button'
-import Textarea from 'primevue/textarea'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
@@ -486,27 +490,63 @@ const lastTaskType = ref('')
 const savedDestinationBarcode = ref('')
 const activeTuBarcode = ref(localStorage.getItem('active_tu_barcode') || '')
 
+// --- ЛОГИКА ДЛЯ ДОЛГОГО НАЖАТИЯ (LONG PRESS) ---
+let longPressTimer = null
+let longPressInterval = null
+
+const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuantity.value++ }
+const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.value-- }
+
+const startLongPress = (actionFn) => {
+  actionFn()
+  longPressTimer = setTimeout(() => {
+    longPressInterval = setInterval(() => {
+      actionFn()
+    }, 50)
+  }, 300)
+}
+
+const stopLongPress = () => {
+  if (longPressTimer) clearTimeout(longPressTimer)
+  if (longPressInterval) clearInterval(longPressInterval)
+}
+
+onBeforeUnmount(() => {
+  stopLongPress()
+})
+// ------------------------------------------------
+
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
 }
 
-const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuantity.value++ }
-const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.value-- }
-
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
+
+// ИСПРАВЛЕНО: Нормализуем объект currentAllocation, чтобы подтянуть quantity из бэкенда
 const currentAllocation = computed(() => {
   const rawCurrent = summary.value?.currentAllocation || null
-  if (rawCurrent && (rawCurrent.requiredQuantity != null || rawCurrent.sourceLocationBarcode || rawCurrent.productName)) {
-    return rawCurrent
-  }
+  let target = rawCurrent
 
-  return orderedAllocations.value.find((allocation) =>
-    allocation.status === 'ASSIGNED'
+  if (!target) {
+    target = orderedAllocations.value.find((allocation) =>
+      allocation.status === 'ASSIGNED'
       || allocation.status === 'IN_PROGRESS'
       || allocation.status === 'CREATED'
-  ) || rawCurrent
+    )
+  }
+
+  if (target) {
+    return {
+      ...target,
+      // Бэкенд возвращает `quantity`, маппим его в `requiredQuantity` для фронта
+      requiredQuantity: target.quantity ?? target.requiredQuantity
+    }
+  }
+
+  return null
 })
+
 const orderedAllocations = computed(() => normalizeSummaryEntries(summary.value))
 const isReplenishmentTask = computed(() => summary.value?.taskType === 'REPLENISHMENT' || lastTaskType.value === 'REPLENISHMENT')
 
@@ -546,7 +586,7 @@ const normalizeSummaryEntries = (payload) => {
     productBarcode: line.productBarcode,
     sourceLocationBarcode: line.sourceLocationBarcodes?.[0] || null,
     destinationLocationBarcode: line.destinationLocationBarcode,
-    requiredQuantity: line.requiredQuantity,
+    requiredQuantity: line.requestedQuantity ?? line.quantity,
     pickedQuantity: line.pickedQuantity,
     status: line.status,
   }))
@@ -567,7 +607,11 @@ const hydrateState = (payload) => {
   barcodeInput.value = ''
   destinationInput.value = ''
   shortageComment.value = ''
-  pickedQuantity.value = payload?.currentAllocation?.pickedQuantity ?? payload?.currentAllocation?.requiredQuantity ?? 1
+
+  // ИСПРАВЛЕНО: Устанавливаем pickedQuantity на МАКСИМУМ по умолчанию
+  const alloc = payload?.currentAllocation
+  const maxQty = alloc?.quantity ?? alloc?.requiredQuantity ?? alloc?.requestedQuantity ?? 1
+  pickedQuantity.value = alloc?.pickedQuantity ?? maxQty
 
   if (payload?.taskType) {
     lastTaskType.value = payload.taskType
@@ -619,9 +663,6 @@ const loadCurrentTask = async () => {
     if (response.data.status === 'STARTED' || (response.data.currentAllocation && response.data.currentAllocation.status === 'IN_PROGRESS')) {
       const isTuScannedOnBackend = response.data.currentAllocation?.tuScanned
 
-      // MODIFICARE DE SIGURANȚĂ:
-      // Chiar dacă backend-ul întoarce tuScanned fals (la linii/alocări noi),
-      // dacă noi avem deja codul TU salvat local în starea aplicației, nu mai forțăm ecranul de scanare TU.
       if (!isTuScannedOnBackend && !activeTuBarcode.value) {
         showTuScan.value = true
       } else {
@@ -817,22 +858,6 @@ const submitPickedQuantity = async () => {
       }
     }
 
-    if (completion.taskType === 'REPLENISHMENT') {
-      showTuScan.value = false
-      showDestinationScan.value = false
-      showFinalSummary.value = false
-
-      if (!completion.newProcessCreated) {
-        localStorage.removeItem('active_tu_barcode')
-        activeTuBarcode.value = ''
-        summary.value = null
-        finalAllocationsSummary.value = []
-        lastTaskType.value = ''
-        savedDestinationBarcode.value = ''
-        await loadCurrentTask()
-      }
-    }
-
     toast.add({
       severity: completion.newProcessCreated ? 'warn' : 'success',
       summary: 'Picking updated',
@@ -909,21 +934,25 @@ onMounted(() => {
 .app-type-banner {
   border: 1px solid transparent;
 }
+
 .app-type-banner--repl {
   background: rgba(37, 99, 235, 0.1);
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.25);
 }
+
 .app-type-banner--pick {
   background: rgba(217, 119, 6, 0.1);
   color: #d97706;
   border-color: rgba(217, 119, 6, 0.25);
 }
+
 html.app-dark .app-type-banner--repl {
   background: rgba(96, 165, 250, 0.15);
   color: #60a5fa;
   border-color: rgba(96, 165, 250, 0.3);
 }
+
 html.app-dark .app-type-banner--pick {
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
@@ -933,26 +962,31 @@ html.app-dark .app-type-banner--pick {
 .app-pill {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
 .app-pill--repl {
   background: rgba(37, 99, 235, 0.1);
   color: #2563eb;
   border: 1px solid rgba(37, 99, 235, 0.25);
 }
+
 .app-pill--pick {
   background: rgba(217, 119, 6, 0.1);
   color: #d97706;
   border: 1px solid rgba(217, 119, 6, 0.25);
 }
+
 .app-pill--review {
   background: color-mix(in srgb, var(--status-warning) 14%, transparent);
   color: var(--status-warning);
   border: 1px solid color-mix(in srgb, var(--status-warning) 25%, transparent);
 }
+
 html.app-dark .app-pill--repl {
   background: rgba(96, 165, 250, 0.15);
   color: #60a5fa;
   border-color: rgba(96, 165, 250, 0.3);
 }
+
 html.app-dark .app-pill--pick {
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
@@ -974,6 +1008,7 @@ html.app-dark .app-dispatch-banner {
 .app-accent {
   color: #2563eb;
 }
+
 html.app-dark .app-accent {
   color: #60a5fa;
 }
@@ -981,6 +1016,7 @@ html.app-dark .app-accent {
 .app-barcode {
   color: #7c3aed;
 }
+
 html.app-dark .app-barcode {
   color: #c4b5fd;
 }
@@ -988,6 +1024,7 @@ html.app-dark .app-barcode {
 .app-divider {
   border-bottom: 1px solid var(--border-subtle);
 }
+
 .app-divider-dashed {
   border-top: 1px dashed var(--border-subtle);
 }
@@ -1002,14 +1039,17 @@ html.app-dark .app-barcode {
   transition: all 0.2s;
   background: var(--border-subtle);
 }
+
 .app-progress-dot--active {
   background: var(--brand-warm);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-warm) 18%, transparent);
   transform: scale(1.1);
 }
+
 .app-progress-dot--done {
   background: var(--status-success);
 }
+
 .app-progress-dot--pending {
   background: var(--border-subtle);
 }
@@ -1020,6 +1060,7 @@ html.app-dark .app-barcode {
   color: var(--text-muted);
   transition: all 0.3s;
 }
+
 .app-step-circle--active {
   border-color: var(--brand-warm);
   color: var(--brand-warm);
@@ -1027,21 +1068,25 @@ html.app-dark .app-barcode {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-warm) 10%, transparent);
   transform: scale(1.05);
 }
+
 .app-step-circle--done {
   background: var(--status-success);
   border-color: var(--status-success);
   color: var(--text-inverse);
   font-weight: 700;
 }
+
 .app-step-circle--pending {
   background: var(--surface-card);
   border-color: var(--border-subtle);
   color: var(--text-muted);
 }
+
 .app-step-line {
   background: var(--border-subtle);
   transition: background 0.3s;
 }
+
 .app-step-line--done {
   background: var(--status-success);
 }
@@ -1056,6 +1101,7 @@ html.app-dark .app-barcode {
   color: var(--text-primary) !important;
   border: 1px solid var(--border-subtle) !important;
 }
+
 .app-scan-input:focus {
   border-color: var(--brand-warm) !important;
 }

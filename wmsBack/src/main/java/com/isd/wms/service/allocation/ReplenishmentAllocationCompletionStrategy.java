@@ -7,30 +7,11 @@ import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
-import com.isd.wms.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Optional;
-
-/**
- * Completion strategy for replenishment allocations.
- * <p>
- * When a replenishment allocation is completed, this strategy moves the picked
- * quantity from the source stock (REPL zone) to the destination location
- * (picking zone). If the destination location already contains stock of the same
- * product, the quantity is added; if it contains a different product, an error
- * is thrown (unless the location is empty).
- * </p>
- * <p>
- * After the move, the replenishment status is updated to COMPLETED if all
- * allocations are done.
- * </p>
- *
- * @see Replenishment
- * @see Stock
- * @see Location
- */
 
 @Component
 @RequiredArgsConstructor
@@ -38,52 +19,12 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
 
     private final ReplenishmentRepository replenishmentRepository;
     private final AllocationRepository allocationRepository;
-    private final StockRepository stockRepository;
 
     @Override
     public void handle(Allocation allocation) {
-        Replenishment replenishment = replenishmentRepository.findByTaskId(allocation.getTask().getId())
-            .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
-
-        Location destinationLocation = replenishment.getDestinationLocation();
-        Stock sourceStock = allocation.getStock();
-
-        Integer quantityToMove = allocation.getPickedQuantity().orElse(allocation.getQuantity());
-        Product product = sourceStock.getProduct()
-            .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
-
-        if (allocation.getPickedQuantity().isPresent()) {
-            allocation.getPickedQuantity();
-        }
-
-        if (quantityToMove <= 0) {
-            return;
-        }
-
-        stockRepository.findByLocationIdAndProductId(destinationLocation.getId(), product.getId())
-            .ifPresentOrElse(existingStock -> {
-                    Product existingProduct = existingStock.getProduct().orElse(null);
-
-                    if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
-                        if (existingStock.getQuantity() == 0 && existingStock.getReservedQuantity() == 0) {
-                            existingStock.setProduct(product);
-                            existingStock.setQuantity(quantityToMove);
-                            existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-                        } else {
-                            throw new IllegalStateException("Location " + destinationLocation.getBarcode() + " is already occupied by a different product!");
-                        }
-                    } else {
-                        if (existingProduct == null) existingStock.setProduct(product);
-                        existingStock.addQuantity(quantityToMove);
-                        existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-                    }
-                },
-                () -> createStock(sourceStock, product, destinationLocation, quantityToMove));
-    }
-
-    private void createStock(Stock sourceStock, Product product, Location destinationLocation, int quantityToMove) {
-        Stock newStock = new Stock(product, destinationLocation, quantityToMove, sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-        stockRepository.save(newStock);
+        // Оставлено пустым, так как:
+        // 1. Физическое перемещение товара (addQuantity) происходит в AllocationExecutionService.dispatchAllocation()
+        // 2. Списание недостачи (recordShortageAdjustment) происходит в AllocationExecutionService.completeAllocation()
     }
 
     @Override
@@ -92,15 +33,26 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
             .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
         List<Allocation> allocations = allocationRepository.findAllByTaskId(task.getId());
 
-        boolean allCanceled = !allocations.isEmpty() && allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.CANCELED);
-        boolean hasPartialHistory = allocations.stream().anyMatch(allocation ->
-            allocation.getStatus() == Status.CANCELED
-                || allocation.getStatus() == Status.SHORTAGE
-                || allocation.getStatus() == Status.PARTIALLY_COMPLETED
-                || resolvedDeliveredQuantity(allocation) < Optional.ofNullable(allocation.getQuantity()).orElse(0)
+        boolean hasPending = allocations.stream().anyMatch(allocation ->
+            allocation.getStatus() == Status.CREATED
+                || allocation.getStatus() == Status.ASSIGNED
+                || allocation.getStatus() == Status.IN_PROGRESS
         );
 
-        replenishment.setStatus(allCanceled ? Status.CANCELED : hasPartialHistory ? Status.PARTIALLY_COMPLETED : Status.COMPLETED);
+        if (hasPending) {
+            replenishment.setStatus(Status.IN_PROGRESS);
+        } else {
+            boolean allCanceled = !allocations.isEmpty() && allocations.stream().allMatch(allocation -> allocation.getStatus() == Status.CANCELED);
+            boolean hasPartialHistory = allocations.stream().anyMatch(allocation ->
+                allocation.getStatus() == Status.CANCELED
+                    || allocation.getStatus() == Status.SHORTAGE
+                    || allocation.getStatus() == Status.PARTIALLY_COMPLETED
+                    || resolvedDeliveredQuantity(allocation) < Optional.ofNullable(allocation.getQuantity()).orElse(0)
+            );
+
+            replenishment.setStatus(allCanceled ? Status.CANCELED : hasPartialHistory ? Status.PARTIALLY_COMPLETED : Status.COMPLETED);
+        }
+
         replenishmentRepository.save(replenishment);
         return true;
     }

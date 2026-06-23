@@ -26,25 +26,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/**
- * AI tool functions for inventory management operations.
- * <p>
- * Provides a set of callable methods that the AI chatbot can invoke to query stock levels,
- * search products semantically, receive inbound stock, adjust inventory, and generate low‑stock
- * warnings. Each method is annotated with {@link org.springframework.ai.tool.annotation.Tool}
- * and a description, enabling the AI to decide when to use them.
- * </p>
- * <p>
- * The service integrates with the main {@link InventoryService} and {@link InventoryAdjustmentService}
- * to perform actual database operations, and uses a {@link VectorStore} for semantic product search.
- * </p>
- *
- * @see InventoryService
- * @see InventoryAdjustmentService
- * @see VectorStore
- * @see Product
- * @see Stock
- */
 @Slf4j
 @Service("inventoryAiTools")
 @RequiredArgsConstructor
@@ -59,13 +40,6 @@ public class InventoryAiTools {
     private final SecurityFacade securityFacade;
     private final VectorStore vectorStore;
 
-    /**
-     * Searches for products by semantic similarity using vector embeddings.
-     * Useful when the user describes a product conceptually rather than by exact barcode.
-     *
-     * @param nameQuery the product name, description, or conceptual query
-     * @return a formatted list of the top matching products with names and barcodes
-     */
     @Tool(description = "Searches for products by their name, description, or semantic meaning. Use this when the user asks about a product without a barcode, or describes a product conceptually.")
     public String searchProductByName(@ToolParam(description = "The name, part of the name, or conceptual description of the product") String nameQuery) {
         log.info("AI invoked searchProductByName (Vector Search) for query: {}", nameQuery);
@@ -89,13 +63,6 @@ public class InventoryAiTools {
         return response.toString();
     }
 
-    /**
-     * Checks detailed inventory information for a product by its exact barcode.
-     * Returns a Markdown table with stock details across all locations.
-     *
-     * @param productBarcode the product barcode
-     * @return a formatted string with product details and stock breakdown
-     */
     @Tool(description = "Use this to check ALL detailed information about a product and its stock in the warehouse by barcode.")
     public String checkStockByBarcode(@ToolParam(description = "The exact barcode of the product") String productBarcode) {
         log.info("AI invoked checkStockByBarcode tool for barcode: {}", productBarcode);
@@ -140,14 +107,6 @@ public class InventoryAiTools {
         return formatLowStockWarnings(productRepository.findAll());
     }
 
-    /**
-     * Receives inbound stock from a supplier into a specific location.
-     *
-     * @param productBarcode   the product barcode
-     * @param quantity         the quantity being received
-     * @param locationBarcode  the destination location barcode
-     * @return a success or error message
-     */
     @Tool(description = "Receives new inbound stock from external suppliers directly into a specific warehouse location.")
     public String receiveInboundStock(
         @ToolParam(description = "Barcode of the product being received") String productBarcode,
@@ -172,17 +131,6 @@ public class InventoryAiTools {
         }
     }
 
-    /**
-     * Adjusts physical inventory count to a new absolute quantity, with a reason.
-     * Supports reasons: DAMAGED, LOST, STOLEN, INVENTORY_MISMATCH.
-     *
-     * @param productBarcode  the product barcode
-     * @param locationBarcode the location barcode
-     * @param newQuantity     the new total physical quantity
-     * @param reason          the adjustment reason (must match enum exactly)
-     * @param comment         optional comment
-     * @return a success or error message
-     */
     @Tool(description = "Adjusts or writes off inventory stock when items are damaged, lost, stolen, or have an inventory mismatch.")
     public String adjustInventoryStock(
         @ToolParam(description = "Barcode of the product") String productBarcode,
@@ -231,7 +179,7 @@ public class InventoryAiTools {
 
     private String formatStockDetails(Product product, List<Stock> stocks) {
         StringBuilder sb = new StringBuilder();
-        String encodedName = URLEncoder.encode(product.getName(), StandardCharsets.UTF_8);
+        String encodedName = URLEncoder.encode(product.getName(), StandardCharsets.UTF_8).replace("+", "%20");
 
         String productUrl = String.format("/supervisor/products?productId=%d&barcode=%s&product=%s",
             product.getId(), product.getBarcode(), encodedName);

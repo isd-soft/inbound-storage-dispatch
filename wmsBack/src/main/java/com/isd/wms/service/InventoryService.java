@@ -77,7 +77,6 @@ public class InventoryService {
      */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
-        validateStockDate(request.manufactureDate(), request.expirationDate());
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
             request.productId(), request.locationId(), request.quantity(), request.userId());
 
@@ -112,15 +111,17 @@ public class InventoryService {
 
     @Transactional
     public void deleteStock(Long stockId) {
-        adjustStock(new AdjustStockRequest(
+        inventoryAdjustmentService.adjustStock(
             stockId,
-            0,
-            securityFacade.getCurrentUser().getId(),
-            InventoryAdjustmentReason.INVENTORY_MISMATCH,
-            "Deleted manually",
-            null,
-            null
-        ));
+            new InventoryAdjustmentRequest(
+                0,
+                securityFacade.getCurrentUser().getId(),
+                InventoryAdjustmentReason.INVENTORY_MISMATCH,
+                "Deleted manually",
+                null,
+                null
+            )
+        );
     }
 
     /**
@@ -182,6 +183,11 @@ public class InventoryService {
     }
 
     @Transactional
+    public void recordPickingHistory(Stock stock, Integer pickedQuantity, User user) {
+        recordPickingHistory(stock, pickedQuantity, user, null, null);
+    }
+
+    @Transactional
     public void recordPickingHistory(
         Stock stock,
         Integer pickedQuantity,
@@ -191,10 +197,20 @@ public class InventoryService {
     ) {
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
             InventoryOperationType.PICKING, adjustmentReason, comment, user);
+        triggerReplenishmentCheck(stock);
     }
 
+    /**
+     * Universally records a shortage adjustment for any task type (Picking or Replenishment).
+     */
     @Transactional
-    public void recordPickingShortageAdjustment(Stock stock, Integer shortageQuantity, User user, String comment) {
+    public void recordShortageAdjustment(
+        Stock stock,
+        Integer shortageQuantity,
+        User user,
+        InventoryOperationType operationType,
+        String comment
+    ) {
         if (shortageQuantity == null || shortageQuantity <= 0) {
             return;
         }
@@ -204,10 +220,16 @@ public class InventoryService {
         stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
         stockRepository.save(stock);
 
+        InventoryAdjustmentReason reason = (operationType == InventoryOperationType.PICKING_SHORTAGE)
+            ? InventoryAdjustmentReason.PICKING_SHORTAGE : null;
+
         createHistory(stock, -shortageQuantity, quantityAfterChange, stock.getLocation(), null,
-            InventoryOperationType.ADJUST_STOCK, InventoryAdjustmentReason.PICKING_SHORTAGE, comment, user);
-        log.info("Picking shortage adjustment recorded: stockId={}, shortageQuantity={}, quantityAfterChange={}",
-            stock.getId(), shortageQuantity, quantityAfterChange);
+            operationType, reason, comment, user);
+
+        log.info("Shortage adjustment recorded: stockId={}, operationType={}, shortageQuantity={}, quantityAfterChange={}",
+            stock.getId(), operationType.name(), shortageQuantity, quantityAfterChange);
+
+        triggerReplenishmentCheck(stock);
     }
 
     private void createHistory(

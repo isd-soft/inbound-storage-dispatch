@@ -157,9 +157,10 @@ public class WorkflowService {
         Stock sourceStock = allocation.getStock();
 
         int quantityToMove = allocation.getPickedQuantity().orElseGet(allocation::getQuantity);
-        boolean partialPick = allocation.getPickedQuantity().isPresent()
-                && allocation.getPickedQuantity().get() < allocation.getQuantity();
-        if (!partialPick) {
+
+        // НАШ ФИКС: Списываем физический остаток всегда, если мы хоть что-то собрали!
+        // Никаких проверок partialPick перед списанием
+        if (quantityToMove > 0) {
             sourceStock.removeQuantity(quantityToMove);
             if (sourceStock.getQuantity() == 0 && sourceStock.getReservedQuantity() == 0) {
                 sourceStock.setAvailable(Boolean.FALSE);

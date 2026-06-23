@@ -113,6 +113,7 @@ public class AllocationController {
 
     /**
      * Dispatches the specified allocation and releases the associated transport unit.
+     * For replenishments, this physically moves the gathered stock to the destination location.
      *
      * @param id             the ID of the allocation to dispatch
      * @param currentBarcode the barcode of the transport unit currently linked to the allocation
@@ -124,14 +125,13 @@ public class AllocationController {
         @PathVariable Long id,
         @RequestParam String currentBarcode) {
 
-        log.info("Initiating DISPATCH process for Allocation ID: {}, linked with TU: {}", id, currentBarcode);
-        tuService.releaseTransportUnit(currentBarcode);
+        allocationExecutionService.dispatchAllocation(id, currentBarcode);
 
         TaskActionResponse response = new TaskActionResponse(
             "COMPLETED",
             false,
             null,
-            "Drop TU at dispatch",
+            "Drop TU at destination",
             "Task completed successfully. Transport Unit has been released."
         );
         return ResponseEntity.ok(response);

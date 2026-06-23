@@ -4,17 +4,8 @@ import com.isd.wms.dto.operator.OperatorOrderLineSummaryResponse;
 import com.isd.wms.dto.operator.OperatorAllocationSummaryResponse;
 import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.dto.allocation.*;
-import com.isd.wms.entity.Order;
-import com.isd.wms.entity.OrderLine;
-import com.isd.wms.entity.Allocation;
-import com.isd.wms.entity.Product;
-import com.isd.wms.entity.Replenishment;
-import com.isd.wms.entity.Stock;
-import com.isd.wms.entity.User;
-import com.isd.wms.enums.InventoryAdjustmentReason;
-import com.isd.wms.enums.OrderStatus;
-import com.isd.wms.enums.Status;
-import com.isd.wms.enums.TaskType;
+import com.isd.wms.entity.*;
+import com.isd.wms.enums.*;
 import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.exception.AllocationsNotFoundException;
 import com.isd.wms.exception.StockNotFoundException;
@@ -34,16 +25,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service responsible for the step-by-step execution of allocation tasks by operators.
- *
- * <p>Covers the full operator-facing lifecycle: retrieving the current task summary,
- * starting a task, scanning source locations and product barcodes, confirming picked
- * quantities, handling picking shortages with automatic reallocation, and completing
- * both picking-order and replenishment allocations. Also manages transport-unit
- * linking and release, inventory history recording, and order/order-line status
- * progression.</p>
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -61,35 +42,16 @@ public class AllocationExecutionService {
     private final WorkflowService workflowService;
     private final PickingFlowService pickingFlowService;
 
-    /**
-     * Returns a summary of the current active task for the authenticated operator.
-     *
-     * <p>Looks up the operator's earliest active allocation. For picking-order tasks
-     * the summary is built around the parent order; for replenishment tasks it is
-     * built around the individual allocation. If the operator has a picked order
-     * awaiting final confirmation, that order's summary is returned instead.</p>
-     *
-     * @return an {@link Optional} containing the {@link OperatorTaskSummaryResponse}
-     *         if an active task exists, or empty if the operator has nothing to do
-     */
     public Optional<OperatorTaskSummaryResponse> getCurrentSummary() {
         Optional<CurrentAssignment> assignment = findCurrentAssignment(securityFacade.getCurrentUsername());
         return assignment.map(currentAssignment -> currentAssignment.taskType() == TaskType.PICKING_ORDER
-            ? toPickingSummary(currentAssignment.order())
-            : toReplenishmentSummary(currentAssignment.allocation())).or(() -> findPickedOrderAwaitingCompletion(securityFacade.getCurrentUser())
-            .map(this::toPickingSummary)
-            .filter(summary -> summary.currentAllocation() != null));
+                ? toPickingSummary(currentAssignment.order())
+                : toReplenishmentSummary(currentAssignment.allocation().getTask(), currentAssignment.allocation()))
+            .or(() -> findPickedOrderAwaitingCompletion(securityFacade.getCurrentUser())
+                .map(this::toPickingSummary)
+                .filter(summary -> summary.currentAllocation() != null));
     }
 
-    /**
-     * Transitions the current task to {@code IN_PROGRESS} and returns its updated summary.
-     *
-     * <p>If the task is already in progress this is a no-op. The parent order or
-     * replenishment status is also advanced to {@code IN_PROGRESS} if applicable.</p>
-     *
-     * @return the updated {@link OperatorTaskSummaryResponse} after the task is started
-     * @throws InvalidRequestException if no assigned task exists for the current operator
-     */
     @Transactional
     public OperatorTaskSummaryResponse startCurrentTask() {
         CurrentAssignment assignment = findCurrentAssignment(securityFacade.getCurrentUsername())
@@ -101,20 +63,9 @@ public class AllocationExecutionService {
         }
 
         startAllocationExecution(assignment.allocation(), null);
-        return toReplenishmentSummary(assignment.allocation());
+        return toReplenishmentSummary(assignment.allocation().getTask(), assignment.allocation());
     }
 
-    /**
-     * Finalises a picked order after all its allocations have been completed or cancelled.
-     *
-     * <p>Sets the order status to {@code COMPLETED}, {@code PARTIALLY_COMPLETED}, or
-     * {@code CANCELED} depending on the terminal statuses of its order lines, then
-     * releases the associated transport unit.</p>
-     *
-     * @throws InvalidRequestException if no picked order is found for the current operator,
-     *                                 if the order is not in the correct state, or if there
-     *                                 are outstanding non-terminal allocations or order lines
-     */
     @Transactional
     public void completeCurrentOrder() {
         Order order = findPickedOrderAwaitingCompletion(securityFacade.getCurrentUser())
@@ -173,11 +124,6 @@ public class AllocationExecutionService {
             .sum();
     }
 
-    /**
-     * Returns all allocations currently assigned to or in progress by the authenticated operator.
-     *
-     * @return a list of {@link AllocationExecutionResponse} objects for active allocations
-     */
     public List<AllocationExecutionResponse> getAssignedAllocations() {
         User operator = securityFacade.getCurrentUser();
         return allocationRepository.findByOperatorAndStatuses(
@@ -187,15 +133,6 @@ public class AllocationExecutionService {
             .toList();
     }
 
-    /**
-     * Identifies the oldest assigned allocation for the current operator and returns its ID.
-     *
-     * <p>Also transitions the associated order line and order to {@code IN_PROGRESS} if needed.</p>
-     *
-     * @return the ID of the allocation that was started
-     * @throws AllocationsNotFoundException if no assigned allocation exists for the operator
-     * @throws InvalidRequestException      if the allocation record cannot be found
-     */
     @Transactional
     public Long startAllocation() {
         String currentUsername = securityFacade.getCurrentUsername();
@@ -219,14 +156,6 @@ public class AllocationExecutionService {
         return allocationId;
     }
 
-    /**
-     * Validates and records the source-location barcode scan step for an allocation.
-     *
-     * @param allocationId the ID of the allocation being processed
-     * @param request      the scan request containing the scanned barcode
-     * @return an {@link AllocationExecutionResponse} with the updated scan state
-     * @throws InvalidRequestException if the scanned barcode does not match the expected location
-     */
     @Transactional
     public AllocationExecutionResponse scanSourceLocation(Long allocationId, BarcodeScanRequest request) {
         Allocation allocation = getAssignedAllocationInProgress(allocationId);
@@ -243,17 +172,6 @@ public class AllocationExecutionService {
         return toResponse(allocationRepository.save(allocation));
     }
 
-    /**
-     * Validates and records the product barcode scan step for an allocation.
-     *
-     * <p>The source location must have been scanned before calling this method.</p>
-     *
-     * @param allocationId the ID of the allocation being processed
-     * @param request      the scan request containing the scanned product barcode
-     * @return an {@link AllocationExecutionResponse} with the updated scan state
-     * @throws InvalidRequestException if the source location has not been scanned yet,
-     *                                 or if the barcode does not match the expected product
-     */
     @Transactional
     public AllocationExecutionResponse scanProduct(Long allocationId, BarcodeScanRequest request) {
         Allocation allocation = getAssignedAllocationInProgress(allocationId);
@@ -272,27 +190,15 @@ public class AllocationExecutionService {
         }
 
         stockRepository.findByProductIdAndLocationIdAndAvailableIsTrue(
-                expectedProduct.getId(),
-                expectedStock.getLocation().getId()
-            ).orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
+            expectedProduct.getId(),
+            expectedStock.getLocation().getId()
+        ).orElseThrow(() -> new StockNotFoundException(expectedStock.getId()));
 
         allocation.setProductScanned(true);
         log.info("Product barcode scanned successfully for allocation {}", allocationId);
         return toResponse(allocationRepository.save(allocation));
     }
 
-    /**
-     * Records the operator's confirmed picked quantity for an allocation.
-     *
-     * <p>The product barcode must have been scanned before calling this method.
-     * The picked quantity must be between 0 and the allocation's required quantity.</p>
-     *
-     * @param allocationId the ID of the allocation being processed
-     * @param request      the request containing the confirmed picked quantity
-     * @return an {@link AllocationExecutionResponse} with the updated state
-     * @throws InvalidRequestException if the product has not been scanned, or if
-     *                                 the picked quantity is invalid
-     */
     @Transactional
     public AllocationExecutionResponse confirmPickedQuantity(Long allocationId, ConfirmPickedQuantityRequest request) {
         Allocation allocation = getAssignedAllocationInProgress(allocationId);
@@ -308,28 +214,6 @@ public class AllocationExecutionService {
         return toResponse(allocationRepository.save(allocation));
     }
 
-    /**
-     * Completes an allocation after all scan and confirmation steps have been performed.
-     *
-     * <p>For replenishment tasks the allocation is simply finalised and the transport
-     * unit released. For picking-order tasks the method additionally:
-     * <ul>
-     *   <li>Calculates shortage quantities and attempts to create shortage allocations
-     *       from alternative stock.</li>
-     *   <li>Records inventory picking history (or shortage adjustment history for
-     *       partial picks).</li>
-     *   <li>Advances the order-line and order statuses.</li>
-     *   <li>Auto-advances the picking flow to the next allocation when the current
-     *       source location is exhausted.</li>
-     * </ul>
-     *
-     * @param allocationId the ID of the allocation to complete
-     * @return an {@link AllocationCompletionResponse} describing the outcome, any shortage
-     *         allocations created, and the updated task summary
-     * @throws InvalidRequestException if any prerequisite step (location scan, product scan,
-     *                                 quantity confirmation) has not been completed, or if
-     *                                 the allocation is not in the correct state
-     */
     @Transactional
     public AllocationCompletionResponse completeAllocation(Long allocationId) {
         Allocation allocation = getAssignedAllocationInProgress(allocationId);
@@ -356,18 +240,26 @@ public class AllocationExecutionService {
             boolean zeroPickedQuantity = pickedQuantity == 0;
             int shortageQuantity = partialPick ? Math.max(0, allocation.getQuantity() - pickedQuantity) : 0;
 
+            if (shortageQuantity > 0) {
+                inventoryService.recordShortageAdjustment(
+                    savedAllocation.getStock(),
+                    shortageQuantity,
+                    operator,
+                    InventoryOperationType.REPLENISHMENT_SHORTAGE,
+                    "Replenishment shortage"
+                );
+            }
+
             List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
                 ? createReplenishmentShortageAllocations(savedAllocation, shortageQuantity)
                 : List.of();
 
             AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
-
-            if (!hasActiveAllocations(savedAllocation.getTask().getId())) {
-                releaseTransportUnitForAllocation(savedAllocation);
-            }
+            autoAdvanceGroupedPickingFlow(savedAllocation);
 
             Allocation currentAllocation = findCurrentReplenishmentAllocation(savedAllocation.getTask().getId())
-                .orElse(savedAllocation);
+                .orElse(null);
+
             log.info("Replenishment allocation {} completed by operator {} with pickedQuantity={}",
                 allocationId, operator.getUsername(), pickedQuantity);
 
@@ -383,10 +275,10 @@ public class AllocationExecutionService {
                 null,
                 shortageQuantity > 0
                     ? (shortageAllocations.isEmpty()
-                        ? "No alternative stock found. Replenishment was partially completed."
-                        : "Alternative stock found. New replenishment task was created.")
+                    ? "No alternative stock found. Replenishment was partially completed."
+                    : "Alternative stock found. New replenishment task was created.")
                     : "Allocation completed successfully.",
-                toReplenishmentSummary(currentAllocation)
+                toReplenishmentSummary(savedAllocation.getTask(), currentAllocation)
             );
         }
 
@@ -396,36 +288,36 @@ public class AllocationExecutionService {
 
         OrderLine orderLine = orderLineRepository.findByTaskId(allocation.getTask().getId())
             .orElseThrow(() -> new InvalidRequestException("Order line not found for task " + allocation.getTask().getId()));
+
         int currentDeliveredQuantity = Optional.ofNullable(orderLine.getDeliveredQuantity()).orElse(0);
+        int previousPermanentShortage = Optional.ofNullable(orderLine.getShortageQuantity()).orElse(0);
         int totalDeliveredQuantity = zeroPickedQuantity ? 0 : currentDeliveredQuantity + pickedQuantity;
-        int totalShortageQuantity = zeroPickedQuantity ? orderLine.getRequestedQuantity() : Math.max(0,
-            orderLine.getRequestedQuantity() - totalDeliveredQuantity);
 
         orderLine.setDeliveredQuantity(totalDeliveredQuantity);
-        orderLine.setShortageQuantity(totalShortageQuantity);
-        if (zeroPickedQuantity) {
-            orderLine.setStatus(Status.CANCELED);
-        }
-
-        int stockQuantityBeforeShortageAdjustment = allocation.getStock().getQuantity();
 
         List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
             ? createShortageAllocations(savedAllocation, shortageQuantity)
             : List.of();
-        int remainingShortageQuantity = Math.max(0,
-            shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
+
+        int currentUnresolvedShortage = Math.max(0, shortageQuantity - shortageAllocations.stream().mapToInt(Allocation::getQuantity).sum());
+
+        if (zeroPickedQuantity) {
+            orderLine.setStatus(Status.CANCELED);
+            currentUnresolvedShortage = orderLine.getRequestedQuantity() - currentDeliveredQuantity;
+        }
 
         if (partialPick) {
-            inventoryService.recordPickingShortageAdjustment(
+            inventoryService.recordShortageAdjustment(
                 savedAllocation.getStock(),
-                stockQuantityBeforeShortageAdjustment,
+                shortageQuantity,
                 operator,
+                InventoryOperationType.PICKING_SHORTAGE,
                 "Picking shortage"
             );
         }
 
         AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
-        if (!partialPick) {
+        if (pickedQuantity > 0) {
             inventoryService.recordPickingHistory(
                 savedAllocation.getStock(),
                 pickedQuantity,
@@ -434,13 +326,9 @@ public class AllocationExecutionService {
                 shortageQuantity > 0 ? "Picking shortage" : null
             );
         }
-        if (zeroPickedQuantity) {
-            autoAdvanceGroupedPickingFlow(savedAllocation);
-        } else if (!partialPick) {
-            autoAdvanceGroupedPickingFlow(savedAllocation);
-        }
+        autoAdvanceGroupedPickingFlow(savedAllocation);
 
-        orderLine.setShortageQuantity(remainingShortageQuantity);
+        orderLine.setShortageQuantity(previousPermanentShortage + currentUnresolvedShortage);
         orderLineRepository.save(orderLine);
         Status orderLineStatus = orderLine.getStatus();
         Order order = orderLine.getOrder();
@@ -477,13 +365,6 @@ public class AllocationExecutionService {
         );
     }
 
-    /**
-     * Delegates to {@link #completeAllocation(Long)} to complete an allocation assigned to
-     * the current operator.
-     *
-     * @param allocationId the ID of the allocation to complete
-     * @return an {@link AllocationCompletionResponse} describing the outcome
-     */
     @Transactional
     public AllocationCompletionResponse completeAssignedAllocation(Long allocationId) {
         return completeAllocation(allocationId);
@@ -513,7 +394,11 @@ public class AllocationExecutionService {
             return currentAllocation.map(allocation -> new CurrentAssignment(allocation, TaskType.PICKING_ORDER, order));
         }
 
-        return Optional.of(new CurrentAssignment(earliestAssignedAllocation, TaskType.REPLENISHMENT, null));
+        List<Allocation> replAllocations = allocationRepository.findAllByTaskId(earliestAssignedAllocation.getTask().getId());
+        List<Allocation> orderedReplAllocations = pickingFlowService.orderAllocationsBySourceLocation(replAllocations);
+        Optional<Allocation> currentReplAllocation = pickingFlowService.findCurrentExecutableAllocation(orderedReplAllocations);
+
+        return currentReplAllocation.map(allocation -> new CurrentAssignment(allocation, TaskType.REPLENISHMENT, null));
     }
 
     private void startAllocationExecution(Allocation allocation, Order order) {
@@ -583,10 +468,57 @@ public class AllocationExecutionService {
             Math.toIntExact(completedAllocationCount),
             readyForCompletion,
             isTuScannedForOrder,
-            currentAllocation != null ? toAllocationSummary(currentAllocation, order, isTuScannedForOrder) : null, // Pozitia 11 (Obiectul curent)
+            currentAllocation != null ? toAllocationSummary(currentAllocation, order, isTuScannedForOrder) : null,
             lineSummaries,
             orderedAllocations.stream().map(allocation -> toAllocationSummary(allocation, order, isTuScannedForOrder)).toList()
         );
+    }
+
+    @Transactional
+    public void dispatchAllocation(Long allocationId, String tuBarcode) {
+        log.info("Initiating DISPATCH process for Allocation ID: {}, linked with TU: {}", allocationId, tuBarcode);
+
+        Allocation allocation = getAssignedAllocation(allocationId);
+        Task task = allocation.getTask();
+
+        if (task.getTaskType() == TaskType.REPLENISHMENT) {
+            Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
+                .orElseThrow(() -> new InvalidRequestException("Replenishment not found"));
+
+            Location destinationLocation = replenishment.getDestinationLocation();
+
+            List<Allocation> taskAllocations = allocationRepository.findAllByTaskId(task.getId());
+            for (Allocation alloc : taskAllocations) {
+                if (alloc.getStatus() == Status.COMPLETED || alloc.getStatus() == Status.PARTIALLY_COMPLETED) {
+                    int quantityToMove = alloc.getPickedQuantity().orElse(alloc.getQuantity());
+                    if (quantityToMove > 0) {
+                        Product product = alloc.getStock().getProduct().orElseThrow();
+
+                        stockRepository.findByLocationId(destinationLocation.getId())
+                            .ifPresentOrElse(existingStock -> {
+                                Product existingProduct = existingStock.getProduct().orElse(null);
+                                if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
+                                    if (existingStock.getQuantity() == 0 && existingStock.getReservedQuantity() == 0) {
+                                        existingStock.setProduct(product);
+                                        existingStock.setQuantity(existingStock.getQuantity() + quantityToMove);
+                                        existingStock.updateDate(alloc.getStock().getManufactureDate(), alloc.getStock().getExpirationDate());
+                                    } else {
+                                        throw new IllegalStateException("Location is already occupied by a different product!");
+                                    }
+                                } else {
+                                    if (existingProduct == null) existingStock.setProduct(product);
+                                    existingStock.addQuantity(quantityToMove);
+                                    existingStock.updateDate(alloc.getStock().getManufactureDate(), alloc.getStock().getExpirationDate());
+                                }
+                            }, () -> {
+                                Stock newStock = new Stock(product, destinationLocation, quantityToMove, alloc.getStock().getManufactureDate(), alloc.getStock().getExpirationDate());
+                                stockRepository.save(newStock);
+                            });
+                    }
+                }
+            }
+        }
+        releaseTransportUnitForAllocation(allocation);
     }
 
     private static Long getTaskId(OrderLine orderLine) {
@@ -596,11 +528,11 @@ public class AllocationExecutionService {
         return orderLine.getTask().orElseThrow().getId();
     }
 
-    private OperatorTaskSummaryResponse toReplenishmentSummary(Allocation currentAllocation) {
-        Replenishment replenishment = replenishmentRepository.findByTaskId(currentAllocation.getTask().getId())
+    private OperatorTaskSummaryResponse toReplenishmentSummary(Task task, Allocation currentAllocation) {
+        Replenishment replenishment = replenishmentRepository.findByTaskId(task.getId())
             .orElseThrow(() -> new InvalidRequestException("Replenishment task not found"));
 
-        List<Allocation> taskAllocations = allocationRepository.findAllByTaskId(currentAllocation.getTask().getId()).stream()
+        List<Allocation> taskAllocations = allocationRepository.findAllByTaskId(task.getId()).stream()
             .sorted(Comparator.comparing(Allocation::getCreatedAt).thenComparing(Allocation::getId))
             .toList();
 
@@ -611,17 +543,17 @@ public class AllocationExecutionService {
         boolean isTuScannedForRepl = tuRepository.existsByReplenishment(replenishment);
 
         return new OperatorTaskSummaryResponse(
-            currentAllocation.getTask().getId(),
+            task.getId(),
             null,
             null,
             null,
-            currentAllocation.getTask().getTaskType().name(),
+            task.getTaskType().name(),
             replenishment.getDestinationLocation().getBarcode(),
             taskAllocations.size(),
             Math.toIntExact(completedAllocationCount),
-            false,
+            currentAllocation == null,
             isTuScannedForRepl,
-            toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl),
+            currentAllocation != null ? toAllocationSummary(currentAllocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl) : null,
             List.of(),
             taskAllocations.stream()
                 .map(allocation -> toAllocationSummary(allocation, replenishment.getDestinationLocation().getBarcode(), isTuScannedForRepl))
@@ -804,9 +736,9 @@ public class AllocationExecutionService {
         Product product = sourceAllocation.getStock().getProduct()
             .orElseThrow(() -> new InvalidRequestException("Stock has no product"));
         List<Stock> alternativeStocks = stockRepository.findAvailableStocksByProductIdAndZone(
-            product.getId(),
-            sourceAllocation.getStock().getLocation().getZone()
-        ).stream()
+                product.getId(),
+                sourceAllocation.getStock().getLocation().getZone()
+            ).stream()
             .filter(stock -> !stock.getId().equals(sourceAllocation.getStock().getId()))
             .sorted(Comparator.comparing(this::availableQuantity).reversed().thenComparing(Stock::getId))
             .toList();
@@ -851,28 +783,33 @@ public class AllocationExecutionService {
     }
 
     private void autoAdvanceGroupedPickingFlow(Allocation completedAllocation) {
-        if (completedAllocation.getTask().getTaskType() != TaskType.PICKING_ORDER) {
-            return;
+        if (completedAllocation.getTask().getTaskType() == TaskType.PICKING_ORDER) {
+            orderLineRepository.findByTaskId(completedAllocation.getTask().getId()).ifPresent(orderLine -> {
+                List<Allocation> orderAllocations = allocationRepository.findAllByOrder(orderLine.getOrder());
+                advanceToNextAllocation(orderAllocations, completedAllocation);
+            });
+        } else if (completedAllocation.getTask().getTaskType() == TaskType.REPLENISHMENT) {
+            List<Allocation> replAllocations = allocationRepository.findAllByTaskId(completedAllocation.getTask().getId());
+            advanceToNextAllocation(replAllocations, completedAllocation);
         }
+    }
 
-        orderLineRepository.findByTaskId(completedAllocation.getTask().getId()).ifPresent(orderLine -> {
-            List<Allocation> orderAllocations = allocationRepository.findAllByOrder(orderLine.getOrder());
-            pickingFlowService.findNextExecutableAllocationAfter(orderAllocations, completedAllocation)
-                .ifPresent(nextAllocation -> {
-                    if (nextAllocation.getStatus() == Status.CREATED || nextAllocation.getStatus() == Status.ASSIGNED) {
-                        nextAllocation.setStatus(Status.IN_PROGRESS);
-                    }
+    private void advanceToNextAllocation(List<Allocation> allAllocations, Allocation completedAllocation) {
+        pickingFlowService.findNextExecutableAllocationAfter(allAllocations, completedAllocation)
+            .ifPresent(nextAllocation -> {
+                if (nextAllocation.getStatus() == Status.CREATED || nextAllocation.getStatus() == Status.ASSIGNED) {
+                    nextAllocation.setStatus(Status.IN_PROGRESS);
+                }
 
-                    boolean sameSourceLocation = nextAllocation.getStock().getLocation().getId()
-                        .equals(completedAllocation.getStock().getLocation().getId());
+                boolean sameSourceLocation = nextAllocation.getStock().getLocation().getId()
+                    .equals(completedAllocation.getStock().getLocation().getId());
 
-                    if (sameSourceLocation) {
-                        nextAllocation.setSourceLocationScanned(true);
-                    }
+                if (sameSourceLocation) {
+                    nextAllocation.setSourceLocationScanned(true);
+                }
 
-                    allocationRepository.save(nextAllocation);
-                });
-        });
+                allocationRepository.save(nextAllocation);
+            });
     }
 
     private AllocationExecutionResponse toResponse(Allocation allocation) {

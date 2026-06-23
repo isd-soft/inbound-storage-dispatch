@@ -72,6 +72,14 @@ public class Product extends BaseTimestampEntity {
         return Optional.ofNullable(this.minThreshold);
     }
 
+    /**
+     * Returns the replenish quantity as an Optional.
+     *
+     * @return the replenish quantity if set, otherwise empty
+     */
+    public Optional<Integer> getReplenishQty() {
+        return Optional.ofNullable(this.replenishQty);
+    }
     public Product(String name, String barcode, String description, Category category) {
         this.name = name;
         this.barcode = barcode;

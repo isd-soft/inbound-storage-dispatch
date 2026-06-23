@@ -118,7 +118,7 @@
           @click="confirmDeleteSelected"
         />
         <span v-if="editMode && canManageStock" class="app-muted text-sm"
-          >{{ selectedStockItems.length }} selected</span
+        >{{ selectedStockItems.length }} selected</span
         >
       </template>
       <Column
@@ -160,7 +160,6 @@
         </template>
       </Column>
 
-      <!-- Available -->
       <Column field="availableQuantity" header="Available" sortable filter>
         <template #body="{ data }">
           <span
@@ -321,7 +320,10 @@ const loadInventoryData = async () => {
     originalStockItems.value = cloneRows(stockResponse.data)
     modifiedStockIds.value = new Set()
     products.value = productsResponse.data
-    locations.value = locationsResponse.data.filter((location) => location.available !== false)
+
+    locations.value = locationsResponse.data.filter((location) =>
+      location.available !== false && location.zone !== 'DISPATCH'
+    )
     selectedStockItems.value = []
   } catch (error) {
     toast.add({
@@ -414,6 +416,7 @@ const submitQuantityChanges = async () => {
   actionLoading.value = true
   try {
     const changedStocks = stockItems.value.filter((stock) => modifiedStockIds.value.has(stock.id))
+
     const invalidStock = changedStocks.find(
       (stock) => stock.quantity === null || stock.quantity < 0,
     )
@@ -424,6 +427,32 @@ const submitQuantityChanges = async () => {
         detail: 'Quantity must be zero or greater.',
         life: 4000,
       })
+      actionLoading.value = false
+      return
+    }
+
+    const invalidDateStock = changedStocks.find((stock) => {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const mfg = stock.manufactureDate ? new Date(stock.manufactureDate) : null
+      const exp = stock.expirationDate ? new Date(stock.expirationDate) : null
+
+      if (mfg && mfg > today) return true
+      if (exp && exp < today) return true
+      if (mfg && exp && exp <= mfg) return true
+
+      return false
+    })
+
+    if (invalidDateStock) {
+      toast.add({
+        severity: 'error',
+        summary: 'Validation failed',
+        detail: 'Invalid dates detected. Manufacture cannot be in the future, and expiration must be strictly after manufacture.',
+        life: 5000,
+      })
+      actionLoading.value = false
       return
     }
 
