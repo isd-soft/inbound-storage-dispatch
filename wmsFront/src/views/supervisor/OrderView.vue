@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast position="top-right" />
     <ConfirmDialog />
 
     <Message v-if="loadError" severity="error" class="mb-6" :closable="false">
@@ -74,7 +73,7 @@
         <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
-            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi-chevron-right'"
+            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi chevron-right'"
             text
             rounded
             size="small"
@@ -84,9 +83,9 @@
         </template>
       </Column>
       <Column field="order.logicId" header="Logic ID" sortable filter />
-      <Column header="Destination" sortable>
+      <Column field="order.locationLabel" header="Destination" sortable filter>
         <template #body="{ data }">
-          {{ getLocationLabel(data.order.destinationLocationId) }}
+          {{ data.order.locationLabel }}
         </template>
       </Column>
       <Column header="Lines" style="width: 7rem">
@@ -103,15 +102,15 @@
             }}</span>
         </template>
       </Column>
-      <Column header="Status" sortable>
+      <Column field="order.formattedStatus" header="Status" sortable filter>
         <template #body="{ data }">
           <Tag
             :severity="getStatusSeverity(data.order.status || data.order.Status)"
-            :value="data.order.status || data.order.Status || 'CREATED'"
+            :value="data.order.formattedStatus"
           />
         </template>
       </Column>
-      <Column header="Assigned Operator" style="min-width: 14rem">
+      <Column field="order.assignedOperatorName" header="Assigned Operator" style="min-width: 14rem" filter>
         <template #body="{ data }">
           <Dropdown
             v-model="assignmentByOrderId[data.order.id]"
@@ -127,15 +126,15 @@
         </template>
       </Column>
 
-      <Column header="Transport Unit">
+      <Column field="order.transportUnitBarcode" header="Transport Unit" filter>
         <template #body="{ data }">
           <span class="font-mono font-semibold">{{ data.order.transportUnitBarcode || '-' }}</span>
         </template>
       </Column>
 
-      <Column field="order.createdAt" header="Created" sortable filter>
+      <Column field="order.formattedCreatedAt" header="Created" sortable filter>
         <template #body="{ data }">
-          {{ formatDate(data.order.createdAt) }}
+          {{ data.order.formattedCreatedAt }}
         </template>
       </Column>
       <template #expansion="{ data }">
@@ -173,9 +172,9 @@
                   }}</span>
               </template>
             </Column>
-            <Column field="status" header="Status" filter>
+            <Column field="formattedStatus" header="Status" filter>
               <template #body="{ data: line }">
-                <Tag :severity="getStatusSeverity(line.status)" :value="line.status || 'CREATED'" />
+                <Tag :severity="getStatusSeverity(line.status)" :value="line.formattedStatus" />
               </template>
             </Column>
           </AppDataTable>
@@ -348,17 +347,24 @@ const actionLoading = ref(false)
 const loadError = ref('')
 const submitted = ref(false)
 
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const orderFilterFields = [
   { field: 'order.logicId', label: 'Logic ID' },
-  { field: 'order.destinationLocationId', label: 'Destination' },
-  { field: 'order.status', label: 'Status' },
-  { field: 'order.createdAt', label: 'Created' },
+  { field: 'order.locationLabel', label: 'Destination' },
+  { field: 'order.formattedStatus', label: 'Status' },
+  { field: 'order.assignedOperatorName', label: 'Assigned Operator' },
+  { field: 'order.transportUnitBarcode', label: 'Transport Unit' },
+  { field: 'order.formattedCreatedAt', label: 'Created' },
 ]
 
 const orderLineFilterFields = [
   { field: 'productId', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
-  { field: 'status', label: 'Status' },
+  { field: 'formattedStatus', label: 'Status' },
 ]
 
 const orderCreateLineFilterFields = [
@@ -386,10 +392,24 @@ const handleImport = async (importData) => {
 const getErrorMessage = (error) =>
   error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
 
-const normalizeOrder = (order) => ({
-  order: order.order || order,
-  lines: order.lines || [],
-})
+const normalizeOrder = (entry) => {
+  const order = entry.order || entry;
+  const lines = entry.lines || [];
+
+  return {
+    order: {
+      ...order,
+      locationLabel: getLocationLabel(order.destinationLocationId),
+      formattedStatus: formatString(order.status || order.Status || 'CREATED'),
+      assignedOperatorName: operators.value.find(o => o.id === order.assignedOperatorId)?.username || '',
+      formattedCreatedAt: formatDate(order.createdAt)
+    },
+    lines: lines.map(line => ({
+      ...line,
+      formattedStatus: formatString(line.status || 'CREATED')
+    }))
+  }
+}
 
 const loadOrders = async () => {
   loading.value = true
@@ -425,7 +445,7 @@ const toggleEditMode = () => {
 const canEditSelected = computed(() => {
   if (selectedOrders.value.length !== 1) return false;
   const orderData = selectedOrders.value[0].order;
-  return orderData.status === 'CREATED' || orderData.Status === 'CREATED';
+  return ['CREATED', 'Created'].includes(orderData.status || orderData.Status || 'CREATED');
 });
 
 const loadOrderCreateData = async () => {
@@ -469,12 +489,7 @@ const openCreateDialog = async () => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Data load failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
   }
 }
 
@@ -502,12 +517,7 @@ const openEditDialog = async (orderData) => {
   try {
     await loadOrderCreateData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Data load failed',
-      detail: getErrorMessage(error),
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Data load failed', detail: getErrorMessage(error), life: 4000 })
   }
 }
 
@@ -533,7 +543,7 @@ const getProduct = (productId) => products.value.find((product) => product.id ==
 const getOrderQuantity = (order) =>
   (order.lines || []).reduce(
     (total, line) =>
-      line.status === 'CANCELED' || line.status === 'CANCELLED'
+      ['CANCELED', 'CANCELLED', 'Canceled'].includes(line.status || line.Status)
         ? total
         : total + Number(line.requestedQuantity ?? line.quantity ?? 0),
     0,
@@ -555,27 +565,17 @@ const getLocationLabel = (locationId) => {
 
 const isAssignmentLocked = (order) =>
   ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(
-    order?.status || order?.Status,
+    String(order?.status || order?.Status).toUpperCase().replace(/ /g, '_'),
   )
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
   try {
     await orderApi.assign(orderId, operatorId)
-    toast.add({
-      severity: 'success',
-      summary: 'Assigned',
-      detail: `Order #${orderId} assigned.`,
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Assigned', detail: `Order #${orderId} assigned.`, life: 3000 })
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Assign failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
   }
 }
 
@@ -593,21 +593,11 @@ const deleteSelectedOrders = async () => {
   actionLoading.value = true
   try {
     await Promise.all(selectedOrders.value.map((entry) => orderApi.delete(entry.order.id)))
-    toast.add({
-      severity: 'success',
-      summary: 'Deleted',
-      detail: `${selectedOrders.value.length} order(s) deleted.`,
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `${selectedOrders.value.length} order(s) deleted.`, life: 3000 })
     selectedOrders.value = []
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Delete failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Delete failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
@@ -624,7 +614,7 @@ const getStatusSeverity = (status) =>
     COMPLETED: 'success',
     CANCELED: 'danger',
     CANCELLED: 'danger',
-  })[status] || 'secondary'
+  })[String(status).toUpperCase().replace(/ /g, '_')] || 'secondary'
 
 const formatDate = (value) =>
   value
@@ -641,12 +631,7 @@ const onSubmit = async () => {
   const areLinesValid = formData.lines.length > 0 && formData.lines.every((line) => line.product && line.quantity >= 1)
 
   if (!isTopValid || !areLinesValid) {
-    toast.add({
-      severity: 'error',
-      summary: 'Validation Error',
-      detail: 'Please fill in all required fields.',
-      life: 4000
-    })
+    toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 4000 })
     return
   }
 
@@ -670,29 +655,20 @@ const onSubmit = async () => {
       toast.add({ severity: 'success', summary: 'Updated', detail: `Order updated.`, life: 3000 })
     } else {
       await orderApi.create(payload)
-      toast.add({
-        severity: 'success',
-        summary: 'Created',
-        detail: `Order created successfully.`,
-        life: 3000
-      })
+      toast.add({ severity: 'success', summary: 'Created', detail: `Order created successfully.`, life: 3000 })
     }
 
     closeFormDialog()
     await loadOrders()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Action failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Action failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
 }
 
 onMounted(async () => {
-  await Promise.all([loadOrders(), loadOrderCreateData()])
+  await loadOrderCreateData()
+  await loadOrders()
 })
 </script>

@@ -40,7 +40,7 @@ public class PickingAllocationCompletionStrategy implements AllocationCompletion
 
     private final OrderLineRepository orderLineRepository;
     private final OrderRepository orderRepository;
-    private final AllocationRepository allocationRepository; // ДОБАВЛЕНО ДЛЯ ЧТЕНИЯ ИЗ БД
+    private final AllocationRepository allocationRepository;
 
     @Override
     public boolean updateStatus(Task task) {

@@ -1,6 +1,5 @@
 <template>
   <div class="p-6">
-    <Toast position="top-right" />
     <ConfirmDialog />
 
     <AppDataTable
@@ -125,9 +124,9 @@
         </template>
       </Column>
 
-      <Column field="destinationLocationId" header="Destination" sortable filter>
+      <Column field="destinationLocationId" filterField="destinationLocationLabel" header="Destination" sortable filter>
         <template #body="slotProps">
-          <span class="app-subtitle font-semibold">{{ getLocationName(slotProps.data.destinationLocationId) }}</span>
+          <span class="app-subtitle font-semibold">{{ slotProps.data.destinationLocationLabel }}</span>
         </template>
         <template #editor="{ data, field }">
           <Dropdown
@@ -142,16 +141,16 @@
         </template>
       </Column>
 
-      <Column field="status" header="Status" sortable filter>
+      <Column field="status" filterField="formattedStatus" header="Status" sortable filter>
         <template #body="slotProps">
           <Tag
             :severity="getStatusSeverity(slotProps.data.status)"
-            :value="slotProps.data.status"
+            :value="slotProps.data.formattedStatus"
           />
         </template>
       </Column>
 
-      <Column field="assignedOperatorId" header="Assigned Operator">
+      <Column field="assignedOperatorName" header="Assigned Operator" filter>
         <template #body="slotProps">
           <Dropdown
             v-model="assignmentByTaskId[slotProps.data.taskId]"
@@ -175,9 +174,9 @@
         </template>
       </Column>
 
-      <Column field="createdAt" header="Created" sortable filter>
+      <Column field="formattedCreatedAt" header="Created" sortable filter>
         <template #body="slotProps">
-          <span class="app-muted text-sm">{{ formatDate(slotProps.data.createdAt) }}</span>
+          <span class="app-muted text-sm">{{ slotProps.data.formattedCreatedAt }}</span>
         </template>
       </Column>
     </AppDataTable>
@@ -330,7 +329,6 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
-import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
 import { replenishmentApi } from '@/api/replenishmentApi'
@@ -372,11 +370,11 @@ const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedReplenishmentIds.value.size > 0)
 
 const deletableSelectedReplenishments = computed(() =>
-  selectedReplenishments.value.filter((task) => task.status === 'CREATED'),
+  selectedReplenishments.value.filter((task) => String(task.status).toUpperCase() === 'CREATED'),
 )
 
 const cancelableSelectedReplenishments = computed(() =>
-  selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED'].includes(task.status)),
+  selectedReplenishments.value.filter((task) => !['COMPLETED', 'CANCELED', 'CANCELLED'].includes(String(task.status).toUpperCase())),
 )
 
 const handleImport = async (formData) => {
@@ -386,15 +384,21 @@ const handleImport = async (formData) => {
   return replenishmentApi.importReplenishments(formData)
 }
 
+const formatString = (str) => {
+  if (!str) return '';
+  return String(str).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const assignmentByTaskId = ref({})
 
 const replenishmentFilterFields = [
   { field: 'logicId', label: 'Reference' },
   { field: 'productName', label: 'Product' },
   { field: 'requestedQuantity', label: 'Requested Qty' },
-  { field: 'destinationLocationId', label: 'Destination' },
-  { field: 'status', label: 'Status' },
-  { field: 'createdAt', label: 'Created' },
+  { field: 'destinationLocationLabel', label: 'Destination' },
+  { field: 'formattedStatus', label: 'Status' },
+  { field: 'assignedOperatorName', label: 'Operator' },
+  { field: 'formattedCreatedAt', label: 'Created' },
 ]
 
 const newReplenishment = ref({
@@ -437,10 +441,11 @@ const formatDate = (ts) => {
 }
 
 const getStatusSeverity = (status) => {
-  switch (status) {
+  switch (String(status).toUpperCase().replace(/ /g, '_')) {
     case 'COMPLETED': return 'success'
     case 'PARTIALLY_COMPLETED': return 'warning'
-    case 'CANCELED': return 'secondary'
+    case 'CANCELED':
+    case 'CANCELLED': return 'secondary'
     case 'IN_PROGRESS':
     case 'ASSIGNED': return 'warning'
     case 'CREATED': return 'info'
@@ -448,7 +453,7 @@ const getStatusSeverity = (status) => {
   }
 }
 
-const isAssignmentLocked = (task) => ['ASSIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(task.status)
+const isAssignmentLocked = (task) => ['ASSIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED', 'CANCELED', 'CANCELLED'].includes(String(task.status).toUpperCase().replace(/ /g, '_'))
 
 const loadData = async () => {
   loading.value = true
@@ -484,7 +489,9 @@ const applyFilters = async () => {
       ...task,
       productName: getProductName(task.productId),
       assignedOperatorName: getOperatorName(task.assignedOperatorId),
-      destinationLocationId: task.destinationLocationId
+      destinationLocationLabel: getLocationName(task.destinationLocationId),
+      formattedStatus: formatString(task.status),
+      formattedCreatedAt: formatDate(task.createdAt)
     }))
 
     originalReplenishments.value = cloneRows(replenishments.value)
@@ -543,13 +550,7 @@ const handleUpdate = async () => {
 
     await replenishmentApi.update(editingReplenishment.value.id, payload)
 
-    toast.add({
-      severity: 'success',
-      summary: 'Updated',
-      detail: 'Replenishment updated successfully.',
-      life: 3000,
-    })
-
+    toast.add({ severity: 'success', summary: 'Updated', detail: 'Replenishment updated successfully.', life: 3000 })
     editDialogVisible.value = false
     await loadData()
   } catch (error) {
@@ -568,6 +569,13 @@ const onCellEditComplete = ({ data, newValue, field }) => {
   if (!editMode.value) return
   if (newValue !== undefined) {
     data[field] = newValue
+  }
+
+  if (field === 'destinationLocationId') {
+    data.destinationLocationLabel = getLocationName(data.destinationLocationId)
+  }
+  if (field === 'status') {
+    data.formattedStatus = formatString(data.status)
   }
 
   const original = originalReplenishments.value.find((item) => item.id === data.id)
@@ -605,22 +613,12 @@ const submitQuantityChanges = async () => {
       destinationLocationId: repl.destinationLocationId
     })))
 
-    toast.add({
-      severity: 'success',
-      summary: 'Tasks updated',
-      detail: `${changedTasks.length} task(s) updated.`,
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Tasks updated', detail: `${changedTasks.length} task(s) updated.`, life: 3000 })
     editMode.value = false
     selectedReplenishments.value = []
     await loadData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Save failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Save failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }
@@ -636,12 +634,7 @@ const confirmResetChanges = (afterReset) => {
       replenishments.value = cloneRows(originalReplenishments.value)
       modifiedReplenishmentIds.value = new Set()
       selectedReplenishments.value = []
-      toast.add({
-        severity: 'info',
-        summary: 'Changes reset',
-        detail: 'Unsaved changes were discarded.',
-        life: 2500
-      })
+      toast.add({ severity: 'info', summary: 'Changes reset', detail: 'Unsaved changes were discarded.', life: 2500 })
       if (typeof afterReset === 'function') afterReset()
     }
   })
@@ -651,12 +644,7 @@ const handleCreate = async () => {
   actionLoading.value = true
   try {
     await replenishmentApi.create(newReplenishment.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Replenishment task created.',
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Replenishment task created.', life: 3000 })
     createDialogVisible.value = false
     await loadData()
   } finally {
@@ -669,20 +657,10 @@ const assignReplenishment = async (id, operatorId) => {
   actionLoading.value = true
   try {
     await replenishmentApi.assign(id, operatorId)
-    toast.add({
-      severity: 'success',
-      summary: 'Assigned',
-      detail: `Replenishment #${id} assigned to operator.`,
-      life: 3000
-    })
+    toast.add({ severity: 'success', summary: 'Assigned', detail: `Replenishment #${id} assigned to operator.`, life: 3000 })
     await loadData()
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Assign failed',
-      detail: getErrorMessage(error),
-      life: 5000
-    })
+    toast.add({ severity: 'error', summary: 'Assign failed', detail: getErrorMessage(error), life: 5000 })
   } finally {
     actionLoading.value = false
   }

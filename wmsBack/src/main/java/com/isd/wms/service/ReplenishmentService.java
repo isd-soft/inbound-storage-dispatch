@@ -105,7 +105,6 @@ public class ReplenishmentService {
         Replenishment replenishment = new Replenishment(product, request.requestedQuantity(), destinationLocation);
         replenishment.setStatus(Status.CREATED);
 
-        // АВТОГЕНЕРАЦИЯ ЛОГИЧЕСКОГО ID
         replenishment.setLogicId("REPL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
         replenishment = replenishmentRepository.save(replenishment);

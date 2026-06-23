@@ -1,20 +1,12 @@
 package com.isd.wms.service.imports.dto;
 
 import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvDate;
 import com.poiji.annotation.ExcelCellName;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
-import java.time.LocalDate;
-
 /**
  * Import DTO for stock data.
- * <p>
- * Represents a stock record with product name, location name, quantities,
- * and manufacturing/expiration dates. Dates are expected in the format
- * {@code dd.MM.yyyy}.
- * </p>
  */
 @Getter
 @Setter
@@ -43,15 +35,11 @@ public class StockInfo {
     @NonNull
     private Integer reservedQuantity;
 
-    @ExcelCellName(value = "Manufacture Date", mandatoryCell = true, mandatoryHeader = true)
-    @CsvBindByName(column = "Manufacture Date", required = true)
-    @CsvDate("dd.MM.yyyy")
-    @NonNull
-    private LocalDate manufactureDate;
+    @ExcelCellName(value = "Manufacture Date")
+    @CsvBindByName(column = "Manufacture Date")
+    private String manufactureDateRaw;
 
-    @ExcelCellName(value = "Expiration Date", mandatoryCell = true, mandatoryHeader = true)
-    @CsvBindByName(column = "Expiration Date", required = true)
-    @CsvDate("dd.MM.yyyy")
-    @NonNull
-    private LocalDate expirationDate;
+    @ExcelCellName(value = "Expiration Date")
+    @CsvBindByName(column = "Expiration Date")
+    private String expirationDateRaw;
 }

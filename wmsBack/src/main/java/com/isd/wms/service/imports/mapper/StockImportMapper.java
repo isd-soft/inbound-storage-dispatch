@@ -9,15 +9,13 @@ import com.isd.wms.repository.ProductRepository;
 import com.isd.wms.service.imports.dto.StockInfo;
 import com.isd.wms.service.validation.SecurityFacade;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * Mapper for converting {@link StockInfo} DTOs to {@link AddStockRequest} objects.
- * <p>
- * Resolves product and location by name and uses the current authenticated user
- * (via {@link SecurityFacade}) as the user performing the stock addition.
- * </p>
- */
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StockImportMapper implements ImportMapper<StockInfo, AddStockRequest> {
@@ -34,16 +32,34 @@ public class StockImportMapper implements ImportMapper<StockInfo, AddStockReques
                 getLocationId(info.getLocationName()),
                 info.getQuantity(),
                 info.getReservedQuantity(),
-                info.getManufactureDate(),
-                info.getExpirationDate(),
+                parseFlexibleDate(info.getManufactureDateRaw()),
+                parseFlexibleDate(info.getExpirationDateRaw()),
                 securityFacade.getCurrentUser().getId()
             );
         } catch (Exception e) {
             throw new InvalidRequestException(
                 String.format("An error occurred at parsing the stock of product %s at location %s.",
-                    info.getProductName(),
-                    info.getLocationName()
-                    ));
+                    info.getProductName(), info.getLocationName())
+            );
+        }
+    }
+
+    private LocalDate parseFlexibleDate(String rawDate) {
+        if (rawDate == null || rawDate.trim().isEmpty()) {
+            return null;
+        }
+        String text = rawDate.trim();
+        try {
+            if (text.contains(".")) {
+                return LocalDate.parse(text, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+            } else if (text.contains("/")) {
+                return LocalDate.parse(text, DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+            } else {
+                return LocalDate.parse(text, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            }
+        } catch (Exception e) {
+            log.warn("Could not parse date '{}'. It will be saved as null.", text);
+            return null;
         }
     }
 

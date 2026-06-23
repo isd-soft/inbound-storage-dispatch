@@ -354,7 +354,6 @@
                       inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
                     />
                     <div class="flex gap-5 w-full justify-center mt-1 touch-none select-none">
-                      <!-- ИСПРАВЛЕНО: Добавлены обработчики для долгого нажатия -->
                       <Button
                         icon="pi pi-minus"
                         severity="danger"
@@ -490,7 +489,6 @@ const lastTaskType = ref('')
 const savedDestinationBarcode = ref('')
 const activeTuBarcode = ref(localStorage.getItem('active_tu_barcode') || '')
 
-// --- ЛОГИКА ДЛЯ ДОЛГОГО НАЖАТИЯ (LONG PRESS) ---
 let longPressTimer = null
 let longPressInterval = null
 
@@ -523,7 +521,6 @@ const handleLogout = async () => {
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 
-// ИСПРАВЛЕНО: Нормализуем объект currentAllocation, чтобы подтянуть quantity из бэкенда
 const currentAllocation = computed(() => {
   const rawCurrent = summary.value?.currentAllocation || null
   let target = rawCurrent
@@ -539,7 +536,6 @@ const currentAllocation = computed(() => {
   if (target) {
     return {
       ...target,
-      // Бэкенд возвращает `quantity`, маппим его в `requiredQuantity` для фронта
       requiredQuantity: target.quantity ?? target.requiredQuantity
     }
   }
@@ -608,7 +604,6 @@ const hydrateState = (payload) => {
   destinationInput.value = ''
   shortageComment.value = ''
 
-  // ИСПРАВЛЕНО: Устанавливаем pickedQuantity на МАКСИМУМ по умолчанию
   const alloc = payload?.currentAllocation
   const maxQty = alloc?.quantity ?? alloc?.requiredQuantity ?? alloc?.requestedQuantity ?? 1
   pickedQuantity.value = alloc?.pickedQuantity ?? maxQty

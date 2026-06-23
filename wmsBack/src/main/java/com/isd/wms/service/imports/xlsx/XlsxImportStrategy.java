@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,7 +46,10 @@ public class XlsxImportStrategy implements ImportStrategy {
 
             PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
                 .preferNullOverDefault(true)
+                .datePattern("yyyy-MM-dd")
+                .dateTimeFormatter(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 .build();
+
             PoijiExcelType excelType = PoijiExcelType.XLSX;
             if (Objects.equals(FilenameUtils.getExtension(file.getOriginalFilename()), "xls")) {
                 excelType = PoijiExcelType.XLS;
@@ -63,12 +67,6 @@ public class XlsxImportStrategy implements ImportStrategy {
         }
     }
 
-    /**
-     * Indicates support for Excel import type.
-     *
-     * @param type the import type to check
-     * @return true if type is {@link ImportType#EXCEL}
-     */
     @Override
     public boolean support(ImportType type) {
         return type == ImportType.EXCEL;
