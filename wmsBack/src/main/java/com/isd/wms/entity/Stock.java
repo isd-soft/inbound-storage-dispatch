@@ -159,11 +159,11 @@ public class Stock extends BaseTimestampEntity {
     }
 
     /**
-     * Updates the manufacture and expiration dates, keeping the later of the two
-     * for each date (i.e., preserves the newest dates). Handles null values safely.
+     * Updates the manufacture and expiration dates, keeping the latter of the two
+     * for each date (i.e., preserves the newest dates).
      *
-     * @param newManufactureDate the new manufacture date (can be null)
-     * @param newExpirationDate  the new expiration date (can be null)
+     * @param newManufactureDate the new manufacture date
+     * @param newExpirationDate  the new expiration date
      */
     public void updateDate(LocalDate newManufactureDate, LocalDate newExpirationDate) {
         if (newManufactureDate != null) {

@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,6 +31,11 @@ import java.util.List;
  * Import functionality is supported via {@link ImportService} for bulk
  * stock additions from CSV/Excel files.
  * </p>
+ *
+ * @see Stock
+ * @see InventoryHistory
+ * @see ReplenishmentService
+ * @see InventoryAdjustmentService
  */
 @Slf4j
 @Service
@@ -60,6 +64,14 @@ public class InventoryService {
         return stockMapper.toResponse(getStock(stockId));
     }
 
+    /**
+     * Adds stock to a location. If the location already contains stock of a
+     * different product, the operation is rejected unless the location is empty.
+     *
+     * @param request the add stock request
+     * @return the updated stock response
+     * @throws InvalidRequestException if the location is occupied by another product
+     */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
@@ -68,27 +80,6 @@ public class InventoryService {
         Product product = getProduct(request.productId());
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
-
-        if (location.getZone() == Zone.DISPATCH) {
-            throw new InvalidRequestException("Adding stock directly to the DISPATCH zone is strictly prohibited.");
-        }
-
-        LocalDate mfgDate = request.manufactureDate();
-        LocalDate expDate = request.expirationDate();
-        LocalDate today = LocalDate.now();
-
-        if (mfgDate != null) {
-            if (mfgDate.isAfter(today)) {
-                throw new InvalidRequestException("Manufacture date cannot be in the future.");
-            }
-            if (expDate != null && !expDate.isAfter(mfgDate)) {
-                throw new InvalidRequestException("Expiration date must be strictly after the manufacture date.");
-            }
-        }
-
-        if (expDate != null && expDate.isBefore(today)) {
-            throw new InvalidRequestException("Cannot add expired stock to the warehouse.");
-        }
 
         if(stockRepository.existsByLocationAndAvailableIsTrueAndProductIsNot(location, product)) {
             throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
@@ -102,8 +93,8 @@ public class InventoryService {
 
         stock.setQuantity(stock.getQuantity() + quantity);
         stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
-        stock.setManufactureDate(mfgDate);
-        stock.setExpirationDate(expDate);
+        stock.setManufactureDate(request.manufactureDate());
+        stock.setExpirationDate(request.expirationDate());
         stock.setAvailable(true);
 
         Stock savedStock = stockRepository.save(stock);
@@ -115,6 +106,26 @@ public class InventoryService {
         return stockMapper.toResponse(savedStock);
     }
 
+    @Transactional
+    public void deleteStock(Long stockId) {
+        adjustStock(new AdjustStockRequest(
+            stockId,
+            0,
+            securityFacade.getCurrentUser().getId(),
+            InventoryAdjustmentReason.INVENTORY_MISMATCH,
+            "Deleted manually",
+            null,
+            null
+        ));
+    }
+
+    /**
+     * Removes a specified quantity of unreserved stock from a location.
+     *
+     * @param request the remove stock request
+     * @return the updated stock response
+     * @throws InsufficientStockException if the available quantity is insufficient
+     */
     @Transactional
     public StockResponse removeStock(RemoveStockRequest request) {
         log.info("Removing stock: stockId={}, quantity={}, userId={}",
@@ -289,6 +300,30 @@ public class InventoryService {
             });
     }
 
+    static void validateStockDate(LocalDate manufactureDate, LocalDate expirationDate) {
+        LocalDate today = LocalDate.now();
+
+        if ((manufactureDate == null) != (expirationDate == null)) {
+            throw new InvalidRequestException(
+                "Both manufactureDate and expirationDate must be provided together.");
+        }
+
+        if (manufactureDate != null && manufactureDate.isAfter(today)) {
+            throw new InvalidRequestException(
+                "Manufacture Date must be before today.");
+        }
+
+        if (expirationDate != null && expirationDate.isBefore(today)) {
+            throw new InvalidRequestException(
+                "Expiration Date must be after today.");
+        }
+    }
+
+    /**
+     * Imports stock records from an uploaded file.
+     *
+     * @param file the multipart file containing stock data
+     */
     @Transactional
     public void importStocksFromFile(MultipartFile file) {
         List<AddStockRequest> stocks = importService.importData(file, StockInfo.class);
