@@ -306,17 +306,11 @@ public class AllocationExecutionService {
             currentUnresolvedShortage = orderLine.getRequestedQuantity() - currentDeliveredQuantity;
         }
 
-        if (partialPick) {
-            inventoryService.recordShortageAdjustment(
-                savedAllocation.getStock(),
-                shortageQuantity,
-                operator,
-                InventoryOperationType.PICKING_SHORTAGE,
-                "Picking shortage"
-            );
-        }
-
         AllocationCompletionResult result = workflowService.executeAllocationCompletion(savedAllocation);
+        if (savedAllocation.getStock().getQuantity() == 0 && savedAllocation.getStock().getReservedQuantity() == 0) {
+            savedAllocation.getStock().setAvailable(false);
+            stockRepository.save(savedAllocation.getStock());
+        }
         if (pickedQuantity > 0) {
             inventoryService.recordPickingHistory(
                 savedAllocation.getStock(),
@@ -324,6 +318,15 @@ public class AllocationExecutionService {
                 operator,
                 shortageQuantity > 0 ? InventoryAdjustmentReason.PICKING_SHORTAGE : null,
                 shortageQuantity > 0 ? "Picking shortage" : null
+            );
+        }
+        if (partialPick) {
+            inventoryService.recordShortageAdjustment(
+                savedAllocation.getStock(),
+                shortageQuantity,
+                operator,
+                InventoryOperationType.PICKING_SHORTAGE,
+                "Picking shortage"
             );
         }
         autoAdvanceGroupedPickingFlow(savedAllocation);
