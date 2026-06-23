@@ -354,7 +354,6 @@
                       inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
                     />
                     <div class="flex gap-5 w-full justify-center mt-1 touch-none select-none">
-                      <!-- ИСПРАВЛЕНО: Добавлены обработчики для долгого нажатия -->
                       <Button
                         icon="pi pi-minus"
                         severity="danger"
@@ -490,7 +489,6 @@ const lastTaskType = ref('')
 const savedDestinationBarcode = ref('')
 const activeTuBarcode = ref(localStorage.getItem('active_tu_barcode') || '')
 
-// --- ЛОГИКА ДЛЯ ДОЛГОГО НАЖАТИЯ (LONG PRESS) ---
 let longPressTimer = null
 let longPressInterval = null
 
@@ -514,7 +512,6 @@ const stopLongPress = () => {
 onBeforeUnmount(() => {
   stopLongPress()
 })
-// ------------------------------------------------
 
 const handleLogout = async () => {
   await authStore.logout()
@@ -523,7 +520,6 @@ const handleLogout = async () => {
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 
-// ИСПРАВЛЕНО: Нормализуем объект currentAllocation, чтобы подтянуть quantity из бэкенда
 const currentAllocation = computed(() => {
   const rawCurrent = summary.value?.currentAllocation || null
   let target = rawCurrent
@@ -539,7 +535,6 @@ const currentAllocation = computed(() => {
   if (target) {
     return {
       ...target,
-      // Бэкенд возвращает `quantity`, маппим его в `requiredQuantity` для фронта
       requiredQuantity: target.quantity ?? target.requiredQuantity
     }
   }
@@ -608,10 +603,12 @@ const hydrateState = (payload) => {
   destinationInput.value = ''
   shortageComment.value = ''
 
-  // ИСПРАВЛЕНО: Устанавливаем pickedQuantity на МАКСИМУМ по умолчанию
   const alloc = payload?.currentAllocation
-  const maxQty = alloc?.quantity ?? alloc?.requiredQuantity ?? alloc?.requestedQuantity ?? 1
-  pickedQuantity.value = alloc?.pickedQuantity ?? maxQty
+  if (alloc) {
+    pickedQuantity.value = alloc.quantity ?? alloc.requiredQuantity ?? alloc.requestedQuantity ?? 0
+  } else {
+    pickedQuantity.value = 0
+  }
 
   if (payload?.taskType) {
     lastTaskType.value = payload.taskType
@@ -670,6 +667,11 @@ const loadCurrentTask = async () => {
       }
     }
   } catch (error) {
+    if (error?.response?.status === 404 && savedDestinationBarcode.value) {
+      showFinalSummary.value = true
+      summary.value = null
+      return
+    }
     if (error?.response?.status === 204) {
       if (savedDestinationBarcode.value) {
         showFinalSummary.value = true
@@ -827,6 +829,9 @@ const submitPickedQuantity = async () => {
 
   try {
     const allocationId = currentAllocation.value.allocationId
+    const isZeroQuantity = pickedQuantity.value === 0
+    const totalLinesCount = orderedAllocations.value.length
+    const currentTaskIsReplenishment = isReplenishmentTask.value
 
     await allocationApi.confirmPickedQuantity(allocationId, {
       pickedQuantity: pickedQuantity.value,
@@ -836,14 +841,37 @@ const submitPickedQuantity = async () => {
     const response = await allocationApi.completeAssignedAllocation(allocationId)
 
     const completion = response.data
-    if (completion.orderStatus === 'CANCELED') {
+
+    if (isZeroQuantity && (totalLinesCount <= 1 || currentTaskIsReplenishment)) {
+      localStorage.removeItem('active_tu_barcode')
       summary.value = null
       showFinalSummary.value = false
       showDestinationScan.value = false
       lastTaskType.value = ''
       savedDestinationBarcode.value = ''
       finalAllocationsSummary.value = []
-      pickedQuantity.value = 1
+      pickedQuantity.value = 0
+      shortageComment.value = ''
+      await loadCurrentTask()
+
+      toast.add({
+        severity: 'warn',
+        summary: 'Task Cancelled',
+        detail: 'Quantity set to 0. Task was cancelled and TU released.',
+        life: 4000,
+      })
+      return
+    }
+
+    if (completion.orderStatus === 'CANCELED') {
+      localStorage.removeItem('active_tu_barcode')
+      summary.value = null
+      showFinalSummary.value = false
+      showDestinationScan.value = false
+      lastTaskType.value = ''
+      savedDestinationBarcode.value = ''
+      finalAllocationsSummary.value = []
+      pickedQuantity.value = 0
       shortageComment.value = ''
       await loadCurrentTask()
     } else if (completion.newProcessCreated && completion.summary?.currentAllocation) {

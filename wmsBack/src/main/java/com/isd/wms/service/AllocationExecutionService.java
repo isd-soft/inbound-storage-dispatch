@@ -250,6 +250,12 @@ public class AllocationExecutionService {
                 );
             }
 
+            // AUTO-RELEASE TU DACĂ CANTITATEA CONFIRMATĂ ESTE 0 LA REPLENISHMENT
+            if (zeroPickedQuantity) {
+                log.info("Replenishment quantity confirmed as 0. Automatically releasing TU for allocation ID: {}", savedAllocation.getId());
+                releaseTransportUnitForAllocation(savedAllocation);
+            }
+
             List<Allocation> shortageAllocations = shortageQuantity > 0 && !zeroPickedQuantity
                 ? createReplenishmentShortageAllocations(savedAllocation, shortageQuantity)
                 : List.of();
@@ -275,8 +281,8 @@ public class AllocationExecutionService {
                 null,
                 shortageQuantity > 0
                     ? (shortageAllocations.isEmpty()
-                    ? "No alternative stock found. Replenishment was partially completed."
-                    : "Alternative stock found. New replenishment task was created.")
+                       ? "No alternative stock found. Replenishment was partially completed."
+                       : "Alternative stock found. New replenishment task was created.")
                     : "Allocation completed successfully.",
                 toReplenishmentSummary(savedAllocation.getTask(), currentAllocation)
             );
@@ -335,6 +341,27 @@ public class AllocationExecutionService {
         orderLineRepository.save(orderLine);
         Status orderLineStatus = orderLine.getStatus();
         Order order = orderLine.getOrder();
+
+        // AUTO-RELEASE TU DACĂ CANTITATEA CONFIRMATĂ ESTE 0 ȘI TOATE ALOCĂRILE COMENZII SUNT TERMINATE
+        if (zeroPickedQuantity) {
+            List<Allocation> allOrderAllocations = allocationRepository.findAllByOrder(order);
+            boolean orderProcessingFinished = allOrderAllocations.stream().allMatch(alloc ->
+                alloc.getStatus() == Status.COMPLETED ||
+                    alloc.getStatus() == Status.PARTIALLY_COMPLETED ||
+                    alloc.getStatus() == Status.CANCELED
+            );
+
+            if (orderProcessingFinished) {
+                log.info("All allocations for order processing are finished with 0 quantity. Releasing TU for Order ID: {}", order.getId());
+                releaseTransportUnitForOrder(order);
+
+                List<OrderLine> allLines = orderLineRepository.findAllByOrderId(order.getId());
+                boolean allLinesCanceled = allLines.stream().allMatch(line -> line.getStatus() == Status.CANCELED);
+                order.setStatus(allLinesCanceled ? OrderStatus.CANCELED : OrderStatus.PARTIALLY_COMPLETED);
+                orderRepository.save(order);
+            }
+        }
+
         OperatorTaskSummaryResponse updatedSummary = toPickingSummary(order);
 
         String message;
@@ -455,7 +482,6 @@ public class AllocationExecutionService {
                 || allocation.getStatus() == Status.PARTIALLY_COMPLETED
                 || allocation.getStatus() == Status.CANCELED
         );
-
 
         boolean isTuScannedForOrder = tuRepository.existsByOrder(order);
 
