@@ -12,6 +12,7 @@
       :value="orders"
       :loading="loading"
       :filterFields="orderFilterFields"
+      v-model:filters="filters"
       paginator
       :rows="10"
       :rowsPerPageOptions="[10, 25, 50]"
@@ -99,8 +100,7 @@
       </Column>
       <Column header="Total Qty" style="width: 8rem">
         <template #body="{ data }">
-          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data)
-            }}</span>
+          <span class="font-semibold">{{ data.totalDeliveredQuantity ?? getOrderQuantity(data) }}</span>
         </template>
       </Column>
       <Column header="Status" sortable>
@@ -161,16 +161,12 @@
             </Column>
             <Column field="requestedQuantity" header="Requested Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                    line.requestedQuantity ?? line.quantity ?? 0
-                  }}</span>
+                <span class="font-semibold">{{ line.requestedQuantity ?? line.quantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="deliveredQuantity" header="Delivered Qty" filter>
               <template #body="{ data: line }">
-                <span class="font-semibold">{{
-                    line.deliveredQuantity ?? line.allocatedQuantity ?? 0
-                  }}</span>
+                <span class="font-semibold">{{ line.deliveredQuantity ?? line.allocatedQuantity ?? 0 }}</span>
               </template>
             </Column>
             <Column field="status" header="Status" filter>
@@ -203,8 +199,7 @@
           </div>
 
           <div class="field">
-            <label for="location" class="block text-sm font-medium mb-1">Destination
-              Location</label>
+            <label for="location" class="block text-sm font-medium mb-1">Destination Location</label>
             <Select
               id="location"
               v-model="formData.location"
@@ -216,8 +211,7 @@
               class="w-full"
               :invalid="submitted && !formData.location"
             />
-            <small v-if="submitted && !formData.location" class="text-red-400">Location is
-              required.</small>
+            <small v-if="submitted && !formData.location" class="text-red-400">Location is required.</small>
           </div>
         </div>
 
@@ -243,8 +237,7 @@
                 class="w-full min-w-0"
                 :invalid="submitted && !data.product"
               />
-              <small v-if="submitted && !data.product" class="text-red-400">Product is
-                required.</small>
+              <small v-if="submitted && !data.product" class="text-red-400">Product is required.</small>
             </template>
           </Column>
           <Column header="Quantity" style="min-width: 13rem">
@@ -257,8 +250,9 @@
                 class="w-full min-w-0"
                 :invalid="submitted && (!data.quantity || data.quantity < 1)"
               />
-              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400">Minimum
-                quantity is 1.</small>
+              <small v-if="submitted && (!data.quantity || data.quantity < 1)" class="text-red-400"
+              >Minimum quantity is 1.</small
+              >
             </template>
           </Column>
           <Column header="Actions" style="width: 6rem">
@@ -304,9 +298,11 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
+import { FilterMatchMode } from '@primevue/core/api'
 
 import Button from 'primevue/button'
 import Column from 'primevue/column'
@@ -326,6 +322,7 @@ import { userApi } from '@/api/userApi'
 import { productApi } from '@/api/productApi'
 import UploadFile from '@/components/UploadFile.vue'
 
+const route = useRoute()
 const importDialogVisible = ref(false)
 const toast = useToast()
 const confirm = useConfirm()
@@ -347,6 +344,11 @@ const loading = ref(false)
 const actionLoading = ref(false)
 const loadError = ref('')
 const submitted = ref(false)
+
+const filters = ref({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  'order.id': { value: null, matchMode: FilterMatchMode.EQUALS }
+})
 
 const orderFilterFields = [
   { field: 'order.logicId', label: 'Logic ID' },
@@ -391,6 +393,14 @@ const normalizeOrder = (order) => ({
   lines: order.lines || [],
 })
 
+const checkUrlFilter = () => {
+  if (route.query.id) {
+    filters.value['order.id'].value = Number(route.query.id)
+  } else {
+    filters.value['order.id'].value = null
+  }
+}
+
 const loadOrders = async () => {
   loading.value = true
   loadError.value = ''
@@ -408,6 +418,8 @@ const loadOrders = async () => {
     orders.value.forEach((entry) => {
       assignmentByOrderId[entry.order.id] = entry.order.assignedOperatorId || null
     })
+
+    checkUrlFilter()
   } catch (error) {
     orders.value = []
     expandedRows.value = {}
@@ -423,10 +435,10 @@ const toggleEditMode = () => {
 }
 
 const canEditSelected = computed(() => {
-  if (selectedOrders.value.length !== 1) return false;
-  const orderData = selectedOrders.value[0].order;
-  return orderData.status === 'CREATED' || orderData.Status === 'CREATED';
-});
+  if (selectedOrders.value.length !== 1) return false
+  const orderData = selectedOrders.value[0].order
+  return orderData.status === 'CREATED' || orderData.Status === 'CREATED'
+})
 
 const loadOrderCreateData = async () => {
   const [productsResponse, locationsResponse, usersResponse] = await Promise.all([
@@ -473,7 +485,7 @@ const openCreateDialog = async () => {
       severity: 'error',
       summary: 'Data load failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   }
 }
@@ -481,19 +493,19 @@ const openCreateDialog = async () => {
 const openEditDialog = async (orderData) => {
   resetForm()
 
-  const order = orderData.order;
-  const lines = orderData.lines;
+  const order = orderData.order
+  const lines = orderData.lines
 
-  formData.logicId = order.logicId;
-  formData.location = order.destinationLocationId;
+  formData.logicId = order.logicId
+  formData.location = order.destinationLocationId
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
     formData.lines.push({
       id: nextLineId++,
       product: line.productId,
-      quantity: line.requestedQuantity
-    });
-  });
+      quantity: line.requestedQuantity,
+    })
+  })
 
   isEditingOrder.value = true
   editingOrderId.value = order.id
@@ -506,7 +518,7 @@ const openEditDialog = async (orderData) => {
       severity: 'error',
       summary: 'Data load failed',
       detail: getErrorMessage(error),
-      life: 4000
+      life: 4000,
     })
   }
 }
@@ -554,9 +566,7 @@ const getLocationLabel = (locationId) => {
 }
 
 const isAssignmentLocked = (order) =>
-  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(
-    order?.status || order?.Status,
-  )
+  ['IN_PROGRESS', 'COMPLETED', 'CANCELED', 'CANCELLED', 'PARTIALLY_COMPLETED'].includes(order?.status || order?.Status)
 
 const assignOrderToOperator = async (orderId, operatorId) => {
   if (!operatorId) return
@@ -566,7 +576,7 @@ const assignOrderToOperator = async (orderId, operatorId) => {
       severity: 'success',
       summary: 'Assigned',
       detail: `Order #${orderId} assigned.`,
-      life: 3000
+      life: 3000,
     })
     await loadOrders()
   } catch (error) {
@@ -574,7 +584,7 @@ const assignOrderToOperator = async (orderId, operatorId) => {
       severity: 'error',
       summary: 'Assign failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   }
 }
@@ -597,7 +607,7 @@ const deleteSelectedOrders = async () => {
       severity: 'success',
       summary: 'Deleted',
       detail: `${selectedOrders.value.length} order(s) deleted.`,
-      life: 3000
+      life: 3000,
     })
     selectedOrders.value = []
     await loadOrders()
@@ -606,7 +616,7 @@ const deleteSelectedOrders = async () => {
       severity: 'error',
       summary: 'Delete failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -630,7 +640,7 @@ const formatDate = (value) =>
   value
     ? new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
-      timeStyle: 'short'
+      timeStyle: 'short',
     }).format(new Date(value))
     : '-'
 
@@ -645,7 +655,7 @@ const onSubmit = async () => {
       severity: 'error',
       summary: 'Validation Error',
       detail: 'Please fill in all required fields.',
-      life: 4000
+      life: 4000,
     })
     return
   }
@@ -674,7 +684,7 @@ const onSubmit = async () => {
         severity: 'success',
         summary: 'Created',
         detail: `Order created successfully.`,
-        life: 3000
+        life: 3000,
       })
     }
 
@@ -685,12 +695,16 @@ const onSubmit = async () => {
       severity: 'error',
       summary: 'Action failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
   }
 }
+
+watch(() => route.query.id, () => {
+  checkUrlFilter()
+})
 
 onMounted(async () => {
   await Promise.all([loadOrders(), loadOrderCreateData()])
