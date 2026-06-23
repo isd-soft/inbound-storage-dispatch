@@ -75,10 +75,10 @@
         <template #body="{ data, rowTogglerCallback }">
           <Button
             v-if="hasExpandableLines(data)"
-            :icon="isExpanded(data) ? 'pi pi-chevron-down' : 'pi-chevron-right'"
+            :icon="isExpanded(data) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
             text
-            rounded
             size="small"
+            class="order-expander-button"
             aria-label="Toggle order lines"
             @click="toggleOrderExpansion(data, rowTogglerCallback, $event)"
           />
@@ -710,3 +710,14 @@ onMounted(async () => {
   await Promise.all([loadOrders(), loadOrderCreateData()])
 })
 </script>
+
+<style scoped>
+.order-expander-button {
+  flex-shrink: 0;
+  height: 2rem;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0;
+  width: 2rem;
+}
+</style>
