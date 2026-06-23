@@ -60,7 +60,7 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
             return;
         }
 
-        stockRepository.findByLocationId(destinationLocation.getId())
+        stockRepository.findByLocationIdAndProductId(destinationLocation.getId(), product.getId())
             .ifPresentOrElse(existingStock -> {
                     Product existingProduct = existingStock.getProduct().orElse(null);
 

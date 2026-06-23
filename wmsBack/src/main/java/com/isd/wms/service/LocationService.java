@@ -104,7 +104,7 @@ public class LocationService {
         boolean isZoneChanged = location.getZone() != request.zone();
         boolean isAvailableChanged = location.getAvailable() != request.available();
 
-        boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
+        boolean hasProducts = stockRepository.existsByLocationIdAndAvailableIsTrue(locationId);
 
         if (hasProducts && (isNameChanged || isCodeChanged || isZoneChanged || isAvailableChanged)) {
             log.warn("Attempt to edit protected fields of occupied location ID: {}", locationId);
@@ -136,7 +136,7 @@ public class LocationService {
      */
     @Transactional
     public void deleteLocation(Long locationId) {
-        boolean hasProducts = stockRepository.existsByLocationIdAndQuantityGreaterThan(locationId, 0);
+        boolean hasProducts = stockRepository.existsByLocationIdAndAvailableIsTrue(locationId);
         if (hasProducts) {
             log.warn("Attempt to delete occupied location ID: {}", locationId);
             throw new IllegalStateException("You cannot delete a location while there is a product in it");

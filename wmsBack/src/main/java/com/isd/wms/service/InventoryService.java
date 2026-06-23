@@ -55,7 +55,7 @@ public class InventoryService {
     private final InventoryAdjustmentService inventoryAdjustmentService;
 
     public List<StockResponse> getAllStock() {
-        return stockRepository.findAll().stream()
+        return stockRepository.findAllByAvailableIsTrue().stream()
             .map(stockMapper::toResponse)
             .toList();
     }
@@ -81,19 +81,12 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
-        Stock stock = stockRepository.findByLocationId(location.getId())
-            .orElseGet(() -> new Stock(product, location));
-
-        if (stock.getId() != null) {
-            Product existingProduct = stock.getProduct().orElse(null);
-            if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
-                if (stock.getQuantity() == 0 && stock.getReservedQuantity() == 0) {
-                    stock.setProduct(product);
-                } else {
-                    throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
-                }
-            }
+        if(stockRepository.existsByLocationAndAvailableIsTrueAndProductIsNot(location, product)) {
+            throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
         }
+
+        Stock stock = stockRepository.findByProductIdAndLocationId(product.getId(), location.getId())
+            .orElseGet(() -> new Stock(product, location));
 
         int quantity = request.quantity() == null ? 0 : request.quantity();
         int reservedQuantity = request.reservedQuantity() == null ? 0 : request.reservedQuantity();
@@ -102,6 +95,7 @@ public class InventoryService {
         stock.setReservedQuantity(stock.getReservedQuantity() + reservedQuantity);
         stock.setManufactureDate(request.manufactureDate());
         stock.setExpirationDate(request.expirationDate());
+        stock.setAvailable(true);
 
         Stock savedStock = stockRepository.save(stock);
 
@@ -138,37 +132,18 @@ public class InventoryService {
 
         int finalQuantity = stock.getQuantity() - request.getQuantity();
         stock.setQuantity(finalQuantity);
-        Stock savedStock = stockRepository.save(stock);
+        if (finalQuantity == 0) {
+            stock.setAvailable(false);
+        }
+        stockRepository.save(stock);
 
-        createHistory(savedStock, -request.getQuantity(), finalQuantity, savedStock.getLocation(), null,
+        createHistory(stock, -request.getQuantity(), finalQuantity, stock.getLocation(), null,
             InventoryOperationType.REMOVE_STOCK, null, null, user);
 
-        triggerReplenishmentCheck(savedStock);
+        triggerReplenishmentCheck(stock);
 
-        log.info("Stock removed successfully: stockId={}, finalQuantity={}", savedStock.getId(), finalQuantity);
-        return stockMapper.toResponse(savedStock);
-    }
-
-    /**
-     * Adjusts stock to a new total quantity using the {@link InventoryAdjustmentService}.
-     *
-     * @param request the adjustment request
-     * @return the updated stock response
-     */
-    @Transactional
-    public StockResponse adjustStock(AdjustStockRequest request) {
-        InventoryAdjustmentResponse response = inventoryAdjustmentService.adjustStock(
-            request.getStockId(),
-            new InventoryAdjustmentRequest(
-                request.getNewQuantity(),
-                request.getUserId(),
-                request.getReason(),
-                request.getComment(),
-                request.getManufactureDate(),
-                request.getExpirationDate()
-            )
-        );
-        return response.stock();
+        log.info("Stock removed successfully: stockId={}, finalQuantity={}", stock.getId(), finalQuantity);
+        return stockMapper.toResponse(stock);
     }
 
     public List<InventoryHistoryResponse> getAllHistory() {
