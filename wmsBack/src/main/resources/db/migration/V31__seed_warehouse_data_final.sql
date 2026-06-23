@@ -42,73 +42,7 @@ VALUES
     -- holly.flax -> password: WorldsBest$56
     (19, 'holly.flax', 'holly.flax@isd.com', '$2b$12$FC6M/w8YmCUnU08QCVUAi.c65r6.fO6UlZzthpjveV4D8P66e8.Ku', 'ROLE_DEV', true, true),
     -- jan.levinson -> password: Office$15
-    (20, 'jan.levinson', 'jan.levinson@isd.com', '$2b$12$E7BhQ4/4ToACH1DTUpDH.OlAkWBQ95iBNQrajorvnOqqHF4875gQq', 'ROLE_SUPERVISOR', true, true),
-    -- roy.anderson -> password: Mifflin$20
-    (21, 'roy.anderson', 'roy.anderson@isd.com', '$2b$12$v0hJnwkT0yBMNekdxLZNreQsLzzdVRjFjfYafHBf8LOZ6O/55oQjO', 'ROLE_OPERATOR', true, true),
-    -- david.wallace -> password: Office%58
-    (22, 'david.wallace', 'david.wallace@isd.com', '$2b$12$fBRbZVlVwv.C5iwHlBdNTujpmQHFrtHTOOPsXtmCU7Gld.nLWHFMu', 'ROLE_SUPERVISOR', true, true),
-    -- erin.hannon -> password: PaperSales&91
-    (23, 'erin.hannon', 'erin.hannon@isd.com', '$2b$12$fCfBEChW3ZFigpDDXbI2quAPyeNwdyhx2lpm.r2mzkTvEMIlhsQ.6', 'ROLE_OPERATOR', true, true),
-    -- gabe.lewis -> password: Warehouse&57
-    (24, 'gabe.lewis', 'gabe.lewis@isd.com', '$2b$12$TiHtW28LCNvyf.xHeYI1XuRxWI.afb5x5Bcfgd7Ety7prjN2kwbtC', 'ROLE_OPERATOR', true, true),
-    -- pete.miller -> password: Dunder%95
-    (25, 'pete.miller', 'pete.miller@isd.com', '$2b$12$qSo/q6mRLei1gxsgZg0xgea1v6GjOeWS7eOGv6WBp7foW8rZM98Fa', 'ROLE_OPERATOR', true, true),
-    -- clark.green -> password: Office@87
-    (26, 'clark.green', 'clark.green@isd.com', '$2b$12$Z1mnPNqsGMPs2y1iinRGQubr.YimvsXnOPjWclKVQb2fBqHDvhxxq', 'ROLE_SUPERVISOR', true, true),
-    -- nellie.bertram -> password: BestBoss@41
-    (27, 'nellie.bertram', 'nellie.bertram@isd.com', '$2b$12$o1ZNTeINEmmy2C5TuTJjCO7qoSgamKiH/2SLk9M7hkO7CGoEGzLV6', 'ROLE_DEV', true, true),
-    -- robert.california -> password: PaperSales%58
-    (28, 'robert.california', 'robert.california@isd.com', '$2b$12$pVYRvUu2mHEDz7iUSkkH2eZTFwYYwbgzN5/fY46snv4RPrXuz3OyO', 'ROLE_OPERATOR', true, true),
-    -- jo.bennett -> password: BestBoss&38
-    (29, 'jo.bennett', 'jo.bennett@isd.com', '$2b$12$YQcW2P7nLTbPq0Tw3Cr0lODhJ4VOcikjE6iBTa3pJU541bmkHX4.K', 'ROLE_OPERATOR', true, true),
-    -- charles.miner -> password: America#39
-    (30, 'charles.miner', 'charles.miner@isd.com', '$2b$12$5uqLZF9svVh5C9DFBxCR3.fOZFmY4LGCTwcsSWx0jgHFL9jp5V1t2', 'ROLE_OPERATOR', true, true),
-    -- karen.filippelli -> password: Scranton%61
-    (31, 'karen.filippelli', 'karen.filippelli@isd.com', '$2b$12$VWadn1KReJiyzw8.NT4HV.MWibZ.6iuzhgVhMMqxg6BxCbWSfZmuu', 'ROLE_SUPERVISOR', true, true),
-    -- josh.porter -> password: Office&37
-    (32, 'josh.porter', 'josh.porter@isd.com', '$2b$12$4Z01eRtfbaNTZJIj/eovF.5aLsip9WSkBcW7CpLSTjax0zwybDMPK', 'ROLE_OPERATOR', true, true),
-    -- ed.truck -> password: Dunder?93
-    (33, 'ed.truck', 'ed.truck@isd.com', '$2b$12$zTK2DmWQJxMulNNF5WGBUe8DQhh.rOa4lM8mo3BZfaFoYJjCWQvXy', 'ROLE_OPERATOR', true, true),
-    -- todd.packer -> password: TheOffice?92
-    (34, 'todd.packer', 'todd.packer@isd.com', '$2b$12$M3vkLUOD/zH/J8BXo5HAn.7z5ojgyrRQpm1QWKMtn0ZvehUqbJxr2', 'ROLE_OPERATOR', true, true),
-    -- craig.pelton -> password: Warehouse@43
-    (35, 'craig.pelton', 'craig.pelton@isd.com', '$2b$12$iVdPX7SvHoz0/SODs6KvZevDDOiDODEgfcZYeWxI2sP4V9ViDKohS', 'ROLE_SUPERVISOR', true, true),
-    -- jeff.winger -> password: Dunder%81
-    (36, 'jeff.winger', 'jeff.winger@isd.com', '$2b$12$JKfJ2Ce.VwcrQLFTS.KLy.FH10VlkgCRi./sVbRiUx8W3bR6ipqyO', 'ROLE_OPERATOR', true, true),
-    -- britta.perry -> password: WorldsBest*64
-    (37, 'britta.perry', 'britta.perry@isd.com', '$2b$12$geH1jVsYQiK/wC47NByNoejMicHQ06BnBCy1yRU0PzJ/RLmVyWRbS', 'ROLE_OPERATOR', true, true),
-    -- abed.nadir -> password: Scranton@38
-    (38, 'abed.nadir', 'abed.nadir@isd.com', '$2b$12$cAwYWTYcXAvqGxQ8nv14xOOouW4yik.bFH7bGf4eNd27qxBS9v6cK', 'ROLE_OPERATOR', true, true),
-    -- shirley.bennett -> password: BestBoss!73
-    (39, 'shirley.bennett', 'shirley.bennett@isd.com', '$2b$12$MaYZ/Yboxxd8yXef3yfHMOpySCfs7Lm/Q7W7bpRbPZacawcnOWbmy', 'ROLE_SUPERVISOR', true, true),
-    -- annie.edison -> password: America@24
-    (40, 'annie.edison', 'annie.edison@isd.com', '$2b$12$LOKtTLwCgg5GI8c.1Frm9O1eUubaVuDyd.WvYQQph.8jnHvs78JBa', 'ROLE_OPERATOR', true, true),
-    -- troy.barnes -> password: Warehouse*97
-    (41, 'troy.barnes', 'troy.barnes@isd.com', '$2b$12$T7NWi2qwBiSAUFzhx78IzeLffViYg6lCVb/hXlvMERTEmXJsSjV06', 'ROLE_OPERATOR', true, true),
-    -- pierce.hawthorne -> password: WorldsBest*18
-    (42, 'pierce.hawthorne', 'pierce.hawthorne@isd.com', '$2b$12$VdAUYgcrWDLe2SJhDEkVCOr.Mhi4Jk2/gRtO2l6g5z4ffD6JO//oG', 'ROLE_OPERATOR', true, true),
-    -- ben.chang -> password: TheOffice?86
-    (43, 'ben.chang', 'ben.chang@isd.com', '$2b$12$QB2EMKicoJ6aAiU4EkN6RebUv422tMDyZhmkzfjFHzHnPwQLgDbOe', 'ROLE_OPERATOR', true, true),
-    -- ian.duncan -> password: BestBoss#42
-    (44, 'ian.duncan', 'ian.duncan@isd.com', '$2b$12$3/36ZtiOEEmr5FAL9N/HnuCGr9Lz.91TU227.RFtHVXgfboEe8kD2', 'ROLE_DEV', true, true),
-    -- michelle.slater -> password: Office%97
-    (45, 'michelle.slater', 'michelle.slater@isd.com', '$2b$12$XucH5HPG7d.7UwylMFnIXOfwn0gJVGAm9iF1g7/NEsAccxmpH7pk2', 'ROLE_OPERATOR', true, true),
-    -- frankie.dart -> password: Scranton%24
-    (46, 'frankie.dart', 'frankie.dart@isd.com', '$2b$12$aM3oJeP/nmh5d4PyEdcEte/M0q3zHxzYQvYUvBkvJNEgSTV5t20W.', 'ROLE_SUPERVISOR', true, true),
-    -- elroy.patashnik -> password: TheOffice?30
-    (47, 'elroy.patashnik', 'elroy.patashnik@isd.com', '$2b$12$5Kh5ATbmcdmh7S6YHOlnaOdn2IO5FXCIJQIfHMLVPnbgm6Qh3ClhG', 'ROLE_OPERATOR', true, true),
-    -- buzz.hickey -> password: America@43
-    (48, 'buzz.hickey', 'buzz.hickey@isd.com', '$2b$12$myd9Npdm55LLT2XndvSFteLfYLUUPPAaqFn/2lbc6bt4P6XsHEi52', 'ROLE_OPERATOR', true, true),
-    -- leslie.knope -> password: BestBoss%23
-    (49, 'leslie.knope', 'leslie.knope@isd.com', '$2b$12$L.dwCNZy5Ek/ZpdtahGMhOfNERv7uApUg/Tk4HNnz.2NhMurQeh4u', 'ROLE_OPERATOR', true, true),
-    -- ron.swanson -> password: BestBoss$87
-    (50, 'ron.swanson', 'ron.swanson@isd.com', '$2b$12$6oGsVqZe.RKf7sG.wCavfe8MMKn4Xlisz9OQtXJcHDfZbMvzWHA5O', 'ROLE_SUPERVISOR', true, true),
-    -- tom.haverford -> password: Warehouse@57
-    (51, 'tom.haverford', 'tom.haverford@isd.com', '$2b$12$yyBKotiY6gfrZmQU6sPX/OVBeCDXDasBwqgRMzJSAVuMcS2zULrT6', 'ROLE_DEV', true, true),
-    -- april.ludgate -> password: BestBoss#77
-    (52, 'april.ludgate', 'april.ludgate@isd.com', '$2b$12$bOGtCHIu43zQ7uUQpT6HA.av3YFrM09.ibwNKuVqOlt1TsWnP/asK', 'ROLE_OPERATOR', true, true),
-    -- andy.dwyer -> password: WorldsBest?51
-    (53, 'andy.dwyer', 'andy.dwyer@isd.com', '$2b$12$pK2T9WLN45QRi.bD6He3n.r7XYg7NZqj7bfXLj687egw0hCdTu8Ii', 'ROLE_OPERATOR', true, true);
+    (20, 'jan.levinson', 'jan.levinson@isd.com', '$2b$12$E7BhQ4/4ToACH1DTUpDH.OlAkWBQ95iBNQrajorvnOqqHF4875gQq', 'ROLE_SUPERVISOR', true, true);
 
 INSERT INTO categories (id, name)
 VALUES
@@ -197,17 +131,7 @@ VALUES
     (37, 'DSP-07', 'DSP-07', 'DISPATCH', 'Dispatch Lane 07', true, true),
     (38, 'DSP-08', 'DSP-08', 'DISPATCH', 'Dispatch Lane 08', true, true),
     (39, 'DSP-09', 'DSP-09', 'DISPATCH', 'Dispatch Lane 09', true, true),
-    (40, 'DSP-10', 'DSP-10', 'DISPATCH', 'Dispatch Lane 10', true, true),
-    (41, 'DSP-11', 'DSP-11', 'DISPATCH', 'Dispatch Lane 11', true, true),
-    (42, 'DSP-12', 'DSP-12', 'DISPATCH', 'Dispatch Lane 12', true, true),
-    (43, 'DSP-13', 'DSP-13', 'DISPATCH', 'Dispatch Lane 13', true, true),
-    (44, 'DSP-14', 'DSP-14', 'DISPATCH', 'Dispatch Lane 14', true, true),
-    (45, 'DSP-15', 'DSP-15', 'DISPATCH', 'Dispatch Lane 15', true, true),
-    (46, 'DSP-16', 'DSP-16', 'DISPATCH', 'Dispatch Lane 16', true, true),
-    (47, 'DSP-17', 'DSP-17', 'DISPATCH', 'Dispatch Lane 17', true, true),
-    (48, 'DSP-18', 'DSP-18', 'DISPATCH', 'Dispatch Lane 18', true, true),
-    (49, 'DSP-19', 'DSP-19', 'DISPATCH', 'Dispatch Lane 19', true, true),
-    (50, 'DSP-20', 'DSP-20', 'DISPATCH', 'Dispatch Lane 20', true, true);
+    (40, 'DSP-10', 'DSP-10', 'DISPATCH', 'Dispatch Lane 10', true, true);
 
 INSERT INTO transport_units (barcode, order_id, replenishment_id)
 VALUES

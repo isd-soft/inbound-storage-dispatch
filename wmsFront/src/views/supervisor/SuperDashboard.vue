@@ -179,6 +179,8 @@
             :value="dashboard.operatorPerformance"
             responsiveLayout="scroll"
             stripedRows
+            scrollable
+            scrollHeight="22rem"
           >
             <Column field="operatorName" header="Operator" />
             <Column field="status" header="Status">
@@ -189,14 +191,14 @@
             <Column field="activeTasks" header="Active Tasks" />
             <Column field="completedOrdersToday" header="Completed Today" />
             <Column field="averageCompletionTimeMinutes" header="Avg Completion">
-              <template #body="{ data }">{{
-                formatMinutes(data.averageCompletionTimeMinutes)
-              }}</template>
+              <template #body="{ data }">
+                {{ formatMinutes(data.averageCompletionTimeMinutes) }}
+              </template>
             </Column>
           </DataTable>
-          <Message v-else severity="info" :closable="false"
-            >No operator workload data available.</Message
-          >
+          <Message v-else severity="info" :closable="false">
+            No operator workload data available.
+          </Message>
         </template>
       </Card>
     </div>
@@ -528,6 +530,15 @@ onMounted(() => {
 
 .workload-card :deep(.p-card-body) {
   min-height: 0;
+}
+
+.workload-card :deep(.p-datatable-table-container) {
+  border-radius: 6px;
+}
+
+.activity-card :deep(.p-card-content),
+.workload-card :deep(.p-card-content) {
+  overflow: hidden;
 }
 
 @media (max-width: 1199px) {

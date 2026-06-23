@@ -1,6 +1,8 @@
 <template>
   <div class="app-shell font-sans flex">
-    <aside class="app-sidebar app-sidebar-desktop w-64 shadow-xl hidden md:flex md:flex-col md:shrink-0">
+    <aside
+      class="app-sidebar app-sidebar-desktop w-64 shadow-xl hidden md:flex md:flex-col md:shrink-0"
+    >
       <div class="app-sidebar-scroll min-h-0 flex-1">
         <SidebarBrand />
         <div class="px-4 pb-4 flex flex-col gap-2">
@@ -92,6 +94,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import Button from 'primevue/button'
+import 'primeicons/primeicons.css'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AiChatWidget from '@/components/AiChatWidget.vue'
 
@@ -149,7 +152,6 @@ const SidebarNavigation = defineComponent({
 })
 
 const menuItems = computed(() => {
-  const isDev = authStore.role === 'ROLE_DEV'
   const isOperator = authStore.role === 'ROLE_OPERATOR'
   if (isOperator) {
     return [{ to: '/operator', label: 'Operator Console', icon: 'pi pi-box' }]
@@ -166,10 +168,6 @@ const menuItems = computed(() => {
     { to: '/supervisor/users', label: 'Users', icon: 'pi pi-users' },
     { to: '/supervisor/history', label: 'History', icon: 'pi pi-history' },
   ]
-
-  if (isDev) {
-    items.unshift({ to: '/supervisor/dev', label: 'Dev Overview', icon: 'pi pi-server' })
-  }
 
   return items
 })
