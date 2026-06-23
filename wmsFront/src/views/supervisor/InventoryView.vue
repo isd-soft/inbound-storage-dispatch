@@ -279,7 +279,7 @@ today.setHours(0, 0, 0, 0)
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedStockIds.value.size > 0)
 const deletableSelectedStockItems = computed(() =>
-  selectedStockItems.value.filter((stock) => stock.quantity === 0 && stock.reservedQuantity === 0),
+  selectedStockItems.value,
 )
 
 const handleImport = async (formData) => {

@@ -162,14 +162,20 @@ public class Stock extends BaseTimestampEntity {
      * Updates the manufacture and expiration dates, keeping the later of the two
      * for each date (i.e., preserves the newest dates).
      *
-     * @param manufactureDate the new manufacture date
-     * @param expirationDate  the new expiration date
+     * @param newManufactureDate the new manufacture date
+     * @param newExpirationDate  the new expiration date
      */
-    public void updateDate(LocalDate manufactureDate, LocalDate expirationDate) {
-        this.manufactureDate = manufactureDate.isAfter(this.manufactureDate)
-                ? manufactureDate : this.manufactureDate;
+    public void updateDate(LocalDate newManufactureDate, LocalDate newExpirationDate) {
+        if (newManufactureDate != null) {
+            if (this.manufactureDate == null || newManufactureDate.isAfter(this.manufactureDate)) {
+                this.manufactureDate = newManufactureDate;
+            }
+        }
 
-        this.expirationDate = expirationDate.isAfter(this.expirationDate)
-                ? expirationDate : this.expirationDate;
+        if (newExpirationDate != null) {
+            if (this.expirationDate == null || newExpirationDate.isAfter(this.expirationDate)) {
+                this.expirationDate = newExpirationDate;
+            }
+        }
     }
 }

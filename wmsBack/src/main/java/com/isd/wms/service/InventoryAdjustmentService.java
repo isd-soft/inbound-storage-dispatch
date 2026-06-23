@@ -72,7 +72,7 @@ public class InventoryAdjustmentService {
         Long stockId,
         InventoryAdjustmentRequest request,
         boolean preview) {
-        validateDate(request.manufactureDate(), request.expirationDate());
+        InventoryService.validateStockDate(request.manufactureDate(), request.expirationDate());
         InventoryAdjustmentContext context = inventoryAdjustmentValidator.validateAndLoad(stockId, request);
         log.info(
             "Stock adjustment started: stockId={}, previousQuantity={}, newQuantity={}, " +
@@ -107,11 +107,5 @@ public class InventoryAdjustmentService {
         }
 
         return response;
-    }
-
-    private static void validateDate(LocalDate manufactureDate, LocalDate expirationDate) {
-        if(manufactureDate.isAfter(expirationDate)) {
-            throw new InvalidRequestException("Manufacture Date must be after Expiration Date");
-        }
     }
 }
