@@ -40,7 +40,10 @@
 
       <div v-if="selectedStock && mode !== 'add'" class="app-muted-panel rounded-lg p-3 text-sm">
         <div class="app-title font-semibold">{{ selectedStock.productName }}</div>
-        <div>{{ selectedStock.barcode }} · {{ selectedStock.locationBarcode }} · Current qty: {{ selectedStock.quantity }}</div>
+        <div>
+          {{ selectedStock.barcode }} · {{ selectedStock.locationBarcode }} · Current qty:
+          {{ selectedStock.quantity }}
+        </div>
         <div v-if="reservedQuantity > 0" class="app-muted text-xs mt-1">
           {{ reservedQuantity }} reserved quantity is protected and cannot be removed manually.
         </div>
@@ -62,7 +65,14 @@
 
       <div v-if="mode === 'adjust'" class="flex flex-col gap-2">
         <label for="comment" class="app-subtitle font-medium">Comment</label>
-        <Textarea id="comment" v-model="form.comment" rows="3" autoResize class="w-full" placeholder="Optional comment" />
+        <Textarea
+          id="comment"
+          v-model="form.comment"
+          rows="3"
+          autoResize
+          class="w-full"
+          placeholder="Optional comment"
+        />
       </div>
 
       <div class="flex flex-col gap-2">
@@ -76,24 +86,48 @@
           class="w-full"
           inputClass="w-full"
         />
-        <small v-if="submitted && !isQuantityValid" class="app-danger">{{ quantityValidationMessage }}</small>
+        <small v-if="submitted && !isQuantityValid" class="app-danger">{{
+          quantityValidationMessage
+        }}</small>
       </div>
 
       <div v-if="mode === 'add'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-2">
-          <label for="manufactureDate" class="app-subtitle font-medium">Manufacture Date</label>
-          <InputText id="manufactureDate" v-model="form.manufactureDate" type="date" class="w-full" />
+          <label for="manufactureDate" class="app-subtitle font-medium"> Manufacture Date </label>
+
+          <DatePicker
+            id="manufactureDate"
+            v-model="form.manufactureDate"
+            :maxDate="new Date()"
+            showClear
+            dateFormat="yy-mm-dd"
+            class="w-full"
+          />
         </div>
+
         <div class="flex flex-col gap-2">
-          <label for="expirationDate" class="app-subtitle font-medium">Expiration Date</label>
-          <InputText id="expirationDate" v-model="form.expirationDate" type="date" class="w-full" />
+          <label for="expirationDate" class="app-subtitle font-medium"> Expiration Date </label>
+
+          <DatePicker
+            id="expirationDate"
+            v-model="form.expirationDate"
+            :minDate="new Date()"
+            showClear
+            dateFormat="yy-mm-dd"
+            class="w-full"
+          />
         </div>
       </div>
     </form>
 
     <template #footer>
       <Button label="Cancel" severity="secondary" text :disabled="loading" @click="closeDialog" />
-      <Button :label="submitLabel" :severity="submitSeverity" :loading="loading" @click="submitForm" />
+      <Button
+        :label="submitLabel"
+        :severity="submitSeverity"
+        :loading="loading"
+        @click="submitForm"
+      />
     </template>
   </Dialog>
 </template>
@@ -105,7 +139,7 @@ import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
+import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 
 const props = defineProps({
@@ -114,7 +148,7 @@ const props = defineProps({
   selectedStock: { type: Object, default: null },
   products: { type: Array, default: () => [] },
   locations: { type: Array, default: () => [] },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:visible', 'submit'])
@@ -128,14 +162,14 @@ const form = reactive({
   reason: null,
   comment: '',
   manufactureDate: '',
-  expirationDate: ''
+  expirationDate: '',
 })
 
 const reasonOptions = [
   { label: 'Stolen', value: 'STOLEN' },
   { label: 'Damaged', value: 'DAMAGED' },
   { label: 'Lost', value: 'LOST' },
-  { label: 'Inventory mismatch', value: 'INVENTORY_MISMATCH' }
+  { label: 'Inventory mismatch', value: 'INVENTORY_MISMATCH' },
 ]
 
 const dialogTitle = computed(() => {
@@ -152,7 +186,9 @@ const quantityLabel = computed(() => {
 })
 const quantityMin = computed(() => (props.mode === 'adjust' ? 0 : 1))
 const reservedQuantity = computed(() => Number(props.selectedStock?.reservedQuantity ?? 0))
-const availableQuantity = computed(() => Number(props.selectedStock?.availableQuantity ?? props.selectedStock?.quantity ?? 0))
+const availableQuantity = computed(() =>
+  Number(props.selectedStock?.availableQuantity ?? props.selectedStock?.quantity ?? 0),
+)
 const quantityMax = computed(() => {
   if (props.mode === 'remove') return availableQuantity.value
   return undefined
@@ -175,7 +211,8 @@ const isQuantityValid = computed(() => {
 })
 const quantityValidationMessage = computed(() => {
   if (props.mode === 'adjust') return 'New available quantity must be greater than or equal to 0.'
-  if (props.mode === 'remove') return `Quantity must be between 1 and available quantity (${availableQuantity.value}).`
+  if (props.mode === 'remove')
+    return `Quantity must be between 1 and available quantity (${availableQuantity.value}).`
   return 'Quantity must be greater than 0.'
 })
 
@@ -190,7 +227,7 @@ watch(
         form.comment = ''
       }
     }
-  }
+  },
 )
 
 const resetForm = () => {
@@ -230,7 +267,7 @@ const submitForm = () => {
       locationId: form.locationId,
       quantity: form.quantity,
       manufactureDate: form.manufactureDate || null,
-      expirationDate: form.expirationDate || null
+      expirationDate: form.expirationDate || null,
     })
     return
   }
@@ -238,7 +275,7 @@ const submitForm = () => {
   if (props.mode === 'remove') {
     emit('submit', {
       stockId: props.selectedStock.id,
-      quantity: form.quantity
+      quantity: form.quantity,
     })
     return
   }
@@ -247,7 +284,7 @@ const submitForm = () => {
     stockId: props.selectedStock.id,
     newQuantity: form.newQuantity,
     reason: form.reason,
-    comment: form.comment || null
+    comment: form.comment || null,
   })
 }
 </script>

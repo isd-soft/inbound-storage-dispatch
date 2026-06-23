@@ -48,8 +48,7 @@ public class InventoryAdjustmentApplier {
         Stock stock = context.stock();
         stock.setQuantity(context.newQuantity());
         stock.setReservedQuantity(plan.preservedQuantityOnAdjustedStock());
-        stock.setManufactureDate(context.request().manufactureDate() == null ? stock.getManufactureDate() : context.request().manufactureDate());
-        stock.setExpirationDate(context.request().expirationDate() == null ? stock.getExpirationDate() : context.request().expirationDate());
+        stock.updateDate(context.request().manufactureDate(), context.request().expirationDate());
         stockRepository.save(stock);
 
         List<Allocation> allocationsToSave = updateAdjustedStockAllocations(context);

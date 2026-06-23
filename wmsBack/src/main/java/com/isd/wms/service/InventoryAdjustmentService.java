@@ -3,13 +3,16 @@ package com.isd.wms.service;
 import com.isd.wms.dto.inventory.InventoryAdjustmentRequest;
 import com.isd.wms.dto.inventory.InventoryAdjustmentResponse;
 import com.isd.wms.entity.Stock;
+import com.isd.wms.exception.InvalidRequestException;
 import com.isd.wms.repository.StockRepository;
 import com.isd.wms.service.inventoryadjustment.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 /**
@@ -74,6 +77,7 @@ public class InventoryAdjustmentService {
         Long stockId,
         InventoryAdjustmentRequest request,
         boolean preview) {
+        InventoryService.validateStockDate(request.manufactureDate(), request.expirationDate());
         InventoryAdjustmentContext context = inventoryAdjustmentValidator.validateAndLoad(stockId, request);
         log.info(
             "Stock adjustment started: stockId={}, previousQuantity={}, newQuantity={}, " +
@@ -107,8 +111,9 @@ public class InventoryAdjustmentService {
                 stockId, request.reason());
         }
 
-        Optional<Stock> stock = stockRepository.findById(stockId);
-        stock.ifPresent(s -> s.setAvailable(false));
+        stockRepository.findById(stockId)
+            .filter(s -> s.getQuantity() == 0)
+            .ifPresent(s -> s.setAvailable(false));
         return response;
     }
 }
