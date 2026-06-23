@@ -45,15 +45,7 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
 
     @Override
     public void handle(Allocation allocation) {
-        Replenishment replenishment = replenishmentRepository.findByTaskId(allocation.getTask().getId())
-            .orElseThrow(() -> new RuntimeException("Replenishment not found for task"));
-
-        Location destinationLocation = replenishment.getDestinationLocation();
         Stock sourceStock = allocation.getStock();
-
-        Integer quantityToMove = allocation.getPickedQuantity().orElse(allocation.getQuantity());
-        Product product = sourceStock.getProduct()
-            .orElseThrow(() -> new IllegalStateException("Source stock product is required"));
 
         if (allocation.getPickedQuantity().isPresent() && allocation.getPickedQuantity().get() < allocation.getQuantity()) {
             int missingQuantity = allocation.getQuantity() - allocation.getPickedQuantity().get();
@@ -68,30 +60,6 @@ public class ReplenishmentAllocationCompletionStrategy implements AllocationComp
                 "Replenishment shortage"
             );
         }
-
-        if (quantityToMove <= 0) {
-            return;
-        }
-
-        stockRepository.findByLocationId(destinationLocation.getId())
-            .ifPresentOrElse(existingStock -> {
-                    Product existingProduct = existingStock.getProduct().orElse(null);
-
-                    if (existingProduct != null && !existingProduct.getId().equals(product.getId())) {
-                        if (existingStock.getQuantity() == 0 && existingStock.getReservedQuantity() == 0) {
-                            existingStock.setProduct(product);
-                            existingStock.setQuantity(quantityToMove);
-                            existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-                        } else {
-                            throw new IllegalStateException("Location " + destinationLocation.getBarcode() + " is already occupied by a different product!");
-                        }
-                    } else {
-                        if (existingProduct == null) existingStock.setProduct(product);
-                        existingStock.addQuantity(quantityToMove);
-                        existingStock.updateDate(sourceStock.getManufactureDate(), sourceStock.getExpirationDate());
-                    }
-                },
-                () -> createStock(sourceStock, product, destinationLocation, quantityToMove));
     }
 
     private void createStock(Stock sourceStock, Product product, Location destinationLocation, int quantityToMove) {
