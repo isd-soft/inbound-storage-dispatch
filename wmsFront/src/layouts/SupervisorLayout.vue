@@ -108,7 +108,8 @@ const SidebarBrand = defineComponent({
   name: 'SidebarBrand',
   setup() {
     return () =>
-      h('div', { class: 'p-6 flex items-center gap-3' }, [
+      // Am redus padding-ul de sus/jos (de la p-6 la pt-5 pb-4), menținând lateralele la px-6
+      h('div', { class: 'pt-5 pb-4 px-6 flex items-center gap-3' }, [
         h('img', {
           src: isDark.value ? '/white_logo.png' : '/color_white_logo.png',
           alt: 'Inbound Storage Dispatch logo',
@@ -141,7 +142,8 @@ const SidebarNavigation = defineComponent({
               to: item.to,
               exactActiveClass: 'app-nav-link-active',
               activeClass: 'app-nav-link-active',
-              class: 'app-nav-link p-3 rounded-lg transition flex items-center gap-3',
+              // Am schimbat de la p-3 (12px peste tot) la py-[10px] px-3 pentru a micșora înălțimea cu ~15%
+              class: 'app-nav-link py-[10px] px-3 rounded-lg transition flex items-center gap-3',
               onClick: () => emit('navigate'),
             },
             () => [h('i', { class: item.icon }), item.label],
@@ -205,7 +207,7 @@ watch(
 
 .app-sidebar-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin: 0.5rem 0;
+  margin: 0.4rem 0; /* Redus nesemnificativ de la 0.5rem */
 }
 
 .sidebar-action-btn:deep(.p-button) {
