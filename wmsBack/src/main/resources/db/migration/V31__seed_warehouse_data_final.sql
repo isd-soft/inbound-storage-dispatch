@@ -122,16 +122,16 @@ VALUES
     (28, 'REPL-C-03', 'REPL-C-03', 'REPLENISHMENT', 'Storage Rack C03', true, true),
     (29, 'REPL-C-04', 'REPL-C-04', 'REPLENISHMENT', 'Storage Rack C04', true, true),
     (30, 'REPL-C-05', 'REPL-C-05', 'REPLENISHMENT', 'Storage Rack C05', true, true),
-    (31, 'DSP-01', 'DSP-01', 'DISPATCH', 'Dispatch Lane 01', true, true),
-    (32, 'DSP-02', 'DSP-02', 'DISPATCH', 'Dispatch Lane 02', true, true),
-    (33, 'DSP-03', 'DSP-03', 'DISPATCH', 'Dispatch Lane 03', true, true),
-    (34, 'DSP-04', 'DSP-04', 'DISPATCH', 'Dispatch Lane 04', true, true),
-    (35, 'DSP-05', 'DSP-05', 'DISPATCH', 'Dispatch Lane 05', true, true),
-    (36, 'DSP-06', 'DSP-06', 'DISPATCH', 'Dispatch Lane 06', true, true),
-    (37, 'DSP-07', 'DSP-07', 'DISPATCH', 'Dispatch Lane 07', true, true),
-    (38, 'DSP-08', 'DSP-08', 'DISPATCH', 'Dispatch Lane 08', true, true),
-    (39, 'DSP-09', 'DSP-09', 'DISPATCH', 'Dispatch Lane 09', true, true),
-    (40, 'DSP-10', 'DSP-10', 'DISPATCH', 'Dispatch Lane 10', true, true);
+    (31, 'DISP-01', 'DISP-01', 'DISPATCH', 'Dispatch Lane 01', true, true),
+    (32, 'DISP-02', 'DISP-02', 'DISPATCH', 'Dispatch Lane 02', true, true),
+    (33, 'DISP-03', 'DISP-03', 'DISPATCH', 'Dispatch Lane 03', true, true),
+    (34, 'DISP-04', 'DISP-04', 'DISPATCH', 'Dispatch Lane 04', true, true),
+    (35, 'DISP-05', 'DISP-05', 'DISPATCH', 'Dispatch Lane 05', true, true),
+    (36, 'DISP-06', 'DISP-06', 'DISPATCH', 'Dispatch Lane 06', true, true),
+    (37, 'DISP-07', 'DISP-07', 'DISPATCH', 'Dispatch Lane 07', true, true),
+    (38, 'DISP-08', 'DISP-08', 'DISPATCH', 'Dispatch Lane 08', true, true),
+    (39, 'DISP-09', 'DISP-09', 'DISPATCH', 'Dispatch Lane 09', true, true),
+    (40, 'DISP-10', 'DISP-10', 'DISPATCH', 'Dispatch Lane 10', true, true);
 
 INSERT INTO transport_units (barcode, order_id, replenishment_id)
 VALUES

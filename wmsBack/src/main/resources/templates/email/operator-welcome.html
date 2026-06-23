@@ -29,24 +29,20 @@
         <p>Inbound · Storage · Dispatch</p>
     </div>
     <div class="body">
-        <p class="greeting">Welcome, <span th:text="${username}">operator</span>!</p>
+        <p class="greeting">Welcome, <span th:text="${username}">user</span>!</p>
         <p class="text">
-            Supervisor has created an operator account for you in the warehouse management system.
+            Supervisor has created an user account for you in the warehouse management system.
             Click the button below to confirm your email and activate your account.
         </p>
 
         <div class="info-box">
             <div class="info-row">
                 <span class="info-label">Username</span>
-                <span class="info-value" th:text="${username}">operator1</span>
+                <span class="info-value" th:text="${username}">user1</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Email</span>
-                <span class="info-value" th:text="${email}">op@example.com</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Role</span>
-                <span class="info-value">Operator</span>
+                <span class="info-value" th:text="${email}">user@example.com</span>
             </div>
         </div>
 
