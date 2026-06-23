@@ -180,19 +180,25 @@
 
       <Column field="manufactureDate" header="Manufactured" sortable filter>
         <template #body="{ data }">
-          <span class="app-muted text-sm">{{ data.manufactureDate || '-' }}</span>
+          <span class="app-muted text-sm">
+            {{ data.manufactureDate ? formatDate(data.manufactureDate) : '-' }}
+          </span>
         </template>
+
         <template #editor="{ data, field }">
-          <InputText v-model="data[field]" type="date" class="w-full" />
+          <DatePicker v-model="data[field]" :maxDate="today" showClear dateFormat="yy-mm-dd" />
         </template>
       </Column>
 
       <Column field="expirationDate" header="Expires" sortable filter>
         <template #body="{ data }">
-          <span class="app-muted text-sm">{{ data.expirationDate || '-' }}</span>
+          <span class="app-muted text-sm">
+            {{ data.expirationDate ? formatDate(data.expirationDate) : '-' }}
+          </span>
         </template>
+
         <template #editor="{ data, field }">
-          <InputText v-model="data[field]" type="date" class="w-full" />
+          <DatePicker v-model="data[field]" :minDate="today" showClear dateFormat="yy-mm-dd" />
         </template>
       </Column>
     </AppDataTable>
@@ -220,13 +226,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-
+function formatDate(date) {
+  return new Intl.DateTimeFormat('en-CA').format(new Date(date))
+}
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Card from 'primevue/card'
 import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
+import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 
@@ -264,6 +272,10 @@ const inventoryFilterFields = [
   { field: 'manufactureDate', label: 'Manufactured' },
   { field: 'expirationDate', label: 'Expires' },
 ]
+
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedStockIds.value.size > 0)
 const deletableSelectedStockItems = computed(() =>
@@ -410,23 +422,6 @@ const submitQuantityChanges = async () => {
         severity: 'error',
         summary: 'Validation failed',
         detail: 'Quantity must be zero or greater.',
-        life: 4000,
-      })
-      return
-    }
-
-    const invalidDatesStock = changedStocks.find(
-      (stock) =>
-        stock.manufactureDate &&
-        stock.expirationDate &&
-        new Date(stock.manufactureDate) >= new Date(stock.expirationDate),
-    )
-
-    if (invalidDatesStock) {
-      toast.add({
-        severity: 'error',
-        summary: 'Validation failed',
-        detail: 'Manufacture date must be before expiration date.',
         life: 4000,
       })
       return
