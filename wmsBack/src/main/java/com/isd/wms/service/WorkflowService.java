@@ -58,7 +58,7 @@ public class WorkflowService {
      * @param task the task for which to generate allocations
      * @param productId the product ID
      * @param remainingQuantity the quantity to allocate
-     * @throws InvalidRequestException if insufficient stock is available
+     * @throws InvalidRequestException if insufficient stock is getAvailableQuantity
      */
     @Transactional
     public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
@@ -101,9 +101,9 @@ public class WorkflowService {
         for (Stock stock : availableStocks) {
             if (qtyNeeded <= 0) break;
 
-            if (stock.available() <= 0) continue;
+            if (stock.getAvailableQuantity() <= 0) continue;
 
-            int quantityToTake = Math.min(stock.available(), qtyNeeded);
+            int quantityToTake = Math.min(stock.getAvailableQuantity(), qtyNeeded);
 
             Allocation allocation = new Allocation(task, stock, quantityToTake, Status.CREATED);
             allocations.add(allocation);
@@ -162,7 +162,11 @@ public class WorkflowService {
         // Никаких проверок partialPick перед списанием
         if (quantityToMove > 0) {
             sourceStock.removeQuantity(quantityToMove);
-            stockRepository.save(sourceStock);
+            if (sourceStock.getQuantity() == 0 && sourceStock.getReservedQuantity() == 0) {
+                sourceStock.setAvailable(Boolean.FALSE);
+            } else {
+                stockRepository.save(sourceStock);
+            }
         }
 
         Task task = allocation.getTask();

@@ -58,6 +58,9 @@ public class Stock extends BaseTimestampEntity {
     @Column(nullable = false)
     private Integer quantity = 0;
 
+    @Column(nullable = false)
+    private Boolean available = Boolean.TRUE;
+
     @Column(name = "quantity_reserved", nullable = false)
     private Integer reservedQuantity = 0;
 
@@ -140,7 +143,7 @@ public class Stock extends BaseTimestampEntity {
      *
      * @return available quantity
      */
-    public int available() {return this.quantity - this.reservedQuantity;}
+    public int getAvailableQuantity() {return this.quantity - this.reservedQuantity;}
 
     @Override
     public boolean equals(Object o) {

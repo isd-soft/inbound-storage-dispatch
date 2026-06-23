@@ -21,7 +21,7 @@ import java.util.List;
  * business services.
  * </p>
  * <p>
- * The service relies on Spring's dependency injection to collect all available
+ * The service relies on Spring's dependency injection to collect all getAvailableQuantity
  * strategies and mappers.
  * </p>
  *

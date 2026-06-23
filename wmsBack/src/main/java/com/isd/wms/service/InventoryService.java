@@ -5,7 +5,6 @@ import com.isd.wms.entity.*;
 import com.isd.wms.enums.InventoryAdjustmentReason;
 import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Zone;
-import com.isd.wms.event.LowStockEvent;
 import com.isd.wms.exception.*;
 import com.isd.wms.mapper.InventoryHistoryMapper;
 import com.isd.wms.mapper.StockMapper;
@@ -14,7 +13,6 @@ import com.isd.wms.service.imports.ImportService;
 import com.isd.wms.service.imports.dto.StockInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,23 +21,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Service for managing inventory (stock) operations.
- * <p>
- * Provides CRUD operations for stock records, including adding, removing,
- * and adjusting quantities. It also records inventory history for each
- * operation and triggers replenishment checks when stock levels drop.
- * </p>
- * <p>
- * Import functionality is supported via {@link ImportService} for bulk
- * stock additions from CSV/Excel files.
- * </p>
- *
- * @see Stock
- * @see InventoryHistory
- * @see LowStockEvent
- * @see InventoryAdjustmentService
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -53,9 +34,9 @@ public class InventoryService {
     private final UserRepository userRepository;
     private final StockMapper stockMapper;
     private final InventoryHistoryMapper inventoryHistoryMapper;
+    private final ReplenishmentService replenishmentService;
     private final ImportService importService;
     private final InventoryAdjustmentService inventoryAdjustmentService;
-    private final ApplicationEventPublisher eventPublisher;
 
     public List<StockResponse> getAllStock() {
         return stockRepository.findAllByAvailableIsTrue().stream()
@@ -67,14 +48,6 @@ public class InventoryService {
         return stockMapper.toResponse(getStock(stockId));
     }
 
-    /**
-     * Adds stock to a location. If the location already contains stock of a
-     * different product, the operation is rejected unless the location is empty.
-     *
-     * @param request the add stock request
-     * @return the updated stock response
-     * @throws InvalidRequestException if the location is occupied by another product
-     */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
@@ -84,7 +57,7 @@ public class InventoryService {
         Location location = getLocation(request.locationId());
         User user = getUser(request.userId());
 
-        // --- ВАЛИДАЦИЯ ИЗ ВЕТКИ FIX ---
+        // --- ВОССТАНОВЛЕННАЯ ВАЛИДАЦИЯ ЗОН И ДАТ ---
         if (location.getZone() == Zone.DISPATCH) {
             throw new InvalidRequestException("Adding stock directly to the DISPATCH zone is strictly prohibited.");
         }
@@ -105,8 +78,8 @@ public class InventoryService {
         if (expDate != null && expDate.isBefore(today)) {
             throw new InvalidRequestException("Cannot add expired stock to the warehouse.");
         }
+        // -------------------------------------------
 
-        // --- ЛОГИКА БД ИЗ ВЕТКИ MAIN ---
         if(stockRepository.existsByLocationAndAvailableIsTrueAndProductIsNot(location, product)) {
             throw new InvalidRequestException("Location is already occupied by a different product with remaining quantity.");
         }
@@ -132,13 +105,6 @@ public class InventoryService {
         return stockMapper.toResponse(savedStock);
     }
 
-    /**
-     * Removes a specified quantity of unreserved stock from a location.
-     *
-     * @param request the remove stock request
-     * @return the updated stock response
-     * @throws InsufficientStockException if the available quantity is insufficient
-     */
     @Transactional
     public StockResponse removeStock(RemoveStockRequest request) {
         log.info("Removing stock: stockId={}, quantity={}, userId={}",
@@ -205,18 +171,10 @@ public class InventoryService {
     ) {
         createHistory(stock, -pickedQuantity, stock.getQuantity(), stock.getLocation(), null,
             InventoryOperationType.PICKING, adjustmentReason, comment, user);
-
-        triggerReplenishmentCheck(stock);
     }
 
     @Transactional
-    public void recordShortageAdjustment(
-        Stock stock,
-        Integer shortageQuantity,
-        User user,
-        InventoryOperationType operationType,
-        String comment
-    ) {
+    public void recordPickingShortageAdjustment(Stock stock, Integer shortageQuantity, User user, String comment) {
         if (shortageQuantity == null || shortageQuantity <= 0) {
             return;
         }
@@ -226,16 +184,10 @@ public class InventoryService {
         stock.setReservedQuantity(Math.max(0, stock.getReservedQuantity() - shortageQuantity));
         stockRepository.save(stock);
 
-        InventoryAdjustmentReason reason = (operationType == InventoryOperationType.PICKING_SHORTAGE)
-            ? InventoryAdjustmentReason.PICKING_SHORTAGE : null;
-
         createHistory(stock, -shortageQuantity, quantityAfterChange, stock.getLocation(), null,
-            operationType, reason, comment, user);
-
-        log.info("Shortage adjustment recorded: stockId={}, operationType={}, shortageQuantity={}, quantityAfterChange={}",
-            stock.getId(), operationType.name(), shortageQuantity, quantityAfterChange);
-
-        triggerReplenishmentCheck(stock);
+            InventoryOperationType.ADJUST_STOCK, InventoryAdjustmentReason.PICKING_SHORTAGE, comment, user);
+        log.info("Picking shortage adjustment recorded: stockId={}, shortageQuantity={}, quantityAfterChange={}",
+            stock.getId(), shortageQuantity, quantityAfterChange);
     }
 
     private void createHistory(
@@ -276,7 +228,7 @@ public class InventoryService {
         }
         int locationQty = stock.getQuantity() - stock.getReservedQuantity();
 
-        eventPublisher.publishEvent(new LowStockEvent(product, stock.getLocation(), locationQty));
+        replenishmentService.checkAndTriggerAutoReplenishment(product, stock.getLocation(), locationQty);
     }
 
     private Stock getStock(Long stockId) {
@@ -311,11 +263,6 @@ public class InventoryService {
             });
     }
 
-    /**
-     * Imports stock records from an uploaded file.
-     *
-     * @param file the multipart file containing stock data
-     */
     @Transactional
     public void importStocksFromFile(MultipartFile file) {
         List<AddStockRequest> stocks = importService.importData(file, StockInfo.class);

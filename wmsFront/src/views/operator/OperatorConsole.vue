@@ -351,7 +351,6 @@
                       :min="0"
                       :max="currentAllocation.requiredQuantity"
                       fluid
-                      readonly
                       inputClass="app-qty-input text-center text-xl font-extrabold border-none py-3 w-full rounded-xl"
                     />
                     <div class="flex gap-5 w-full justify-center mt-1 touch-none select-none">
