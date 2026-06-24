@@ -61,29 +61,27 @@
     </aside>
 
     <main class="flex-1 min-w-0 overflow-y-auto">
-      <main class="flex-1 min-w-0 overflow-y-auto">
-        <header
-          class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
-        >
-          <div class="flex items-center gap-3">
-            <img
-              :src="isDark ? '/white_logo.png' : '/color_logo.png'"
-              alt="Inbound Storage Dispatch logo"
-              class="h-[38px] w-auto object-contain"
-            />
-            <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
-          </div>
-          <Button
-            icon="pi pi-bars"
-            text
-            rounded
-            severity="secondary"
-            aria-label="Open menu"
-            @click="openMobileMenu"
+      <header
+        class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
+      >
+        <div class="flex items-center gap-3">
+          <img
+            :src="isDark ? '/white_logo.png' : '/color_logo.png'"
+            alt="Inbound Storage Dispatch logo"
+            class="h-[38px] w-auto object-contain"
           />
-        </header>
-        <router-view />
-      </main>
+          <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
+        </div>
+        <Button
+          icon="pi pi-bars"
+          text
+          rounded
+          severity="secondary"
+          aria-label="Open menu"
+          @click="openMobileMenu"
+        />
+      </header>
+
       <router-view />
     </main>
 
@@ -208,7 +206,7 @@ watch(
 
 .app-sidebar-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin: 0.4rem 0; /* Redus nesemnificativ de la 0.5rem */
+  margin: 0.4rem 0;
 }
 
 .sidebar-action-btn:deep(.p-button) {
