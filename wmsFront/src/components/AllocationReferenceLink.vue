@@ -1,5 +1,5 @@
 <template>
-  <RouterLink v-if="target" :to="target" class="app-product-link" :title="title">
+  <RouterLink v-if="target" :to="target" class="app-product-link text-primary font-semibold hover:underline" :title="title">
     {{ label }}
   </RouterLink>
 
@@ -20,11 +20,11 @@ const props = defineProps({
 
 const label = computed(() => {
   if ((props.type === 'PICKING_ORDER' || props.type === 'ORDER') && props.orderId) {
-    return `Order #${props.orderId}`
+    return `ORD-${props.orderId}` // Сделал короче и красивее
   }
 
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
-    return `Replenishment #${props.replenishmentId}`
+    return `REPL-${props.replenishmentId}` // Сделал короче и красивее
   }
 
   return 'Reference'
@@ -43,7 +43,7 @@ const target = computed(() => {
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
     return {
       path: '/supervisor/replenishments',
-      query: { id: props.replenishmentId },
+      query: { id: props.replenishmentId }, // Этот query подхватит твой ReplenishmentsView
     }
   }
 
