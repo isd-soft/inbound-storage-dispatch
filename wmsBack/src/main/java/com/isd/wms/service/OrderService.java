@@ -151,7 +151,7 @@ public class OrderService {
         Order order = getOrder(id);
         releaseReservedStock(order);
 
-        transportUnitRepository.findByOrder(order).ifPresent(tu -> {
+        transportUnitRepository.findAllByOrder(order).forEach(tu -> {
             tu.setOrder(null);
             transportUnitRepository.save(tu);
             log.info("Successfully released Transport Unit {} from deleted order {}", tu.getBarcode(), id);

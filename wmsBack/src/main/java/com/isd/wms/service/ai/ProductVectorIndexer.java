@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -39,12 +40,20 @@ public class ProductVectorIndexer {
     private final ProductRepository productRepository;
     private final VectorStore vectorStore;
 
+    @Value("${wms.ai.product-index.enabled:true}")
+    private boolean productIndexEnabled;
+
     /**
      * Indexes all products in the database on application startup.
      * This method is triggered by the {@link ApplicationReadyEvent}.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void indexAllProducts() {
+        if (!productIndexEnabled) {
+            log.info("Product Vector Indexing is disabled.");
+            return;
+        }
+
         log.info("Starting Product Vector Indexing...");
         List<Product> products = productRepository.findAll();
 

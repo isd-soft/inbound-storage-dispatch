@@ -4,7 +4,6 @@ import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.dto.allocation.*;
 import com.isd.wms.dto.transport_unit.ScanTuRequest;
 import com.isd.wms.dto.transport_unit.TaskActionResponse;
-import com.isd.wms.repository.projections.AllocationSupervisorProjection;
 import com.isd.wms.service.AllocationExecutionService;
 import com.isd.wms.service.AllocationService;
 import com.isd.wms.service.TransportUnitService;
@@ -40,11 +39,11 @@ public class AllocationController {
     /**
      * Retrieves all allocations in the system, projected for supervisor view.
      *
-     * @return {@code 200 OK} with a list of {@link AllocationSupervisorProjection} representing all allocations
+     * @return {@code 200 OK} with a list of {@link AllocationSupervisorResponse} representing all allocations
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'DEV')")
-    public ResponseEntity<List<AllocationSupervisorProjection>> getAllAllocations() {
+    public ResponseEntity<List<AllocationSupervisorResponse>> getAllAllocations() {
         return ResponseEntity.ok(allocationService.getAllAllocations());
     }
 

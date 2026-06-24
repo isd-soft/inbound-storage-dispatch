@@ -66,7 +66,8 @@ public class PickingOperatorStrategy implements OperatorExecutionStrategy {
         }
 
         if (partialPick) {
-            inventoryService.recordShortageAdjustment(allocation.getStock(), shortageQuantity, operator,
+            int missingSourceQuantity = calculateMissingSourceQuantity(allocation, pickedQuantity);
+            inventoryService.recordShortageAdjustment(allocation.getStock(), missingSourceQuantity, operator,
                 InventoryOperationType.PICKING_SHORTAGE, "Picking shortage");
         }
 
@@ -110,6 +111,11 @@ public class PickingOperatorStrategy implements OperatorExecutionStrategy {
         );
     }
 
+    private int calculateMissingSourceQuantity(Allocation allocation, int pickedQuantity) {
+        int sourceQuantity = Optional.ofNullable(allocation.getStock().getQuantity()).orElse(0);
+        return Math.max(0, sourceQuantity - pickedQuantity);
+    }
+
     @Override
     public void dispatch(Allocation allocation, String tuBarcode) {
         orderLineRepository.findByTaskId(allocation.getTask().getId())
@@ -144,7 +150,7 @@ public class PickingOperatorStrategy implements OperatorExecutionStrategy {
     }
 
     private void releaseTuForOrder(Order order) {
-        tuRepository.findByOrder(order).ifPresent(tu -> {
+        tuRepository.findAllByOrder(order).forEach(tu -> {
             tu.setOrder(null);
             tu.setReplenishment(null);
             tuRepository.save(tu);

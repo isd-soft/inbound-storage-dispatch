@@ -3276,3 +3276,392 @@ java.lang.IllegalStateException: This TU is already locked in another active pro
 2026-06-19 14:13:55.700 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
 2026-06-19 14:13:55.701 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
 2026-06-19 14:13:55.706 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=6
+2026-06-24 15:15:51.004 [main] INFO  com.isd.wms.WmsApplication - Starting WmsApplication using Java 24.0.1 with PID 97909 (/Users/whatyz/IdeaProjects/inbound-storage-dispatch/wmsBack/target/classes started by whatyz in /Users/whatyz/IdeaProjects/inbound-storage-dispatch)
+2026-06-24 15:15:51.005 [main] INFO  com.isd.wms.WmsApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-24 15:15:51.238 [main] ERROR o.s.boot.SpringApplication - Application run failed
+java.lang.IllegalArgumentException: 'files' content [../docker-compose.yaml] must exist
+	at org.springframework.util.Assert.isTrue(Assert.java:136)
+	at org.springframework.boot.docker.compose.core.DockerComposeFile.of(DockerComposeFile.java:150)
+	at org.springframework.boot.docker.compose.lifecycle.DockerComposeLifecycleManager.getComposeFile(DockerComposeLifecycleManager.java:152)
+	at org.springframework.boot.docker.compose.lifecycle.DockerComposeLifecycleManager.start(DockerComposeLifecycleManager.java:111)
+	at org.springframework.boot.docker.compose.lifecycle.DockerComposeListener.onApplicationEvent(DockerComposeListener.java:53)
+	at org.springframework.boot.docker.compose.lifecycle.DockerComposeListener.onApplicationEvent(DockerComposeListener.java:35)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:180)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:173)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:151)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:133)
+	at org.springframework.boot.context.event.EventPublishingRunListener.multicastInitialEvent(EventPublishingRunListener.java:137)
+	at org.springframework.boot.context.event.EventPublishingRunListener.contextLoaded(EventPublishingRunListener.java:99)
+	at org.springframework.boot.SpringApplicationRunListeners.lambda$contextLoaded$0(SpringApplicationRunListeners.java:74)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:123)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:117)
+	at org.springframework.boot.SpringApplicationRunListeners.contextLoaded(SpringApplicationRunListeners.java:74)
+	at org.springframework.boot.SpringApplication.prepareContext(SpringApplication.java:418)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:320)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
+	at com.isd.wms.WmsApplication.main(WmsApplication.java:12)
+2026-06-24 15:17:07.836 [main] INFO  com.isd.wms.WmsApplication - Starting WmsApplication using Java 24.0.1 with PID 99021 (/Users/whatyz/IdeaProjects/inbound-storage-dispatch/wmsBack/target/classes started by whatyz in /Users/whatyz/IdeaProjects/inbound-storage-dispatch)
+2026-06-24 15:17:07.838 [main] INFO  com.isd.wms.WmsApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-24 15:17:07.858 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - Using Docker Compose file /Users/whatyz/IdeaProjects/inbound-storage-dispatch/docker-compose.yaml
+2026-06-24 15:17:08.104 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - There are already Docker Compose services running, skipping startup
+2026-06-24 15:17:08.713 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-24 15:17:08.776 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 58 ms. Found 12 JPA repository interfaces.
+2026-06-24 15:17:08.997 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-06-24 15:17:09.002 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-24 15:17:09.003 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-24 15:17:09.032 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 722 ms
+2026-06-24 15:17:09.090 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-24 15:17:09.107 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-06-24 15:17:09.248 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-24 15:17:09.263 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-24 15:17:09.326 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2ebcbf9d
+2026-06-24 15:17:09.327 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-24 15:17:09.357 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/wms_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: wms_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-24 15:17:09.786 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-24 15:17:09.813 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:17:09.838 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-24 15:17:09.902 [main] INFO  com.isd.wms.security.JwtUtil - JwtUtil initialized. Secret key loaded successfully.
+2026-06-24 15:17:10.764 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Using the vector table name: vector_store. Is empty: false
+2026-06-24 15:17:10.765 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Initializing PGVectorStore schema for table: vector_store in schema: public
+2026-06-24 15:17:10.765 [main] INFO  o.s.a.v.pgvector.PgVectorStore - vectorTableValidationsEnabled false
+2026-06-24 15:17:10.960 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-24 15:17:10.989 [main] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-06-24 15:17:11.221 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-06-24 15:17:11.227 [main] INFO  com.isd.wms.WmsApplication - Started WmsApplication in 3.609 seconds (process running for 3.785)
+2026-06-24 15:17:11.228 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-24 15:17:11.228 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+2026-06-24 15:17:11.228 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Starting Product Vector Indexing...
+2026-06-24 15:17:12.954 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Successfully indexed 30 products into PGVector.
+2026-06-24 15:19:21.473 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-24 15:19:21.473 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-24 15:19:21.474 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-24 15:19:21.559 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:19:21.559 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:19:21.563 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:20:16.483 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:20:16.484 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:20:16.495 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:20:29.499 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:20:29.500 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:20:29.513 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:20:40.680 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:20:40.681 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:20:40.694 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:20:43.387 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:20:43.387 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:20:43.395 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:21:04.240 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.OrderService - Updated order with id 7
+2026-06-24 15:21:04.250 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.OrderService - Updated 1 tasks for order 7
+2026-06-24 15:21:04.253 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.OrderService - Updated 2 allocations for order 7
+2026-06-24 15:21:04.255 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.OrderService - Updated 1 order lines for order 7
+2026-06-24 15:21:05.418 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:21:05.419 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:21:05.426 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:21:25.186 [http-nio-0.0.0.0-8080-exec-4] INFO  c.isd.wms.controller.AuthController - Authentication attempt for user/email: operator
+2026-06-24 15:21:25.505 [http-nio-0.0.0.0-8080-exec-4] INFO  c.isd.wms.controller.AuthController - Authentication successful! Token is generated for user: operator
+2026-06-24 15:21:26.364 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.c.AllocationController - Operator requested start for current task
+2026-06-24 15:21:29.536 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.w.c.AllocationController - Received TU scan for Allocation ID: 7. Barcode: TU100001
+2026-06-24 15:21:29.538 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.service.TransportUnitService - Starting validation and occupation for TU barcode: TU100001, Allocation ID: 7, Process type: ORDER
+2026-06-24 15:21:29.553 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.service.TransportUnitService - TU TU100001 successfully linked to Order ID: 7
+2026-06-24 15:21:29.554 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.service.TransportUnitService - Changes for TU TU100001 successfully saved.
+2026-06-24 15:21:32.368 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.w.s.AllocationExecutionService - Source location scanned successfully for allocation 7
+2026-06-24 15:21:34.554 [http-nio-0.0.0.0-8080-exec-2] INFO  c.i.w.s.AllocationExecutionService - Product barcode scanned successfully for allocation 7
+2026-06-24 15:21:36.517 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.w.s.AllocationExecutionService - Picked quantity 1 confirmed for allocation 7
+2026-06-24 15:21:36.562 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.service.ReplenishmentService - Auto-triggering replenishment for product NOT-YLW-3X3 at location PICK-C-03 (Location Qty: 0, Threshold: 30)
+2026-06-24 15:21:36.563 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.service.ReplenishmentService - Creating replenishment: productId=1, requestedQuantity=100, destinationLocationId=13
+2026-06-24 15:21:39.163 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.w.s.AllocationExecutionService - Source location scanned successfully for allocation 8
+2026-06-24 15:21:41.480 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.s.AllocationExecutionService - Product barcode scanned successfully for allocation 8
+2026-06-24 15:21:45.103 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.w.s.AllocationExecutionService - Picked quantity 29 confirmed for allocation 8
+2026-06-24 15:21:45.158 [http-nio-0.0.0.0-8080-exec-6] INFO  c.isd.wms.service.InventoryService - Shortage adjustment recorded: stockId=9, operationType=PICKING_SHORTAGE, shortageQuantity=10, quantityAfterChange=79
+2026-06-24 15:21:45.161 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.w.s.allocation.ShortageResolver - Picking shortage detected for allocation 8 shortageQuantity=10
+2026-06-24 15:21:45.186 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.w.s.allocation.ShortageResolver - No alternative stock found for Picking allocation 8
+2026-06-24 15:21:48.729 [http-nio-0.0.0.0-8080-exec-7] INFO  c.i.w.s.AllocationExecutionService - Initiating DISPATCH process for Allocation ID: 7, linked with TU: TU100001
+2026-06-24 15:21:52.764 [http-nio-0.0.0.0-8080-exec-1] INFO  c.isd.wms.controller.AuthController - Authentication attempt for user/email: dev
+2026-06-24 15:21:53.012 [http-nio-0.0.0.0-8080-exec-1] INFO  c.isd.wms.controller.AuthController - Authentication successful! Token is generated for user: dev
+2026-06-24 15:21:53.052 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.w.s.SupervisorDashboardService - Supervisor dashboard requested by 'dev'
+2026-06-24 15:21:56.667 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:21:56.668 [http-nio-0.0.0.0-8080-exec-3] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:21:56.673 [http-nio-0.0.0.0-8080-exec-3] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:22:01.968 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:22:01.968 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:22:01.973 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:22:12.792 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.InventoryAdjustmentService - Stock adjustment started: stockId=9, previousQuantity=50, newQuantity=0, difference=-50, reason=INVENTORY_MISMATCH, userId=1, preview=false
+2026-06-24 15:22:12.803 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.InventoryAdjustmentService - Adjustment plan calculated: stockId=9, affectedOrderLines=0, affectedOrders=0, preservedQuantityOnAdjustedStock=0
+2026-06-24 15:22:12.810 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.i.InventoryAdjustmentApplier - Inventory history created: stockId=9, historyId=17
+2026-06-24 15:22:12.811 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.InventoryAdjustmentService - Stock adjustment completed: stockId=9, preview=false, affectedOrders=0, affectedLines=0, reallocationSucceeded=true, partialShortage=false, orderCancelled=false
+2026-06-24 15:22:12.811 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.InventoryAdjustmentService - Stock reduction triggered shortage recalculation: stockId=9, reason=INVENTORY_MISMATCH
+2026-06-24 15:22:12.862 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:22:12.862 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:22:12.864 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:30:01.335 [SpringApplicationShutdownHook] INFO  o.s.boot.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-06-24 15:30:01.338 [tomcat-shutdown] INFO  o.s.boot.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-06-24 15:30:01.344 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:30:01.345 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-06-24 15:30:01.346 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-06-24 15:30:03.163 [main] INFO  com.isd.wms.WmsApplication - Starting WmsApplication using Java 24.0.1 with PID 10567 (/Users/whatyz/IdeaProjects/inbound-storage-dispatch/wmsBack/target/classes started by whatyz in /Users/whatyz/IdeaProjects/inbound-storage-dispatch)
+2026-06-24 15:30:03.164 [main] INFO  com.isd.wms.WmsApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-24 15:30:03.187 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - Using Docker Compose file /Users/whatyz/IdeaProjects/inbound-storage-dispatch/docker-compose.yaml
+2026-06-24 15:30:03.444 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - There are already Docker Compose services running, skipping startup
+2026-06-24 15:30:04.055 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-24 15:30:04.122 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 63 ms. Found 12 JPA repository interfaces.
+2026-06-24 15:30:04.348 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-06-24 15:30:04.353 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-24 15:30:04.353 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-24 15:30:04.378 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 729 ms
+2026-06-24 15:30:04.438 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-24 15:30:04.457 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-06-24 15:30:04.608 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-24 15:30:04.621 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-24 15:30:04.684 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2ebcbf9d
+2026-06-24 15:30:04.685 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-24 15:30:04.713 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/wms_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: wms_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-24 15:30:05.115 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-24 15:30:05.139 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:30:05.164 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-24 15:30:05.220 [main] INFO  com.isd.wms.security.JwtUtil - JwtUtil initialized. Secret key loaded successfully.
+2026-06-24 15:30:06.070 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Using the vector table name: vector_store. Is empty: false
+2026-06-24 15:30:06.071 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Initializing PGVectorStore schema for table: vector_store in schema: public
+2026-06-24 15:30:06.071 [main] INFO  o.s.a.v.pgvector.PgVectorStore - vectorTableValidationsEnabled false
+2026-06-24 15:30:06.266 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-24 15:30:06.295 [main] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-06-24 15:30:06.546 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-06-24 15:30:06.553 [main] INFO  com.isd.wms.WmsApplication - Started WmsApplication in 3.611 seconds (process running for 3.793)
+2026-06-24 15:30:06.554 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-24 15:30:06.554 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+2026-06-24 15:30:06.554 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Starting Product Vector Indexing...
+2026-06-24 15:30:07.499 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Successfully indexed 30 products into PGVector.
+2026-06-24 15:30:23.522 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-24 15:30:23.522 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-24 15:30:23.523 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-24 15:30:23.617 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:30:23.617 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:30:23.622 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:30:31.986 [http-nio-0.0.0.0-8080-exec-8] INFO  c.isd.wms.service.InventoryService - Adding stock: productId=1, locationId=1, quantity=100, userId=1
+2026-06-24 15:30:32.013 [http-nio-0.0.0.0-8080-exec-8] INFO  c.isd.wms.service.InventoryService - Stock added successfully: stockId=9, finalQuantity=100
+2026-06-24 15:30:32.079 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:30:32.079 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:30:32.083 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:30:55.539 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:30:55.540 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:30:55.553 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:30:56.992 [http-nio-0.0.0.0-8080-exec-2] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:30:56.992 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:30:57.002 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:31:11.126 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.OrderService - Updated order with id 8
+2026-06-24 15:31:11.140 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.OrderService - Updated 1 tasks for order 8
+2026-06-24 15:31:11.144 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.OrderService - Updated 1 allocations for order 8
+2026-06-24 15:31:11.146 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.OrderService - Updated 1 order lines for order 8
+2026-06-24 15:31:15.554 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.w.c.AllocationController - Operator requested start for current task
+2026-06-24 15:31:19.309 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.c.AllocationController - Received TU scan for Allocation ID: 9. Barcode: TU100001
+2026-06-24 15:31:19.310 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - Starting validation and occupation for TU barcode: TU100001, Allocation ID: 9, Process type: ORDER
+2026-06-24 15:31:19.332 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - TU TU100001 successfully linked to Order ID: 8
+2026-06-24 15:31:19.333 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - Changes for TU TU100001 successfully saved.
+2026-06-24 15:31:21.513 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.w.s.AllocationExecutionService - Source location scanned successfully for allocation 9
+2026-06-24 15:31:24.039 [http-nio-0.0.0.0-8080-exec-2] INFO  c.i.w.s.AllocationExecutionService - Product barcode scanned successfully for allocation 9
+2026-06-24 15:31:28.658 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.s.AllocationExecutionService - Picked quantity 47 confirmed for allocation 9
+2026-06-24 15:31:28.700 [http-nio-0.0.0.0-8080-exec-1] INFO  c.isd.wms.service.InventoryService - Shortage adjustment recorded: stockId=9, operationType=PICKING_SHORTAGE, shortageQuantity=53, quantityAfterChange=47
+2026-06-24 15:31:28.702 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.w.s.allocation.ShortageResolver - Picking shortage detected for allocation 9 shortageQuantity=13
+2026-06-24 15:31:28.713 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.w.s.allocation.ShortageResolver - No alternative stock found for Picking allocation 9
+2026-06-24 15:31:31.560 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.AllocationExecutionService - Initiating DISPATCH process for Allocation ID: 9, linked with TU: TU100001
+2026-06-24 15:31:40.841 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:31:40.843 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:31:40.848 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:31:54.629 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:31:54.629 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:31:54.633 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:31:58.286 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:31:58.287 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:31:58.293 [http-nio-0.0.0.0-8080-exec-4] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:32:01.923 [http-nio-0.0.0.0-8080-exec-7] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:32:01.923 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:32:01.928 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:32:36.675 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.service.ReplenishmentService - Creating replenishment: productId=1, requestedQuantity=100, destinationLocationId=4
+2026-06-24 15:32:36.717 [http-nio-0.0.0.0-8080-exec-9] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:32:36.718 [http-nio-0.0.0.0-8080-exec-9] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:32:36.720 [http-nio-0.0.0.0-8080-exec-9] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:33:24.083 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:33:24.084 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:33:24.089 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:33:27.579 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:33:27.580 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:33:27.585 [http-nio-0.0.0.0-8080-exec-5] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:33:33.653 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.w.c.AllocationController - Operator requested start for current task
+2026-06-24 15:33:36.817 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.w.c.AllocationController - Received TU scan for Allocation ID: 10. Barcode: TU100001
+2026-06-24 15:33:36.817 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.service.TransportUnitService - Starting validation and occupation for TU barcode: TU100001, Allocation ID: 10, Process type: REPLENISHMENT
+2026-06-24 15:33:36.832 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.service.TransportUnitService - TU TU100001 successfully linked to Replenishment ID: 4
+2026-06-24 15:33:36.833 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.wms.service.TransportUnitService - Changes for TU TU100001 successfully saved.
+2026-06-24 15:33:39.821 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.w.s.AllocationExecutionService - Source location scanned successfully for allocation 10
+2026-06-24 15:33:42.320 [http-nio-0.0.0.0-8080-exec-9] INFO  c.i.w.s.AllocationExecutionService - Product barcode scanned successfully for allocation 10
+2026-06-24 15:33:45.304 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.w.s.AllocationExecutionService - Picked quantity 95 confirmed for allocation 10
+2026-06-24 15:33:45.356 [http-nio-0.0.0.0-8080-exec-3] INFO  c.isd.wms.service.InventoryService - Shortage adjustment recorded: stockId=10, operationType=REPLENISHMENT_SHORTAGE, shortageQuantity=5, quantityAfterChange=99994
+2026-06-24 15:33:45.360 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.allocation.ShortageResolver - Replenishment shortage detected for allocation 10 shortageQuantity=5
+2026-06-24 15:33:45.376 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.allocation.ShortageResolver - No alternative stock found for Replenishment allocation 10
+2026-06-24 15:33:48.270 [http-nio-0.0.0.0-8080-exec-5] INFO  c.i.w.s.AllocationExecutionService - Initiating DISPATCH process for Allocation ID: 10, linked with TU: TU100001
+2026-06-24 15:33:50.080 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:33:50.081 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:33:50.088 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:34:26.256 [http-nio-0.0.0.0-8080-exec-2] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:34:26.257 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:34:26.264 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:36:49.218 [http-nio-0.0.0.0-8080-exec-10] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:36:49.219 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:36:49.225 [http-nio-0.0.0.0-8080-exec-10] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:36:51.101 [SpringApplicationShutdownHook] INFO  o.s.boot.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-06-24 15:36:51.105 [tomcat-shutdown] INFO  o.s.boot.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-06-24 15:36:51.110 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:36:51.111 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-06-24 15:36:51.112 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-06-24 15:36:52.734 [main] INFO  com.isd.wms.WmsApplication - Starting WmsApplication using Java 24.0.1 with PID 16034 (/Users/whatyz/IdeaProjects/inbound-storage-dispatch/wmsBack/target/classes started by whatyz in /Users/whatyz/IdeaProjects/inbound-storage-dispatch)
+2026-06-24 15:36:52.735 [main] INFO  com.isd.wms.WmsApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-24 15:36:52.756 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - Using Docker Compose file /Users/whatyz/IdeaProjects/inbound-storage-dispatch/docker-compose.yaml
+2026-06-24 15:36:52.991 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - There are already Docker Compose services running, skipping startup
+2026-06-24 15:36:53.597 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-24 15:36:53.655 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 55 ms. Found 12 JPA repository interfaces.
+2026-06-24 15:36:53.875 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-06-24 15:36:53.880 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-24 15:36:53.880 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-24 15:36:53.904 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 707 ms
+2026-06-24 15:36:53.959 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-24 15:36:53.975 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-06-24 15:36:54.105 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-24 15:36:54.117 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-24 15:36:54.176 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2ebcbf9d
+2026-06-24 15:36:54.177 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-24 15:36:54.204 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/wms_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: wms_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-24 15:36:54.603 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-24 15:36:54.631 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:36:54.655 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-24 15:36:54.717 [main] INFO  com.isd.wms.security.JwtUtil - JwtUtil initialized. Secret key loaded successfully.
+2026-06-24 15:36:55.550 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Using the vector table name: vector_store. Is empty: false
+2026-06-24 15:36:55.551 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Initializing PGVectorStore schema for table: vector_store in schema: public
+2026-06-24 15:36:55.551 [main] INFO  o.s.a.v.pgvector.PgVectorStore - vectorTableValidationsEnabled false
+2026-06-24 15:36:55.737 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-24 15:36:55.762 [main] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-06-24 15:36:55.996 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-06-24 15:36:56.003 [main] INFO  com.isd.wms.WmsApplication - Started WmsApplication in 3.571 seconds (process running for 3.746)
+2026-06-24 15:36:56.004 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-24 15:36:56.004 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+2026-06-24 15:36:56.004 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Starting Product Vector Indexing...
+2026-06-24 15:36:58.977 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Successfully indexed 30 products into PGVector.
+2026-06-24 15:37:14.383 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-24 15:37:14.384 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-24 15:37:14.385 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-24 15:37:14.552 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:37:14.553 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:37:14.557 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:37:23.331 [http-nio-0.0.0.0-8080-exec-4] INFO  c.i.w.c.AllocationController - Operator requested start for current task
+2026-06-24 15:37:27.442 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.c.AllocationController - Received TU scan for Allocation ID: 11. Barcode: TU100001
+2026-06-24 15:37:27.443 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - Starting validation and occupation for TU barcode: TU100001, Allocation ID: 11, Process type: REPLENISHMENT
+2026-06-24 15:37:27.456 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - TU TU100001 successfully linked to Replenishment ID: 5
+2026-06-24 15:37:27.457 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.service.TransportUnitService - Changes for TU TU100001 successfully saved.
+2026-06-24 15:38:33.199 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.w.s.AllocationExecutionService - Source location scanned successfully for allocation 11
+2026-06-24 15:38:35.809 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.w.s.AllocationExecutionService - Product barcode scanned successfully for allocation 11
+2026-06-24 15:39:13.508 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.w.s.AllocationExecutionService - Picked quantity 79 confirmed for allocation 11
+2026-06-24 15:39:13.573 [http-nio-0.0.0.0-8080-exec-7] INFO  c.isd.wms.service.InventoryService - Shortage adjustment recorded: stockId=10, operationType=REPLENISHMENT_SHORTAGE, shortageQuantity=99820, quantityAfterChange=79
+2026-06-24 15:39:13.577 [http-nio-0.0.0.0-8080-exec-7] INFO  c.i.w.s.allocation.ShortageResolver - Replenishment shortage detected for allocation 11 shortageQuantity=21
+2026-06-24 15:39:13.585 [http-nio-0.0.0.0-8080-exec-7] INFO  c.i.w.s.allocation.ShortageResolver - No alternative stock found for Replenishment allocation 11
+2026-06-24 15:39:23.781 [http-nio-0.0.0.0-8080-exec-3] INFO  c.i.w.s.AllocationExecutionService - Initiating DISPATCH process for Allocation ID: 11, linked with TU: TU100001
+2026-06-24 15:39:29.292 [http-nio-0.0.0.0-8080-exec-7] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:39:29.293 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:39:29.304 [http-nio-0.0.0.0-8080-exec-7] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:39:32.995 [http-nio-0.0.0.0-8080-exec-1] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:39:32.995 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:39:33.005 [http-nio-0.0.0.0-8080-exec-1] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:41:55.296 [http-nio-0.0.0.0-8080-exec-2] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:41:55.297 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:41:55.303 [http-nio-0.0.0.0-8080-exec-2] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:41:56.754 [http-nio-0.0.0.0-8080-exec-6] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:41:56.756 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:41:56.764 [http-nio-0.0.0.0-8080-exec-6] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:41:57.561 [http-nio-0.0.0.0-8080-exec-9] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:41:57.562 [http-nio-0.0.0.0-8080-exec-9] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:41:57.570 [http-nio-0.0.0.0-8080-exec-9] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30
+2026-06-24 15:43:36.841 [SpringApplicationShutdownHook] INFO  o.s.boot.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-06-24 15:43:36.845 [tomcat-shutdown] INFO  o.s.boot.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-06-24 15:43:36.850 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:43:36.851 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-06-24 15:43:36.852 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-06-24 15:43:38.354 [main] INFO  com.isd.wms.WmsApplication - Starting WmsApplication using Java 24.0.1 with PID 21615 (/Users/whatyz/IdeaProjects/inbound-storage-dispatch/wmsBack/target/classes started by whatyz in /Users/whatyz/IdeaProjects/inbound-storage-dispatch)
+2026-06-24 15:43:38.355 [main] INFO  com.isd.wms.WmsApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-24 15:43:38.376 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - Using Docker Compose file /Users/whatyz/IdeaProjects/inbound-storage-dispatch/docker-compose.yaml
+2026-06-24 15:43:38.660 [main] INFO  o.s.b.d.c.l.DockerComposeLifecycleManager - There are already Docker Compose services running, skipping startup
+2026-06-24 15:43:39.251 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-24 15:43:39.313 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 58 ms. Found 12 JPA repository interfaces.
+2026-06-24 15:43:39.541 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-06-24 15:43:39.547 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-24 15:43:39.547 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-24 15:43:39.576 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 711 ms
+2026-06-24 15:43:39.632 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-24 15:43:39.648 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-06-24 15:43:39.786 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-24 15:43:39.797 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-24 15:43:39.858 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2ebcbf9d
+2026-06-24 15:43:39.859 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-24 15:43:39.887 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/wms_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: wms_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-24 15:43:40.278 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-24 15:43:40.305 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24 15:43:40.330 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-24 15:43:40.391 [main] INFO  com.isd.wms.security.JwtUtil - JwtUtil initialized. Secret key loaded successfully.
+2026-06-24 15:43:41.226 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Using the vector table name: vector_store. Is empty: false
+2026-06-24 15:43:41.227 [main] INFO  o.s.a.v.pgvector.PgVectorStore - Initializing PGVectorStore schema for table: vector_store in schema: public
+2026-06-24 15:43:41.227 [main] INFO  o.s.a.v.pgvector.PgVectorStore - vectorTableValidationsEnabled false
+2026-06-24 15:43:41.417 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-24 15:43:41.444 [main] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-06-24 15:43:41.671 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-06-24 15:43:41.677 [main] INFO  com.isd.wms.WmsApplication - Started WmsApplication in 3.546 seconds (process running for 3.725)
+2026-06-24 15:43:41.678 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-24 15:43:41.678 [main] WARN  o.s.c.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+2026-06-24 15:43:41.678 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Starting Product Vector Indexing...
+2026-06-24 15:43:42.802 [main] INFO  c.i.w.s.ai.ProductVectorIndexer - Successfully indexed 30 products into PGVector.
+2026-06-24 15:44:00.766 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-24 15:44:00.766 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-24 15:44:00.767 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-24 15:44:03.004 [http-nio-0.0.0.0-8080-exec-8] INFO  c.i.wms.controller.ProductController - Get all products request
+2026-06-24 15:44:03.004 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Getting all products
+2026-06-24 15:44:03.013 [http-nio-0.0.0.0-8080-exec-8] INFO  com.isd.wms.service.ProductService - Products fetched successfully: count=30

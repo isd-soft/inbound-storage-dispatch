@@ -250,30 +250,35 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
             SELECT
                 a.id AS allocationId,
                 r.id AS replenishmentId,
-            ol.order.id AS orderId,
-            t.taskType AS type,
-            a.stock.id AS stockId,
-            a.stock.product.name AS productName,
-            a.stock.location.name AS locationName,
-            a.quantity AS requestedQuantity,
-            COALESCE(
-                a.pickedQuantity,
-                CASE
-                    WHEN a.status IN (
-                        com.isd.wms.enums.Status.COMPLETED,
-                        com.isd.wms.enums.Status.PARTIALLY_COMPLETED
-                    ) THEN a.quantity
-                    ELSE 0
-                END
-            ) AS deliveredQuantity,
-            a.status AS status,
-            a.sourceLocationScanned AS sourceLocationScanned,
-            a.productScanned AS productScanned
+                r.logicId AS replenishmentLogicId,
+                o.id AS orderId,
+                o.logicId AS orderLogicId,
+                t.taskType AS type,
+                s.id AS stockId,
+                p.name AS productName,
+                l.name AS locationName,
+                a.quantity AS requestedQuantity,
+                COALESCE(
+                    a.pickedQuantity,
+                    CASE
+                        WHEN a.status IN (
+                            com.isd.wms.enums.Status.COMPLETED,
+                            com.isd.wms.enums.Status.PARTIALLY_COMPLETED
+                        ) THEN a.quantity
+                        ELSE 0
+                    END
+                ) AS deliveredQuantity,
+                a.status AS status,
+                a.sourceLocationScanned AS sourceLocationScanned,
+                a.productScanned AS productScanned
         FROM Allocation a
-        JOIN Task t ON a.task = t
-        JOIN User u ON u = t.supervisor
-        LEFT JOIN OrderLine ol ON ol.task = a.task
-        LEFT JOIN Replenishment r ON r.task = a.task
+        JOIN a.task t
+        JOIN a.stock s
+        LEFT JOIN s.product p
+        JOIN s.location l
+        LEFT JOIN OrderLine ol ON ol.task = t
+        LEFT JOIN ol.order o
+        LEFT JOIN Replenishment r ON r.task = t
         ORDER BY a.createdAt, a.id
         """)
     List<AllocationSupervisorProjection> getAllAllocations();

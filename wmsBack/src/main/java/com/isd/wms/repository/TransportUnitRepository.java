@@ -49,7 +49,9 @@ public interface TransportUnitRepository extends JpaRepository<TransportUnit, Lo
      * @param order the order
      * @return an Optional containing the transport unit, if found
      */
-    Optional<TransportUnit> findByOrder(Order order);
+    Optional<TransportUnit> findFirstByOrderOrderByCreatedAtAscIdAsc(Order order);
+
+    List<TransportUnit> findAllByOrder(Order order);
 
     /**
      * Finds the transport unit associated with a replenishment, if any.

@@ -145,7 +145,7 @@ class AllocationExecutionServiceTest {
 
         AllocationCompletionResponse response = allocationExecutionService.completeAllocation(50L);
 
-        verify(inventoryService).recordShortageAdjustment(eq(stock), eq(3), eq(operator), eq(InventoryOperationType.PICKING_SHORTAGE), eq("Picking shortage"));
+        verify(inventoryService).recordShortageAdjustment(eq(stock), eq(43), eq(operator), eq(InventoryOperationType.PICKING_SHORTAGE), eq("Picking shortage"));
 
         verify(allocationRepository).saveAll(argThat(list -> {
             List<Allocation> savedList = (List<Allocation>) list;

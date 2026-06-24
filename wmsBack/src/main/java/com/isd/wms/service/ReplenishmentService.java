@@ -107,9 +107,7 @@ public class ReplenishmentService {
 
         replenishment.setLogicId("REPL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
-        replenishment = replenishmentRepository.save(replenishment);
-
-        return replenishmentMapper.toResponse(replenishment);
+        return replenishmentMapper.toResponse(replenishmentRepository.save(replenishment));
     }
 
     @Transactional
@@ -425,11 +423,25 @@ public class ReplenishmentService {
         if (replenishment.getStatus() != Status.CREATED) {
             throw new InvalidRequestException("Replenishment assignment is only allowed for CREATED replenishments.");
         }
-        Task task = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(),
-            replenishment.getProduct().getId());
-        replenishment.setTask(task);
-        replenishmentRepository.saveAndFlush(replenishment);
+        Task task = ensureReplenishmentTaskWithAllocations(replenishment);
         taskService.assignTask(task.getId(), operatorId);
+    }
+
+    private Task ensureReplenishmentTaskWithAllocations(Replenishment replenishment) {
+        Task task = replenishment.getTask().orElseGet(() -> {
+            Task newTask = taskService.createTask(TaskType.REPLENISHMENT, replenishment.getRequestedQuantity(),
+                replenishment.getProduct().getId());
+            replenishment.setTask(newTask);
+            replenishmentRepository.saveAndFlush(replenishment);
+            return newTask;
+        });
+
+        if (allocationRepository.findAllByTaskId(task.getId()).isEmpty()) {
+            workflowService.generateAllocationsForTask(task, replenishment.getProduct().getId(),
+                replenishment.getRequestedQuantity());
+        }
+
+        return task;
     }
 
     @Transactional
