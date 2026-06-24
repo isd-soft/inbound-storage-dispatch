@@ -537,7 +537,6 @@ const handleLogout = async () => {
 
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 
-// ИСПРАВЛЕНИЕ: Мы строго слушаем бэкенд, чтобы избежать окна-призрака
 const currentAllocation = computed(() => {
   if (!summary.value || !summary.value.currentAllocation) return null;
 

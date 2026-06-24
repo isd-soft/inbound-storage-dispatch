@@ -128,14 +128,12 @@ public class OperatorSummaryMapper {
     private OperatorAllocationSummaryResponse toAllocationSummary(Allocation allocation, String destinationLocationBarcode, boolean isTuScanned) {
         Stock stock = allocation.getStock();
         Long orderLineId = allocation.getTask().getTaskType() == TaskType.PICKING_ORDER
-            // Временно оставляем null, так как ID линии заказа теперь достается хитрее.
-            // Мы передадим его извне, если потребуется.
             ? null : null;
 
         return new OperatorAllocationSummaryResponse(
             allocation.getId(),
             allocation.getTask().getId(),
-            orderLineId, // Упростили, чтобы маппер не лез в БД
+            orderLineId,
             stock.getProduct().map(Product::getId).orElse(null),
             stock.getProduct().map(Product::getName).orElse(null),
             stock.getProduct().map(Product::getBarcode).orElse(null),

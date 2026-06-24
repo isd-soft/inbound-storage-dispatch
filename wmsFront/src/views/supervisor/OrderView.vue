@@ -411,7 +411,6 @@ const loadOrders = async () => {
     const response = await orderApi.getAll()
     let fetchedOrders = (response.data || []).map(normalizeOrder)
 
-    // ИСПРАВЛЕНИЕ: Фильтруем массив напрямую, если есть URL ID
     if (route.query.id) {
       const targetId = Number(route.query.id)
       fetchedOrders = fetchedOrders.filter(entry => entry.order.id === targetId)

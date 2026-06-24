@@ -502,7 +502,6 @@ const applyFilters = async () => {
       Object.entries(filters.value).filter(([, v]) => v !== null && v !== ''),
     )
 
-    // ИСПРАВЛЕНИЕ: Отправляем ID в API, если он есть в URL
     if (route.query.id) {
       cleanFilters.id = Number(route.query.id)
     }
