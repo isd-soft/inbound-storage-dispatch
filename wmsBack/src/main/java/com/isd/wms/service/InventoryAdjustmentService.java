@@ -76,7 +76,8 @@ public class InventoryAdjustmentService {
     private InventoryAdjustmentResponse processAdjustment(
         Long stockId,
         InventoryAdjustmentRequest request,
-        boolean preview) {
+        boolean preview
+    ) {
         InventoryService.validateStockDate(request.manufactureDate(), request.expirationDate());
         InventoryAdjustmentContext context = inventoryAdjustmentValidator.validateAndLoad(stockId, request);
         log.info(

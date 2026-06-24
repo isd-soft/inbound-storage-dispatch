@@ -8,14 +8,34 @@
         <div class="flex flex-col gap-2 text-sm">
           <div>{{ lastAdjustmentResult.message }}</div>
           <div class="flex flex-wrap gap-2">
-            <Tag :severity="lastAdjustmentResult.reallocationSucceeded ? 'success' : 'warning'" :value="lastAdjustmentResult.reallocationSucceeded ? 'Reallocation succeeded' : 'Reallocation incomplete'" />
-            <Tag v-if="lastAdjustmentResult.partialShortageCreated" severity="warning" value="Partial completion created" />
-            <Tag v-if="lastAdjustmentResult.orderCancelled" severity="danger" value="Order cancelled" />
+            <Tag
+              :severity="lastAdjustmentResult.reallocationSucceeded ? 'success' : 'warning'"
+              :value="
+                lastAdjustmentResult.reallocationSucceeded
+                  ? 'Reallocation succeeded'
+                  : 'Reallocation incomplete'
+              "
+            />
+            <Tag
+              v-if="lastAdjustmentResult.partialShortageCreated"
+              severity="warning"
+              value="Partial completion created"
+            />
+            <Tag
+              v-if="lastAdjustmentResult.orderCancelled"
+              severity="danger"
+              value="Order cancelled"
+            />
           </div>
           <div v-if="lastAdjustmentResult.affectedOrders?.length" class="flex flex-col gap-1">
             <div class="font-semibold">Affected orders</div>
             <div class="flex flex-wrap gap-2">
-              <Tag v-for="order in lastAdjustmentResult.affectedOrders" :key="order.orderId" :severity="getOrderSeverity(order.status)" :value="`${order.orderNumber} · ${order.status} · ${order.shortageLines}/${order.totalLines} lines`" />
+              <Tag
+                v-for="order in lastAdjustmentResult.affectedOrders"
+                :key="order.orderId"
+                :severity="getOrderSeverity(order.status)"
+                :value="`${order.orderNumber} · ${order.status} · ${order.shortageLines}/${order.totalLines} lines`"
+              />
             </div>
           </div>
         </div>
@@ -38,19 +58,82 @@
       @cell-edit-complete="onCellEditComplete"
     >
       <template #toolbar>
-        <Button icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" aria-label="Refresh" @click="loadInventoryData" />
-        <Button v-if="canManageStock" label="Import" icon="pi pi-file-import" severity="info" @click="importDialogVisible = true" />
-        <Button v-if="canManageStock" label="Add Stock" icon="pi pi-plus" severity="success" @click="openAddDialog" />
-        <Button v-if="canManageStock" :label="editMode ? 'Exit Edit' : 'Edit'" icon="pi pi-pencil" severity="warning" outlined @click="toggleEditMode" />
-        <Button v-if="editMode && canManageStock" label="Submit" icon="pi pi-check" severity="success" :disabled="!hasPendingChanges" :loading="actionLoading" @click="confirmSubmitChanges" />
-        <Button v-if="editMode && canManageStock" label="Reset" icon="pi pi-refresh" severity="secondary" outlined :disabled="!hasPendingChanges" @click="confirmResetChanges" />
-        <Button v-if="editMode && canManageStock" label="Delete Selected" icon="pi pi-trash" severity="danger" outlined :disabled="!deletableSelectedStockItems.length || hasPendingChanges" @click="confirmDeleteSelected" />
-        <span v-if="editMode && canManageStock" class="app-muted text-sm">{{ selectedStockItems.length }} selected</span>
+        <Button
+          icon="pi pi-refresh"
+          size="small"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          aria-label="Refresh"
+          @click="loadInventoryData"
+        />
+        <Button
+          v-if="canManageStock"
+          label="Import"
+          icon="pi pi-file-import"
+          severity="info"
+          @click="importDialogVisible = true"
+        />
+        <Button
+          v-if="canManageStock"
+          label="Add Stock"
+          icon="pi pi-plus"
+          severity="success"
+          @click="openAddDialog"
+        />
+        <Button
+          v-if="canManageStock"
+          :label="editMode ? 'Exit Edit' : 'Edit'"
+          icon="pi pi-pencil"
+          severity="warning"
+          outlined
+          @click="toggleEditMode"
+        />
+        <Button
+          v-if="editMode && canManageStock"
+          label="Submit"
+          icon="pi pi-check"
+          severity="success"
+          :disabled="!hasPendingChanges"
+          :loading="actionLoading"
+          @click="confirmSubmitChanges"
+        />
+        <Button
+          v-if="editMode && canManageStock"
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :disabled="!hasPendingChanges"
+          @click="confirmResetChanges"
+        />
+        <Button
+          v-if="editMode && canManageStock"
+          label="Delete Selected"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :disabled="!deletableSelectedStockItems.length || hasPendingChanges"
+          @click="confirmDeleteSelected"
+        />
+        <span v-if="editMode && canManageStock" class="app-muted text-sm"
+          >{{ selectedStockItems.length }} selected</span
+        >
       </template>
-      <Column v-if="editMode && canManageStock" selectionMode="multiple" headerStyle="width: 3rem" />
+      <Column
+        v-if="editMode && canManageStock"
+        selectionMode="multiple"
+        headerStyle="width: 3rem"
+      />
       <Column field="productName" header="Product" sortable filter>
         <template #body="{ data }">
-          <ProductLink :product-id="data.productId" :barcode="data.barcode" :name="data.productName" :disabled="editMode" class="font-semibold" />
+          <ProductLink
+            :product-id="data.productId"
+            :barcode="data.barcode"
+            :name="data.productName"
+            :disabled="editMode"
+            class="font-semibold"
+          />
         </template>
       </Column>
 
@@ -67,7 +150,10 @@
 
       <Column field="reservedQuantity" header="Reserved" sortable filter>
         <template #body="{ data }">
-          <span class="font-bold text-base" :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'">
+          <span
+            class="font-bold text-base"
+            :class="data.reservedQuantity > 0 ? 'text-orange-500' : 'app-muted'"
+          >
             {{ data.reservedQuantity }}
           </span>
         </template>
@@ -75,13 +161,28 @@
 
       <Column field="availableQuantity" header="Available" sortable filter>
         <template #body="{ data }">
-          <span class="font-bold text-base" :class="data.availableQuantity <= 0 ? 'text-red-500' : data.availableQuantity < 10 ? 'text-yellow-500' : 'text-green-500'">
+          <span
+            class="font-bold text-base"
+            :class="
+              data.availableQuantity <= 0
+                ? 'text-red-500'
+                : data.availableQuantity < 10
+                  ? 'text-yellow-500'
+                  : 'text-green-500'
+            "
+          >
             {{ data.availableQuantity }}
           </span>
         </template>
       </Column>
 
-      <Column field="manufactureDate" filterField="formattedManufactureDate" header="Manufactured" sortable filter>
+      <Column
+        field="manufactureDate"
+        filterField="formattedManufactureDate"
+        header="Manufactured"
+        sortable
+        filter
+      >
         <template #body="{ data }">
           <span class="app-muted text-sm">{{ data.formattedManufactureDate }}</span>
         </template>
@@ -90,7 +191,13 @@
         </template>
       </Column>
 
-      <Column field="expirationDate" filterField="formattedExpirationDate" header="Expires" sortable filter>
+      <Column
+        field="expirationDate"
+        filterField="formattedExpirationDate"
+        header="Expires"
+        sortable
+        filter
+      >
         <template #body="{ data }">
           <span class="app-muted text-sm">{{ data.formattedExpirationDate }}</span>
         </template>
@@ -100,8 +207,22 @@
       </Column>
     </AppDataTable>
 
-    <StockActionDialog v-model:visible="dialogVisible" :mode="dialogMode" :selectedStock="selectedStock" :products="products" :locations="locations" :loading="actionLoading" @submit="handleStockAction" />
-    <UploadFile v-model:visible="importDialogVisible" :apiCall="handleImport" @success="loadInventoryData" xlsx-template-path="/templates/stock_template.xlsx" csv-template-path="/templates/stock_template.csv" />
+    <StockActionDialog
+      v-model:visible="dialogVisible"
+      :mode="dialogMode"
+      :selectedStock="selectedStock"
+      :products="products"
+      :locations="locations"
+      :loading="actionLoading"
+      @submit="handleStockAction"
+    />
+    <UploadFile
+      v-model:visible="importDialogVisible"
+      :apiCall="handleImport"
+      @success="loadInventoryData"
+      xlsx-template-path="/templates/stock_template.xlsx"
+      csv-template-path="/templates/stock_template.csv"
+    />
   </div>
 </template>
 
@@ -109,9 +230,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-function formatDate(date) {
-  return new Intl.DateTimeFormat('en-CA').format(new Date(date))
-}
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -119,7 +237,6 @@ import Card from 'primevue/card'
 import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
-import Toast from 'primevue/toast'
 
 import StockActionDialog from '@/components/inventory/StockActionDialog.vue'
 import { inventoryApi } from '@/api/inventoryApi'
@@ -146,6 +263,13 @@ const selectedStock = ref(null)
 const lastAdjustmentResult = ref(null)
 const canManageStock = computed(() => authStore.hasAnyRole(['ROLE_SUPERVISOR', 'ROLE_DEV']))
 
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+
+function formatDate(date) {
+  return new Intl.DateTimeFormat('en-CA').format(new Date(date))
+}
+
 const inventoryFilterFields = [
   { field: 'productName', label: 'Product' },
   { field: 'barcode', label: 'Barcode' },
@@ -157,9 +281,6 @@ const inventoryFilterFields = [
   { field: 'formattedExpirationDate', label: 'Expires' },
 ]
 
-const today = new Date()
-today.setHours(0, 0, 0, 0)
-
 const cloneRows = (items) => JSON.parse(JSON.stringify(items || []))
 const hasPendingChanges = computed(() => modifiedStockIds.value.size > 0)
 const deletableSelectedStockItems = computed(() => selectedStockItems.value)
@@ -170,7 +291,12 @@ const handleImport = async (formData) => {
 }
 
 const getErrorMessage = (error) => {
-  return error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed.'
+  return (
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message ||
+    'Request failed.'
+  )
 }
 
 const currentUserId = () => {
@@ -192,25 +318,31 @@ const loadInventoryData = async () => {
       inventoryApi.getLocations(),
     ])
 
-    stockItems.value = stockResponse.data.map(stock => ({
+    stockItems.value = stockResponse.data.map((stock) => ({
       ...stock,
       quantity: stock.quantity || 0,
       reservedQuantity: stock.reservedQuantity || 0,
-      availableQuantity: stock.availableQuantity ?? ((stock.quantity || 0) - (stock.reservedQuantity || 0)),
-      formattedManufactureDate: stock.manufactureDate ? formatDate(stock.manufactureDate) : '-',
-      formattedExpirationDate: stock.expirationDate ? formatDate(stock.expirationDate) : '-'
+      availableQuantity:
+        stock.availableQuantity ?? (stock.quantity || 0) - (stock.reservedQuantity || 0),
+      formattedManufactureDate: stock.manufactureDate ? formatDate(stock.manufactureDate) : '',
+      formattedExpirationDate: stock.expirationDate ? formatDate(stock.expirationDate) : '',
     }))
 
     originalStockItems.value = cloneRows(stockItems.value)
     modifiedStockIds.value = new Set()
     products.value = productsResponse.data
 
-    locations.value = locationsResponse.data.filter((location) =>
-      location.available !== false && location.zone !== 'DISPATCH'
+    locations.value = locationsResponse.data.filter(
+      (location) => location.available !== false && location.zone !== 'DISPATCH',
     )
     selectedStockItems.value = []
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Inventory load failed', detail: getErrorMessage(error), life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Inventory load failed',
+      detail: getErrorMessage(error),
+      life: 4000,
+    })
   } finally {
     loading.value = false
   }
@@ -230,7 +362,9 @@ const toggleEditMode = () => {
   }
 
   if (hasPendingChanges.value) {
-    confirmResetChanges(() => { editMode.value = false })
+    confirmResetChanges(() => {
+      editMode.value = false
+    })
     return
   }
 
@@ -292,7 +426,12 @@ const confirmSubmitChanges = () => {
 const submitQuantityChanges = async () => {
   const userId = currentUserId()
   if (!userId) {
-    toast.add({ severity: 'error', summary: 'Missing user', detail: 'User id is required for stock changes.', life: 4000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Missing user',
+      detail: 'User id is required for stock changes.',
+      life: 4000,
+    })
     return
   }
 
@@ -300,9 +439,16 @@ const submitQuantityChanges = async () => {
   try {
     const changedStocks = stockItems.value.filter((stock) => modifiedStockIds.value.has(stock.id))
 
-    const invalidStock = changedStocks.find((stock) => stock.quantity === null || stock.quantity < 0)
+    const invalidStock = changedStocks.find(
+      (stock) => stock.quantity === null || stock.quantity < 0,
+    )
     if (invalidStock) {
-      toast.add({ severity: 'error', summary: 'Validation failed', detail: 'Quantity must be zero or greater.', life: 4000 })
+      toast.add({
+        severity: 'error',
+        summary: 'Validation failed',
+        detail: 'Quantity must be zero or greater.',
+        life: 4000,
+      })
       actionLoading.value = false
       return
     }
@@ -325,8 +471,9 @@ const submitQuantityChanges = async () => {
       toast.add({
         severity: 'error',
         summary: 'Validation failed',
-        detail: 'Invalid dates detected. Manufacture cannot be in the future, and expiration must be strictly after manufacture.',
-        life: 5000
+        detail:
+          'Invalid dates detected. Manufacture cannot be in the future, and expiration must be strictly after manufacture.',
+        life: 5000,
       })
       actionLoading.value = false
       return
@@ -349,7 +496,7 @@ const submitQuantityChanges = async () => {
       severity: 'success',
       summary: 'Inventory updated',
       detail: `${changedStocks.length} stock item(s) updated.`,
-      life: 3000
+      life: 3000,
     })
     editMode.value = false
     selectedStockItems.value = []
@@ -359,7 +506,7 @@ const submitQuantityChanges = async () => {
       severity: 'error',
       summary: 'Save failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -380,7 +527,7 @@ const confirmResetChanges = (afterReset) => {
         severity: 'info',
         summary: 'Changes reset',
         detail: 'Unsaved inventory changes were discarded.',
-        life: 2500
+        life: 2500,
       })
       if (typeof afterReset === 'function') afterReset()
     },
@@ -400,12 +547,14 @@ const confirmDeleteSelected = () => {
 const deleteSelectedStocks = async () => {
   actionLoading.value = true
   try {
-    await Promise.all(deletableSelectedStockItems.value.map((stock) => inventoryApi.deleteStock(stock.id)))
+    await Promise.all(
+      deletableSelectedStockItems.value.map((stock) => inventoryApi.deleteStock(stock.id)),
+    )
     toast.add({
       severity: 'success',
       summary: 'Stock deleted',
       detail: `${deletableSelectedStockItems.value.length} stock item(s) deleted.`,
-      life: 3000
+      life: 3000,
     })
     selectedStockItems.value = []
     await loadInventoryData()
@@ -414,7 +563,7 @@ const deleteSelectedStocks = async () => {
       severity: 'error',
       summary: 'Delete failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
@@ -432,19 +581,22 @@ const submitAction = async (payload) => {
       severity: 'error',
       summary: 'Missing user',
       detail: 'User id is required for stock changes.',
-      life: 4000
+      life: 4000,
     })
     return
   }
 
-  const invalidDatesStock = payload.manufactureDate && payload.expirationDate && new Date(payload.manufactureDate) >= new Date(payload.expirationDate)
+  const invalidDatesStock =
+    payload.manufactureDate &&
+    payload.expirationDate &&
+    new Date(payload.manufactureDate) >= new Date(payload.expirationDate)
 
   if (invalidDatesStock) {
     toast.add({
       severity: 'error',
       summary: 'Validation failed',
       detail: 'Manufacture date must be before expiration date.',
-      life: 4000
+      life: 4000,
     })
     return
   }
@@ -456,7 +608,7 @@ const submitAction = async (payload) => {
       severity: 'success',
       summary: 'Stock added',
       detail: 'Inventory stock was added.',
-      life: 3000
+      life: 3000,
     })
     dialogVisible.value = false
     selectedStockItems.value = []
@@ -466,7 +618,7 @@ const submitAction = async (payload) => {
       severity: 'error',
       summary: 'Stock action failed',
       detail: getErrorMessage(error),
-      life: 5000
+      life: 5000,
     })
   } finally {
     actionLoading.value = false
