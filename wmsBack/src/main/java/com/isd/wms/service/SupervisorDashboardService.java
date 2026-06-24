@@ -154,7 +154,7 @@ public class SupervisorDashboardService {
         long ordersToday = orders.stream().filter(order -> isWithin(order.getCreatedAt(),
             startOfToday, startOfTomorrow)).count();
         long completedOrdersToday = orders.stream()
-                .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                .filter(order -> isCompletedLike(order.getStatus()))
                 .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
                 .count();
         long inProgressOrders = orders.stream().filter(order ->
@@ -168,7 +168,7 @@ public class SupervisorDashboardService {
                 .count();
         long averageCompletionTimeMinutes = averageOrderCompletionMinutes(
                 orders.stream()
-                        .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                        .filter(order -> isCompletedLike(order.getStatus()))
                         .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
                         .toList()
         );
@@ -207,7 +207,7 @@ public class SupervisorDashboardService {
 
     private List<CompletedOrdersTrendResponse> buildCompletedOrdersTrend(List<Order> orders, LocalDate today) {
         Map<LocalDate, Long> completedByDay = orders.stream()
-                .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                .filter(order -> isCompletedLike(order.getStatus()))
                 .filter(order -> order.getUpdatedAt() != null)
                 .collect(Collectors.groupingBy(order -> order.getUpdatedAt().toLocalDate(), Collectors.counting()));
 
@@ -230,7 +230,7 @@ public class SupervisorDashboardService {
             .map(operator -> {
                 long activeTasks = countActiveTasks(operator, tasks);
                 long completedOrdersToday = orders.stream()
-                        .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                        .filter(order -> isCompletedLike(order.getStatus()))
                         .filter(order -> isWithin(order.getUpdatedAt(), startOfToday, startOfTomorrow))
                         .filter(order -> orderHasOperator(order, operator))
                         .count();
@@ -427,6 +427,10 @@ public class SupervisorDashboardService {
 
     private boolean isWithin(LocalDateTime timestamp, LocalDateTime startInclusive, LocalDateTime endExclusive) {
         return timestamp != null && !timestamp.isBefore(startInclusive) && timestamp.isBefore(endExclusive);
+    }
+
+    private boolean isCompletedLike(OrderStatus status) {
+        return status == OrderStatus.COMPLETED || status == OrderStatus.PARTIALLY_COMPLETED;
     }
 
     private long averageOrderCompletionMinutes(List<Order> orders) {
