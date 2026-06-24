@@ -46,8 +46,6 @@ public class XlsxImportStrategy implements ImportStrategy {
 
             PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
                 .preferNullOverDefault(true)
-                .datePattern("yyyy-MM-dd")
-                .dateTimeFormatter(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 .build();
 
             PoijiExcelType excelType = PoijiExcelType.XLSX;
