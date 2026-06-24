@@ -24,6 +24,7 @@ frontend/dist/
 frontend/build/
 frontend/.pnp/
 frontend/.pnp.js
+/.env
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.next.local

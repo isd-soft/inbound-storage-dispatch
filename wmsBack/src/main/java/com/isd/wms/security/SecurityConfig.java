@@ -2,6 +2,7 @@ package com.isd.wms.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -26,9 +27,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
+    private final String frontendUrl;
 
-    public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
+    public SecurityConfig(JwtRequestFilter jwtRequestFilter,
+                          @Value("${wms.frontend.url:http://localhost:5173}") String frontendUrl) {
         this.jwtRequestFilter = jwtRequestFilter;
+        this.frontendUrl = frontendUrl;
     }
 
     @Bean
@@ -64,10 +68,23 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
+            "http://localhost",
+            "http://localhost:80",
             "http://localhost:5173",
-            "http://127.0.0.1:5173"
+            "http://localhost:3000",
+            "http://127.0.0.1",
+            "http://127.0.0.1:80",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+            "https://isd-repos-frontend.onrender.com",
+            frontendUrl
         ));
-        configuration.setAllowedOriginPatterns(List.of("http://172.*.*.*:5173", "http://192.168.*.*:5173"));
+        configuration.setAllowedOriginPatterns(List.of(
+            "http://172.*.*.*:5173",
+            "http://172.*.*.*:3000",
+            "http://192.168.*.*:5173",
+            "http://192.168.*.*:3000"
+        ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 

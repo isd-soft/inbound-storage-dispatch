@@ -2,14 +2,12 @@ import axios from 'axios'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
-const currentHostname = window.location.hostname;
-
-const API_BASE_URL = `http://${currentHostname}:8080/api`;
+const API_BASE_URL = `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true
-});
+})
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('jwt_token')
