@@ -538,25 +538,12 @@ const handleLogout = async () => {
 const isEmpty = computed(() => !loading.value && !loadError.value && !summary.value && !showFinalSummary.value && !showDestinationScan.value && !showTuScan.value)
 
 const currentAllocation = computed(() => {
-  const rawCurrent = summary.value?.currentAllocation || null
-  let target = rawCurrent
+  if (!summary.value || !summary.value.currentAllocation) return null;
 
-  if (!target) {
-    target = orderedAllocations.value.find((allocation) =>
-      allocation.status === 'ASSIGNED'
-      || allocation.status === 'IN_PROGRESS'
-      || allocation.status === 'CREATED'
-    )
+  return {
+    ...summary.value.currentAllocation,
+    requiredQuantity: summary.value.currentAllocation.quantity ?? summary.value.currentAllocation.requiredQuantity
   }
-
-  if (target) {
-    return {
-      ...target,
-      requiredQuantity: target.quantity ?? target.requiredQuantity
-    }
-  }
-
-  return null
 })
 
 const orderedAllocations = computed(() => normalizeSummaryEntries(summary.value))
@@ -834,16 +821,18 @@ const submitPickedQuantity = async () => {
   actionError.value = ''
 
   try {
-    const allocationId = currentAllocation.value.allocationId
+    const allocationId = currentAllocation.value.allocationId || currentAllocation.value.id
 
     await allocationApi.confirmPickedQuantity(allocationId, {
       pickedQuantity: pickedQuantity.value,
       shortageReason: pickedQuantity.value < currentAllocation.value.requiredQuantity ? 'SHORTAGE' : null,
       comment: null,
     })
+
     const response = await allocationApi.completeAssignedAllocation(allocationId)
     const completion = response.data
 
+    const hasActiveAllocations = completion.summary?.currentAllocation != null;
     const allCanceled = completion.summary?.allocations?.length > 0 &&
       completion.summary.allocations.every(a => a.status === 'CANCELED');
 
@@ -860,16 +849,14 @@ const submitPickedQuantity = async () => {
       return
     }
 
-    if (completion.newProcessCreated && completion.summary?.currentAllocation) {
+    if (!hasActiveAllocations) {
+      hydrateCompletionSummary(completion)
+      showFinalSummary.value = true
+      showDestinationScan.value = false
+    } else {
+      hydrateCompletionSummary(completion)
       showFinalSummary.value = false
       showDestinationScan.value = false
-      hydrateCompletionSummary(completion)
-    } else if (completion.summary) {
-      hydrateCompletionSummary(completion)
-      if (completion.summary.currentAllocation) {
-        showFinalSummary.value = false
-        showDestinationScan.value = false
-      }
     }
 
     toast.add({
@@ -915,6 +902,7 @@ const submitDestinationScan = async () => {
     if (allocationId && activeTuBarcode.value) {
       await allocationApi.dispatchAllocation(allocationId, activeTuBarcode.value)
     }
+
     localStorage.removeItem('active_tu_barcode')
 
     if (!isReplenishmentTask.value) {
@@ -941,6 +929,7 @@ onMounted(() => {
   loadCurrentTask()
 })
 </script>
+
 <style scoped>
 .app-type-banner {
   border: 1px solid transparent;

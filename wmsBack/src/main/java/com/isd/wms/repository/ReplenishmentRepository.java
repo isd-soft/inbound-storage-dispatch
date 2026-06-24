@@ -120,6 +120,36 @@ public interface ReplenishmentRepository extends JpaRepository<Replenishment, Lo
         """)
     List<Replenishment> findAllByCreatedByUsername(@Param("username") String username);
 
+    /**
+     * Filters replenishments by optional criteria.
+     *
+     * @param id                    replenishment ID (NEW)
+     * @param taskId                task ID
+     * @param productId             product ID
+     * @param requestedQuantity     requested quantity
+     * @param status                status
+     * @param destinationLocationId destination location ID
+     * @return list of matching replenishments
+     */
+    @Query("""
+        SELECT r FROM Replenishment r
+        LEFT JOIN r.task t
+        WHERE (:id IS NULL OR r.id = :id)
+        AND (:taskId IS NULL OR r.task.id = :taskId)
+        AND (:productId IS NULL OR r.product.id = :productId)
+        AND (:requestedQuantity IS NULL OR r.requestedQuantity = :requestedQuantity)
+        AND (:status IS NULL OR r.status = :status)
+        AND (:destinationLocationId IS NULL OR r.destinationLocation.id = :destinationLocationId)
+        """)
+    List<Replenishment> filter(
+        @Param("id") Long id,
+        @Param("taskId") Long taskId,
+        @Param("productId") Long productId,
+        @Param("requestedQuantity") Integer requestedQuantity,
+        @Param("status") Status status,
+        @Param("destinationLocationId") Long destinationLocationId
+    );
+
     Optional<Replenishment> findByLogicIdIgnoreCase(String logicId);
 
 }

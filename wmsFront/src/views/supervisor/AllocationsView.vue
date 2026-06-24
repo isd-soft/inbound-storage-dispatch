@@ -28,7 +28,7 @@
         </template>
       </Column>
 
-      <Column header="Reference" field="reference" filter>
+      <Column header="Reference" field="reference" sortable filter>
         <template #body="{ data }">
           <AllocationReferenceLink
             :type="data.type"

@@ -273,6 +273,7 @@ public class ReplenishmentService {
 
     public List<ReplenishmentResponse> searchReplenishments(ReplenishmentSearchRequest request) {
         List<Replenishment> tasks = replenishmentRepository.filter(
+            request.id(),
             request.taskId(),
             request.productId(),
             request.requestedQuantity(),

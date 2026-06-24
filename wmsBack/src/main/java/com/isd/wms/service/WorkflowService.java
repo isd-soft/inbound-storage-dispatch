@@ -112,7 +112,11 @@ public class WorkflowService {
         int quantityToMove = allocation.getPickedQuantity().orElseGet(allocation::getQuantity);
 
         if (quantityToMove > 0) {
-            sourceStock.removeQuantity(quantityToMove);
+            int newQty = Math.max(0, sourceStock.getQuantity() - quantityToMove);
+            int newRes = Math.max(0, sourceStock.getReservedQuantity() - quantityToMove);
+            sourceStock.setQuantity(newQty);
+            sourceStock.setReservedQuantity(newRes);
+
             if (sourceStock.getQuantity() == 0 && sourceStock.getReservedQuantity() == 0) {
                 sourceStock.setAvailable(Boolean.FALSE);
             } else {
