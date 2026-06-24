@@ -19,27 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Core service that orchestrates the workflow for task execution, including
- * allocation generation and completion handling.
- * <p>
- * The service uses pluggable strategies for allocation generation
- * ({@link StockAllocationStrategy}) and completion handling
- * ({@link AllocationCompletionStrategy}) based on the task type.
- * </p>
- * <p>
- * When a task is created or updated, allocations are generated from available
- * stock in the appropriate zone. When an allocation is completed, the service
- * determines the final outcome (full completion, partial shortage, etc.) and
- * updates the task status accordingly.
- * </p>
- *
- * @see Task
- * @see Allocation
- * @see Stock
- * @see StockAllocationStrategy
- * @see AllocationCompletionStrategy
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -51,15 +30,6 @@ public class WorkflowService {
     private final List<AllocationCompletionStrategy> allocationCompletionStrategies;
     private final List<StockAllocationStrategy> allocationStrategies;
 
-    /**
-     * Generates allocations for a task by allocating available stock from the
-     * appropriate zone, using the matching strategy.
-     *
-     * @param task the task for which to generate allocations
-     * @param productId the product ID
-     * @param remainingQuantity the quantity to allocate
-     * @throws InvalidRequestException if insufficient stock is getAvailableQuantity
-     */
     @Transactional
     public void generateAllocationsForTask(Task task, Long productId, int remainingQuantity) {
         StockAllocationStrategy strategy = allocationStrategies.stream()
@@ -100,7 +70,6 @@ public class WorkflowService {
 
         for (Stock stock : availableStocks) {
             if (qtyNeeded <= 0) break;
-
             if (stock.getAvailableQuantity() <= 0) continue;
 
             int quantityToTake = Math.min(stock.getAvailableQuantity(), qtyNeeded);
@@ -121,14 +90,6 @@ public class WorkflowService {
         return allocations;
     }
 
-    /**
-     * Updates an existing task by regenerating allocations for a new product/quantity.
-     * Old allocations are removed and reserved stock is released before new ones are created.
-     *
-     * @param task the task to update
-     * @param productId the new product ID
-     * @param requestedQuantity the new requested quantity
-     */
     @Transactional
     public void updateTask(Task task, Long productId, Integer requestedQuantity) {
         List<Allocation> oldAllocations = allocationRepository.findAllByTaskId(task.getId());
@@ -145,17 +106,9 @@ public class WorkflowService {
         generateAllocationsForTask(task, productId, requestedQuantity);
     }
 
-    /**
-     * Completes an allocation, reducing stock and invoking the appropriate completion
-     * strategy based on the task type.
-     *
-     * @param allocation the allocation to complete
-     * @return a result object containing the outcome (completed, shortage, etc.)
-     */
     @Transactional
     public AllocationCompletionResult executeAllocationCompletion(Allocation allocation) {
         Stock sourceStock = allocation.getStock();
-
         int quantityToMove = allocation.getPickedQuantity().orElseGet(allocation::getQuantity);
 
         if (quantityToMove > 0) {
@@ -168,7 +121,6 @@ public class WorkflowService {
         }
 
         Task task = allocation.getTask();
-
         AllocationCompletionStrategy strategy = allocationCompletionStrategies.stream()
             .filter(s -> s.support(task.getTaskType()))
             .findFirst()
@@ -179,7 +131,13 @@ public class WorkflowService {
 
         strategy.handle(allocation);
 
-        taskRepository.markTaskAsCompleted(allocation.getTask().getId());
+        boolean hasActiveAllocations = allocationRepository.findAllByTaskId(task.getId()).stream()
+            .anyMatch(a -> a.getStatus() == Status.CREATED || a.getStatus() == Status.ASSIGNED || a.getStatus() == Status.IN_PROGRESS);
+
+        if (!hasActiveAllocations) {
+            taskRepository.markTaskAsCompleted(task.getId());
+        }
+
         strategy.updateStatus(task);
         return strategy.result(task);
     }

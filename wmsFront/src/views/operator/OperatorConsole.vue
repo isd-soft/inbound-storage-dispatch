@@ -397,8 +397,8 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, ref, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, defineComponent, h, onMounted, ref, onBeforeUnmount, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { allocationApi } from '@/api/allocationApi'
 import { useTheme } from '@/composables/useTheme'
@@ -464,6 +464,7 @@ const ScanSection = defineComponent({
 })
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { isDark } = useTheme()
 const confirm = useConfirm()
@@ -491,6 +492,22 @@ const activeTuBarcode = ref(localStorage.getItem('active_tu_barcode') || '')
 
 let longPressTimer = null
 let longPressInterval = null
+
+const resetState = () => {
+  summary.value = null
+  showTuScan.value = false
+  showDestinationScan.value = false
+  showFinalSummary.value = false
+  lastTaskType.value = ''
+  savedDestinationBarcode.value = ''
+  activeTuBarcode.value = ''
+  tuInput.value = ''
+  barcodeInput.value = ''
+  destinationInput.value = ''
+  pickedQuantity.value = 0
+  shortageComment.value = ''
+  finalAllocationsSummary.value = []
+}
 
 const incrementQuantity = (max) => { if (pickedQuantity.value < max) pickedQuantity.value++ }
 const decrementQuantity = () => { if (pickedQuantity.value > 0) pickedQuantity.value-- }
@@ -648,9 +665,7 @@ const loadCurrentTask = async () => {
         showFinalSummary.value = true
         summary.value = null
       } else {
-        summary.value = null
-        lastTaskType.value = ''
-        savedDestinationBarcode.value = ''
+        resetState()
       }
       return
     }
@@ -677,9 +692,7 @@ const loadCurrentTask = async () => {
         showFinalSummary.value = true
         summary.value = null
       } else {
-        summary.value = null
-        lastTaskType.value = ''
-        savedDestinationBarcode.value = ''
+        resetState()
       }
       return
     }
@@ -692,14 +705,7 @@ const loadCurrentTask = async () => {
 
 const forceRefreshTask = () => {
   localStorage.removeItem('active_tu_barcode')
-  showTuScan.value = false
-  showDestinationScan.value = false
-  showFinalSummary.value = false
-  lastTaskType.value = ''
-  savedDestinationBarcode.value = ''
-  activeTuBarcode.value = ''
-  tuInput.value = ''
-  finalAllocationsSummary.value = []
+  resetState()
   loadCurrentTask()
 }
 
@@ -829,9 +835,6 @@ const submitPickedQuantity = async () => {
 
   try {
     const allocationId = currentAllocation.value.allocationId
-    const isZeroQuantity = pickedQuantity.value === 0
-    const totalLinesCount = orderedAllocations.value.length
-    const currentTaskIsReplenishment = isReplenishmentTask.value
 
     await allocationApi.confirmPickedQuantity(allocationId, {
       pickedQuantity: pickedQuantity.value,
@@ -839,42 +842,25 @@ const submitPickedQuantity = async () => {
       comment: null,
     })
     const response = await allocationApi.completeAssignedAllocation(allocationId)
-
     const completion = response.data
 
-    if (isZeroQuantity && (totalLinesCount <= 1 || currentTaskIsReplenishment)) {
-      localStorage.removeItem('active_tu_barcode')
-      summary.value = null
-      showFinalSummary.value = false
-      showDestinationScan.value = false
-      lastTaskType.value = ''
-      savedDestinationBarcode.value = ''
-      finalAllocationsSummary.value = []
-      pickedQuantity.value = 0
-      shortageComment.value = ''
-      await loadCurrentTask()
+    const allCanceled = completion.summary?.allocations?.length > 0 &&
+      completion.summary.allocations.every(a => a.status === 'CANCELED');
 
+    if (completion.orderStatus === 'CANCELED' || allCanceled) {
+      localStorage.removeItem('active_tu_barcode')
+      resetState()
+      await loadCurrentTask()
       toast.add({
         severity: 'warn',
         summary: 'Task Cancelled',
-        detail: 'Quantity set to 0. Task was cancelled and TU released.',
+        detail: 'No stock found. Task was cancelled and TU released.',
         life: 4000,
       })
       return
     }
 
-    if (completion.orderStatus === 'CANCELED') {
-      localStorage.removeItem('active_tu_barcode')
-      summary.value = null
-      showFinalSummary.value = false
-      showDestinationScan.value = false
-      lastTaskType.value = ''
-      savedDestinationBarcode.value = ''
-      finalAllocationsSummary.value = []
-      pickedQuantity.value = 0
-      shortageComment.value = ''
-      await loadCurrentTask()
-    } else if (completion.newProcessCreated && completion.summary?.currentAllocation) {
+    if (completion.newProcessCreated && completion.summary?.currentAllocation) {
       showFinalSummary.value = false
       showDestinationScan.value = false
       hydrateCompletionSummary(completion)
@@ -897,7 +883,7 @@ const submitPickedQuantity = async () => {
       toast.add({
         severity: 'info',
         summary: 'Reallocation',
-        detail: 'Alternative stock found. New picking task was created.',
+        detail: 'Alternative stock found. New task created.',
         life: 5000,
       })
     }
@@ -929,22 +915,13 @@ const submitDestinationScan = async () => {
     if (allocationId && activeTuBarcode.value) {
       await allocationApi.dispatchAllocation(allocationId, activeTuBarcode.value)
     }
-
     localStorage.removeItem('active_tu_barcode')
 
-    showDestinationScan.value = false
+    if (!isReplenishmentTask.value) {
+      await allocationApi.completeCurrentOrder()
+    }
 
-    await allocationApi.completeCurrentOrder()
-
-    summary.value = null
-    showFinalSummary.value = false
-    showDestinationScan.value = false
-    lastTaskType.value = ''
-    savedDestinationBarcode.value = ''
-    activeTuBarcode.value = ''
-    tuInput.value = ''
-    finalAllocationsSummary.value = []
-
+    resetState()
     await loadCurrentTask()
   } catch (error) {
     actionError.value = getErrorMessage(error, 'Destination validation failed.')
@@ -953,11 +930,17 @@ const submitDestinationScan = async () => {
   }
 }
 
+watch(
+  () => route.fullPath,
+  () => {
+    forceRefreshTask()
+  }
+)
+
 onMounted(() => {
   loadCurrentTask()
 })
 </script>
-
 <style scoped>
 .app-type-banner {
   border: 1px solid transparent;
