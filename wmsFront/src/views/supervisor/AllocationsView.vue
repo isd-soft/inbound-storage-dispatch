@@ -34,6 +34,7 @@
             :type="data.type"
             :order-id="data.orderId"
             :replenishment-id="data.replenishmentId"
+            :reference="data.reference"
           />
         </template>
       </Column>
@@ -167,7 +168,9 @@ const loadAllocations = async () => {
       ...item,
       formattedType: formatString(item.type),
       formattedStatus: formatString(item.status),
-      reference: item.type === 'REPLENISHMENT' ? `REPL-${item.replenishmentId}` : `ORD-${item.orderId}`
+      reference: item.type === 'REPLENISHMENT'
+        ? item.replenishmentLogicId || `REPL-${item.replenishmentId}`
+        : item.orderLogicId || `ORD-${item.orderId}`
     }))
 
   } catch (error) {

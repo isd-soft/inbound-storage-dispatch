@@ -5,6 +5,7 @@ import com.isd.wms.dto.operator.OperatorTaskSummaryResponse;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.OrderStatus;
 import com.isd.wms.enums.Status;
+import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.exception.AllocationsNotFoundException;
 import com.isd.wms.exception.InvalidRequestException;
@@ -105,7 +106,7 @@ public class AllocationExecutionService {
         order.setStatus(allCanceled ? OrderStatus.CANCELED : (hasPartialOrCanceled ? OrderStatus.PARTIALLY_COMPLETED : OrderStatus.COMPLETED));
         orderRepository.save(order);
 
-        tuRepository.findByOrder(order).ifPresent(tu -> {
+        tuRepository.findAllByOrder(order).forEach(tu -> {
             tu.setOrder(null);
             tu.setReplenishment(null);
             tuRepository.save(tu);
@@ -259,8 +260,12 @@ public class AllocationExecutionService {
         }
 
         allocation.setStatus(Status.IN_PROGRESS);
+        Task task = allocation.getTask();
+        if (task.getStatus() == TaskStatus.CREATED || task.getStatus() == TaskStatus.ASSIGNED) {
+            task.setStatus(TaskStatus.IN_PROGRESS);
+        }
 
-        orderLineRepository.findByTaskId(allocation.getTask().getId()).ifPresent(orderLine -> {
+        orderLineRepository.findByTaskId(task.getId()).ifPresent(orderLine -> {
             if (orderLine.getStatus() == Status.ASSIGNED) orderLine.setStatus(Status.IN_PROGRESS);
             Order currentOrder = order != null ? order : orderLine.getOrder();
             if (currentOrder.getStatus() == OrderStatus.ASSIGNED) {
@@ -269,7 +274,7 @@ public class AllocationExecutionService {
             }
         });
 
-        replenishmentRepository.findByTaskId(allocation.getTask().getId()).ifPresent(replenishment -> {
+        replenishmentRepository.findByTaskId(task.getId()).ifPresent(replenishment -> {
             if (replenishment.getStatus() == Status.ASSIGNED) replenishment.setStatus(Status.IN_PROGRESS);
         });
     }

@@ -2,6 +2,7 @@ package com.isd.wms.service;
 
 import com.isd.wms.entity.Task;
 import com.isd.wms.entity.User;
+import com.isd.wms.enums.TaskStatus;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.enums.Status;
 import com.isd.wms.exception.TaskNotFoundException;
@@ -80,11 +81,11 @@ public class TaskService {
         User operator = userRepository.findById(operatorId)
             .orElseThrow(() -> new UserNotFoundException(operatorId));
 
-        if (task.getOperator().filter(current -> current.equals(operator)).isPresent()) {
-            return;
+        if (task.getOperator().filter(current -> current.equals(operator)).isEmpty()) {
+            task.setOperator(operator);
         }
 
-        task.setOperator(operator);
+        task.setStatus(TaskStatus.ASSIGNED);
         taskRepository.save(task);
 
         var allocations = allocationRepository.findAllByTaskId(taskId);

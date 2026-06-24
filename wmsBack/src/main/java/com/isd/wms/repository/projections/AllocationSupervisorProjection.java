@@ -6,7 +6,9 @@ import com.isd.wms.enums.TaskType;
 public interface AllocationSupervisorProjection {
     Long getAllocationId();
     Long getReplenishmentId();
+    String getReplenishmentLogicId();
     Long getOrderId();
+    String getOrderLogicId();
     TaskType getType();
     Long getStockId();
     String getProductName();

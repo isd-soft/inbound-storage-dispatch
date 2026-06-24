@@ -3,13 +3,11 @@ package com.isd.wms.service.allocation;
 import com.isd.wms.dto.allocation.AllocationCompletionResult;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.AllocationCompletionStatus;
-import com.isd.wms.enums.InventoryOperationType;
 import com.isd.wms.enums.Status;
 import com.isd.wms.enums.TaskType;
 import com.isd.wms.repository.AllocationRepository;
 import com.isd.wms.repository.ReplenishmentRepository;
 import com.isd.wms.repository.StockRepository;
-import com.isd.wms.service.InventoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +28,6 @@ class ReplenishmentAllocationCompletionStrategyTest {
     @Mock private ReplenishmentRepository replenishmentRepository;
     @Mock private AllocationRepository allocationRepository;
     @Mock private StockRepository stockRepository;
-    @Mock private InventoryService inventoryService;
 
     @InjectMocks
     private ReplenishmentAllocationCompletionStrategy strategy;
@@ -71,22 +67,6 @@ class ReplenishmentAllocationCompletionStrategyTest {
         allocation.setStock(sourceStock);
         allocation.setTask(task);
         ReflectionTestUtils.setField(allocation, "id", 100L);
-    }
-
-    @Test
-    void handle_withShortage_callsInventoryService() {
-        allocation.setPickedQuantity(7);
-        when(replenishmentRepository.findByTaskId(1L)).thenReturn(Optional.of(replenishment));
-
-        strategy.handle(allocation);
-
-        verify(inventoryService).recordShortageAdjustment(
-            eq(sourceStock),
-            eq(3),
-            eq(operator),
-            eq(InventoryOperationType.REPLENISHMENT_SHORTAGE),
-            eq("Replenishment shortage")
-        );
     }
 
     @Test

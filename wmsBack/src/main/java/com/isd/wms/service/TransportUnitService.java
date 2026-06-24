@@ -98,6 +98,10 @@ public class TransportUnitService {
                     return new EntityNotFoundException("Order not found for the associated Task.");
                 });
 
+            if (tuRepository.existsByOrder(order)) {
+                throw new IllegalStateException("This order already has an active transport unit!");
+            }
+
             log.info("TU {} successfully linked to Order ID: {}", barcode, order.getId());
             tu.setOrder(order);
             tu.setReplenishment(null);

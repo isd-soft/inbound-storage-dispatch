@@ -1,6 +1,7 @@
 package com.isd.wms.service;
 
 import com.isd.wms.dto.allocation.AllocationOperatorResponse;
+import com.isd.wms.dto.allocation.AllocationSupervisorResponse;
 import com.isd.wms.dto.allocation.ShortAllocationResponse;
 import com.isd.wms.entity.*;
 import com.isd.wms.enums.Status;
@@ -43,8 +44,29 @@ public class AllocationService {
      *
      * @return a list of {@link AllocationSupervisorProjection} objects
      */
-    public List<AllocationSupervisorProjection> getAllAllocations() {
-        return allocationRepository.getAllAllocations();
+    public List<AllocationSupervisorResponse> getAllAllocations() {
+        return allocationRepository.getAllAllocations().stream()
+            .map(this::toSupervisorResponse)
+            .toList();
+    }
+
+    private AllocationSupervisorResponse toSupervisorResponse(AllocationSupervisorProjection allocation) {
+        return new AllocationSupervisorResponse(
+            allocation.getAllocationId(),
+            allocation.getReplenishmentId(),
+            allocation.getReplenishmentLogicId(),
+            allocation.getOrderId(),
+            allocation.getOrderLogicId(),
+            allocation.getType(),
+            allocation.getStockId(),
+            allocation.getProductName(),
+            allocation.getLocationName(),
+            allocation.getRequestedQuantity(),
+            allocation.getDeliveredQuantity(),
+            allocation.getStatus(),
+            allocation.getSourceLocationScanned(),
+            allocation.getProductScanned()
+        );
     }
 
     /**

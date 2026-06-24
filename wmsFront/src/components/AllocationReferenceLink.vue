@@ -16,15 +16,20 @@ const props = defineProps({
   type: { type: String, default: '' },
   orderId: { type: [Number, String], default: null },
   replenishmentId: { type: [Number, String], default: null },
+  reference: { type: String, default: '' },
 })
 
 const label = computed(() => {
+  if (props.reference) {
+    return props.reference
+  }
+
   if ((props.type === 'PICKING_ORDER' || props.type === 'ORDER') && props.orderId) {
-    return `ORD-${props.orderId}` // Сделал короче и красивее
+    return `ORD-${props.orderId}`
   }
 
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
-    return `REPL-${props.replenishmentId}` // Сделал короче и красивее
+    return `REPL-${props.replenishmentId}`
   }
 
   return 'Reference'
@@ -43,7 +48,7 @@ const target = computed(() => {
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
     return {
       path: '/supervisor/replenishments',
-      query: { id: props.replenishmentId }, // Этот query подхватит твой ReplenishmentsView
+      query: { id: props.replenishmentId },
     }
   }
 

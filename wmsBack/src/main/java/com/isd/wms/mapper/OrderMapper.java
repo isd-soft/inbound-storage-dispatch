@@ -15,7 +15,7 @@ public class OrderMapper {
     private final TransportUnitRepository transportUnitRepository;
 
     public OrderResponse toResponse(Order order, @Nullable Long operatorId) {
-        String tuBarcode = transportUnitRepository.findByOrder(order)
+        String tuBarcode = transportUnitRepository.findFirstByOrderOrderByCreatedAtAscIdAsc(order)
             .map(TransportUnit::getBarcode)
             .orElse(null);
 

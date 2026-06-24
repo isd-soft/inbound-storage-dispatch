@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -48,7 +49,8 @@ public class ReplenishmentOperatorStrategy implements OperatorExecutionStrategy 
         int shortageQuantity = partialPick ? Math.max(0, allocation.getQuantity() - pickedQuantity) : 0;
 
         if (shortageQuantity > 0) {
-            inventoryService.recordShortageAdjustment(allocation.getStock(), shortageQuantity, operator,
+            int missingSourceQuantity = calculateMissingSourceQuantity(allocation, pickedQuantity);
+            inventoryService.recordShortageAdjustment(allocation.getStock(), missingSourceQuantity, operator,
                 InventoryOperationType.REPLENISHMENT_SHORTAGE, "Replenishment shortage");
         }
 
@@ -80,6 +82,11 @@ public class ReplenishmentOperatorStrategy implements OperatorExecutionStrategy 
             null, null, message,
             summaryMapper.toReplenishmentSummary(allocation.getTask(), replenishment, allTaskAllocations, currentAllocation, isTuScanned)
         );
+    }
+
+    private int calculateMissingSourceQuantity(Allocation allocation, int pickedQuantity) {
+        int sourceQuantity = Optional.ofNullable(allocation.getStock().getQuantity()).orElse(0);
+        return Math.max(0, sourceQuantity - pickedQuantity);
     }
 
     @Override
