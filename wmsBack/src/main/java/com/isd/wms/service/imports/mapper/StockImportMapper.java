@@ -26,14 +26,15 @@ public class StockImportMapper implements ImportMapper<StockInfo, AddStockReques
 
     @Override
     public AddStockRequest toEntity(StockInfo info) {
+        System.out.println(info.toString());
         try {
             return new AddStockRequest(
                 getProductId(info.getProductName()),
                 getLocationId(info.getLocationName()),
                 info.getQuantity(),
                 info.getReservedQuantity(),
-                parseFlexibleDate(info.getManufactureDateRaw()),
-                parseFlexibleDate(info.getExpirationDateRaw()),
+                info.getManufactureDate(),
+                info.getExpirationDate(),
                 securityFacade.getCurrentUser().getId()
             );
         } catch (Exception e) {

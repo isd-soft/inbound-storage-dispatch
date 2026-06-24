@@ -46,10 +46,7 @@ public class XlsxImportStrategy implements ImportStrategy {
 
             PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
                 .preferNullOverDefault(true)
-                .datePattern("dd.MM.yyyy")
-                .dateTimeFormatter(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                 .build();
-
             PoijiExcelType excelType = PoijiExcelType.XLSX;
             if (Objects.equals(FilenameUtils.getExtension(file.getOriginalFilename()), "xls")) {
                 excelType = PoijiExcelType.XLS;

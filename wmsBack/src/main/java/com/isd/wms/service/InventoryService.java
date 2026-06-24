@@ -313,6 +313,7 @@ public class InventoryService {
     static void validateStockDate(LocalDate manufactureDate, LocalDate expirationDate) {
         LocalDate today = LocalDate.now();
 
+        System.out.println(manufactureDate);
         if (manufactureDate != null && manufactureDate.isAfter(today)) {
             throw new InvalidRequestException(
                 "Manufacture Date must be before today.");

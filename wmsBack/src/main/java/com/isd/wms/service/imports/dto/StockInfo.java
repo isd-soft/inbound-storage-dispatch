@@ -1,9 +1,12 @@
 package com.isd.wms.service.imports.dto;
 
 import com.opencsv.bean.CsvBindByName;
+import com.opencsv.bean.CsvDate;
 import com.poiji.annotation.ExcelCellName;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+
+import java.time.LocalDate;
 
 /**
  * Import DTO for stock data.
@@ -12,6 +15,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class StockInfo {
     @ExcelCellName(value = "Product", mandatoryCell = true, mandatoryHeader = true)
     @CsvBindByName(column = "Product", required = true)
@@ -35,11 +39,13 @@ public class StockInfo {
     @NonNull
     private Integer reservedQuantity;
 
-    @ExcelCellName(value = "Manufacture Date")
-    @CsvBindByName(column = "Manufacture Date")
-    private String manufactureDateRaw;
+    @ExcelCellName(value = "Manufacture Date", mandatoryHeader = true)
+    @CsvBindByName(column = "Manufacture Date", required = true)
+    @CsvDate("dd.MM.yyyy")
+    private LocalDate manufactureDate;
 
-    @ExcelCellName(value = "Expiration Date")
-    @CsvBindByName(column = "Expiration Date")
-    private String expirationDateRaw;
+    @ExcelCellName(value = "Expiration Date", mandatoryHeader = true)
+    @CsvBindByName(column = "Expiration Date", required = true)
+    @CsvDate("dd.MM.yyyy")
+    private LocalDate expirationDate;
 }
