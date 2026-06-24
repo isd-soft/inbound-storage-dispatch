@@ -15,16 +15,18 @@ import { RouterLink } from 'vue-router'
 const props = defineProps({
   type: { type: String, default: '' },
   orderId: { type: [Number, String], default: null },
+  orderLogicId: { type: String, default: '' },
   replenishmentId: { type: [Number, String], default: null },
+  replenishmentLogicId: { type: String, default: '' },
 })
 
 const label = computed(() => {
   if ((props.type === 'PICKING_ORDER' || props.type === 'ORDER') && props.orderId) {
-    return `Order #${props.orderId}`
+    return props.orderLogicId || `Order #${props.orderId}`
   }
 
   if (props.type === 'REPLENISHMENT' && props.replenishmentId) {
-    return `Replenishment #${props.replenishmentId}`
+    return props.replenishmentLogicId || `Replenishment #${props.replenishmentId}`
   }
 
   return 'Reference'
