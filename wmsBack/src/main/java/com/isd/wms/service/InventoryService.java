@@ -77,6 +77,7 @@ public class InventoryService {
      */
     @Transactional
     public StockResponse addStock(AddStockRequest request) {
+        InventoryService.validateStockDate(request.manufactureDate(), request.expirationDate());
         log.info("Adding stock: productId={}, locationId={}, quantity={}, userId={}",
             request.productId(), request.locationId(), request.quantity(), request.userId());
 
@@ -312,11 +313,6 @@ public class InventoryService {
 
     static void validateStockDate(LocalDate manufactureDate, LocalDate expirationDate) {
         LocalDate today = LocalDate.now();
-
-        if ((manufactureDate == null) != (expirationDate == null)) {
-            throw new InvalidRequestException(
-                "Both manufactureDate and expirationDate must be provided together.");
-        }
 
         if (manufactureDate != null && manufactureDate.isAfter(today)) {
             throw new InvalidRequestException(

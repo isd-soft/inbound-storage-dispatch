@@ -98,7 +98,7 @@
           <DatePicker
             id="manufactureDate"
             v-model="form.manufactureDate"
-            :maxDate="new Date()"
+            :maxDate="today"
             showClear
             dateFormat="yy-mm-dd"
             class="w-full"
@@ -111,7 +111,7 @@
           <DatePicker
             id="expirationDate"
             v-model="form.expirationDate"
-            :minDate="new Date()"
+            :minDate="today"
             showClear
             dateFormat="yy-mm-dd"
             class="w-full"
@@ -142,6 +142,8 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 
+const today = new Date()
+today.setHours(0, 0, 0, 0)
 const props = defineProps({
   visible: { type: Boolean, default: false },
   mode: { type: String, required: true },
