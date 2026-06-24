@@ -61,26 +61,29 @@
     </aside>
 
     <main class="flex-1 min-w-0 overflow-y-auto">
-      <header
-        class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
-      >
-        <div class="flex items-center gap-3">
-          <img
-            :src="isDark ? '/white_logo.png' : '/color_white_logo.png'"
-            alt="Inbound Storage Dispatch logo"
-            class="h-8 w-auto object-contain"
+      <main class="flex-1 min-w-0 overflow-y-auto">
+        <header
+          class="app-header sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:hidden"
+        >
+          <div class="flex items-center gap-3">
+            <img
+              :src="isDark ? '/white_logo.png' : '/color_logo.png'"
+              alt="Inbound Storage Dispatch logo"
+              class="h-[38px] w-auto object-contain"
+            />
+            <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
+          </div>
+          <Button
+            icon="pi pi-bars"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Open menu"
+            @click="openMobileMenu"
           />
-          <span class="app-title text-lg font-bold tracking-wide">ISD WMS</span>
-        </div>
-        <Button
-          icon="pi pi-bars"
-          text
-          rounded
-          severity="secondary"
-          aria-label="Open menu"
-          @click="openMobileMenu"
-        />
-      </header>
+        </header>
+        <router-view />
+      </main>
       <router-view />
     </main>
 
